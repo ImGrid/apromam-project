@@ -2,23 +2,22 @@ import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { TipoCultivo, TipoCultivoData } from "../entities/TipoCultivo.js";
 
 export class TipoCultivoRepository {
-  /**
-   * Lista todos los tipos de cultivo
-   * Con opción de filtrar por activos
-   */
+  // Lista todos los tipos de cultivo
+  // Con opcion de filtrar por activos
   async findAll(soloActivos: boolean = true): Promise<TipoCultivo[]> {
     const query = {
       name: "find-all-tipos-cultivo",
       text: `
         SELECT 
           id_tipo_cultivo,
-          nombre_tipo_cultivo,
+          nombre_cultivo,
+          descripcion,
+          es_principal_certificable,
           rendimiento_promedio_qq_ha,
-          activo,
-          created_at
+          activo
         FROM tipos_cultivo
         ${soloActivos ? "WHERE activo = true" : ""}
-        ORDER BY nombre_tipo_cultivo ASC
+        ORDER BY nombre_cultivo ASC
       `,
       values: [],
     };
@@ -27,19 +26,18 @@ export class TipoCultivoRepository {
     return results.map((data) => TipoCultivo.fromDatabase(data));
   }
 
-  /**
-   * Encuentra tipo cultivo por ID
-   */
+  // Encuentra tipo cultivo por ID
   async findById(id: string): Promise<TipoCultivo | null> {
     const query = {
       name: "find-tipo-cultivo-by-id",
       text: `
         SELECT 
           id_tipo_cultivo,
-          nombre_tipo_cultivo,
+          nombre_cultivo,
+          descripcion,
+          es_principal_certificable,
           rendimiento_promedio_qq_ha,
-          activo,
-          created_at
+          activo
         FROM tipos_cultivo
         WHERE id_tipo_cultivo = $1
       `,
@@ -50,20 +48,19 @@ export class TipoCultivoRepository {
     return result ? TipoCultivo.fromDatabase(result) : null;
   }
 
-  /**
-   * Busca tipo cultivo por nombre (case-insensitive)
-   */
+  // Busca tipo cultivo por nombre (case-insensitive)
   async findByNombre(nombre: string): Promise<TipoCultivo | null> {
     const query = {
       text: `
         SELECT 
           id_tipo_cultivo,
-          nombre_tipo_cultivo,
+          nombre_cultivo,
+          descripcion,
+          es_principal_certificable,
           rendimiento_promedio_qq_ha,
-          activo,
-          created_at
+          activo
         FROM tipos_cultivo
-        WHERE LOWER(nombre_tipo_cultivo) = LOWER($1)
+        WHERE LOWER(nombre_cultivo) = LOWER($1)
       `,
       values: [nombre],
     };
@@ -72,16 +69,14 @@ export class TipoCultivoRepository {
     return result ? TipoCultivo.fromDatabase(result) : null;
   }
 
-  /**
-   * Verifica si existe tipo cultivo con el nombre
-   */
+  // Verifica si existe tipo cultivo con el nombre
   async existsByNombre(nombre: string): Promise<boolean> {
     const query = {
       text: `
         SELECT EXISTS(
           SELECT 1 
           FROM tipos_cultivo 
-          WHERE LOWER(nombre_tipo_cultivo) = LOWER($1)
+          WHERE LOWER(nombre_cultivo) = LOWER($1)
         ) as exists
       `,
       values: [nombre],
@@ -91,13 +86,11 @@ export class TipoCultivoRepository {
     return result?.exists ?? false;
   }
 
-  /**
-   * Crea un nuevo tipo cultivo
-   */
+  // Crea un nuevo tipo cultivo
   async create(tipoCultivo: TipoCultivo): Promise<TipoCultivo> {
     const validation = tipoCultivo.validate();
     if (!validation.valid) {
-      throw new Error(`Validación falló: ${validation.errors.join(", ")}`);
+      throw new Error(`Validacion fallo: ${validation.errors.join(", ")}`);
     }
 
     // Verificar duplicados
@@ -111,19 +104,24 @@ export class TipoCultivoRepository {
     const query = {
       text: `
         INSERT INTO tipos_cultivo (
-          nombre_tipo_cultivo,
+          nombre_cultivo,
+          descripcion,
+          es_principal_certificable,
           rendimiento_promedio_qq_ha,
           activo
-        ) VALUES ($1, $2, $3)
+        ) VALUES ($1, $2, $3, $4, $5)
         RETURNING 
           id_tipo_cultivo,
-          nombre_tipo_cultivo,
+          nombre_cultivo,
+          descripcion,
+          es_principal_certificable,
           rendimiento_promedio_qq_ha,
-          activo,
-          created_at
+          activo
       `,
       values: [
-        insertData.nombre_tipo_cultivo,
+        insertData.nombre_cultivo,
+        insertData.descripcion,
+        insertData.es_principal_certificable,
         insertData.rendimiento_promedio_qq_ha,
         insertData.activo,
       ],
@@ -137,13 +135,11 @@ export class TipoCultivoRepository {
     return TipoCultivo.fromDatabase(result.data);
   }
 
-  /**
-   * Actualiza un tipo cultivo existente
-   */
+  // Actualiza un tipo cultivo existente
   async update(id: string, tipoCultivo: TipoCultivo): Promise<TipoCultivo> {
     const validation = tipoCultivo.validate();
     if (!validation.valid) {
-      throw new Error(`Validación falló: ${validation.errors.join(", ")}`);
+      throw new Error(`Validacion fallo: ${validation.errors.join(", ")}`);
     }
 
     const updateData = tipoCultivo.toDatabaseUpdate();
@@ -151,20 +147,25 @@ export class TipoCultivoRepository {
       text: `
         UPDATE tipos_cultivo
         SET 
-          nombre_tipo_cultivo = COALESCE($2, nombre_tipo_cultivo),
-          rendimiento_promedio_qq_ha = COALESCE($3, rendimiento_promedio_qq_ha),
-          activo = COALESCE($4, activo)
+          nombre_cultivo = COALESCE($2, nombre_cultivo),
+          descripcion = COALESCE($3, descripcion),
+          es_principal_certificable = COALESCE($4, es_principal_certificable),
+          rendimiento_promedio_qq_ha = COALESCE($5, rendimiento_promedio_qq_ha),
+          activo = COALESCE($6, activo)
         WHERE id_tipo_cultivo = $1
         RETURNING 
           id_tipo_cultivo,
-          nombre_tipo_cultivo,
+          nombre_cultivo,
+          descripcion,
+          es_principal_certificable,
           rendimiento_promedio_qq_ha,
-          activo,
-          created_at
+          activo
       `,
       values: [
         id,
-        updateData.nombre_tipo_cultivo,
+        updateData.nombre_cultivo,
+        updateData.descripcion,
+        updateData.es_principal_certificable,
         updateData.rendimiento_promedio_qq_ha,
         updateData.activo,
       ],
@@ -183,9 +184,7 @@ export class TipoCultivoRepository {
     return tipoCultivoActualizado;
   }
 
-  /**
-   * Desactiva un tipo cultivo (soft delete)
-   */
+  // Desactiva un tipo cultivo (soft delete)
   async softDelete(id: string): Promise<void> {
     const tipoCultivo = await this.findById(id);
     if (!tipoCultivo) {
@@ -216,9 +215,7 @@ export class TipoCultivoRepository {
     }
   }
 
-  /**
-   * Cuenta tipos de cultivo
-   */
+  // Cuenta tipos de cultivo
   async count(soloActivos: boolean = true): Promise<number> {
     const query = {
       text: `

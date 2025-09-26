@@ -1,29 +1,27 @@
-/**
- * Interfaz para datos de Gestion desde BD
- */
+// Interfaz para datos de Gestion desde BD
 export interface GestionData {
   id_gestion: string;
   anio_gestion: number;
-  nombre_gestion?: string;
-  activo: boolean;
-  created_at: Date;
+  descripcion?: string;
+  fecha_inicio?: Date;
+  fecha_fin?: Date;
+  estado_gestion: "planificada" | "activa" | "finalizada";
+  activa: boolean;
 }
 
-/**
- * Interfaz para datos públicos de Gestion (response)
- */
+// Interfaz para datos publicos de Gestion (response)
 export interface GestionPublicData {
   id_gestion: string;
   anio_gestion: number;
-  nombre_gestion?: string;
-  activo: boolean;
-  created_at: string;
+  descripcion?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  estado_gestion: string;
+  activa: boolean;
 }
 
-/**
- * Entidad Gestion
- * Representa las gestiones agrícolas (años) del sistema
- */
+// Entidad Gestion
+// Representa las gestiones agricolas (años) del sistema
 export class Gestion {
   private data: GestionData;
 
@@ -40,49 +38,55 @@ export class Gestion {
     return this.data.anio_gestion;
   }
 
-  get nombre(): string | undefined {
-    return this.data.nombre_gestion;
+  get descripcion(): string | undefined {
+    return this.data.descripcion;
   }
 
-  get activo(): boolean {
-    return this.data.activo;
+  get fechaInicio(): Date | undefined {
+    return this.data.fecha_inicio;
   }
 
-  get createdAt(): Date {
-    return this.data.created_at;
+  get fechaFin(): Date | undefined {
+    return this.data.fecha_fin;
   }
 
-  /**
-   * Crea una nueva instancia de Gestion
-   */
+  get estadoGestion(): "planificada" | "activa" | "finalizada" {
+    return this.data.estado_gestion;
+  }
+
+  get activa(): boolean {
+    return this.data.activa;
+  }
+
+  // Crea una nueva instancia de Gestion
   static create(data: {
     anio_gestion: number;
-    nombre_gestion?: string;
+    descripcion?: string;
+    fecha_inicio?: Date;
+    fecha_fin?: Date;
   }): Gestion {
     return new Gestion({
-      id_gestion: "", // Se genera en BD
+      id_gestion: "",
       anio_gestion: data.anio_gestion,
-      nombre_gestion: data.nombre_gestion || `Gestión ${data.anio_gestion}`,
-      activo: true,
-      created_at: new Date(),
+      descripcion: data.descripcion || `Gestion Agricola ${data.anio_gestion}`,
+      fecha_inicio: data.fecha_inicio,
+      fecha_fin: data.fecha_fin,
+      estado_gestion: "planificada",
+      activa: true,
     });
   }
 
-  /**
-   * Crea instancia desde datos de BD
-   */
+  // Crea instancia desde datos de BD
   static fromDatabase(data: GestionData): Gestion {
     return new Gestion(data);
   }
 
-  /**
-   * Valida los datos de la gestión
-   */
+  // Valida los datos de la gestion
   validate(): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     if (!this.data.anio_gestion) {
-      errors.push("Año de gestión es requerido");
+      errors.push("Año de gestion es requerido");
     }
 
     if (this.data.anio_gestion < 2000) {
@@ -93,11 +97,14 @@ export class Gestion {
       errors.push("Año debe ser menor a 2100");
     }
 
-    if (
-      this.data.nombre_gestion &&
-      this.data.nombre_gestion.trim().length < 4
-    ) {
-      errors.push("Nombre de gestión debe tener al menos 4 caracteres");
+    if (this.data.descripcion && this.data.descripcion.trim().length < 4) {
+      errors.push("Descripcion de gestion debe tener al menos 4 caracteres");
+    }
+
+    if (this.data.fecha_inicio && this.data.fecha_fin) {
+      if (this.data.fecha_inicio > this.data.fecha_fin) {
+        errors.push("Fecha inicio debe ser anterior a fecha fin");
+      }
     }
 
     return {
@@ -106,109 +113,114 @@ export class Gestion {
     };
   }
 
-  /**
-   * Convierte a formato para insertar en BD
-   */
+  // Convierte a formato para insertar en BD
   toDatabaseInsert(): {
     anio_gestion: number;
-    nombre_gestion?: string;
-    activo: boolean;
+    descripcion?: string;
+    fecha_inicio?: Date;
+    fecha_fin?: Date;
+    estado_gestion: "planificada" | "activa" | "finalizada";
+    activa: boolean;
   } {
     return {
       anio_gestion: this.data.anio_gestion,
-      nombre_gestion: this.data.nombre_gestion?.trim(),
-      activo: this.data.activo,
+      descripcion: this.data.descripcion?.trim(),
+      fecha_inicio: this.data.fecha_inicio,
+      fecha_fin: this.data.fecha_fin,
+      estado_gestion: this.data.estado_gestion,
+      activa: this.data.activa,
     };
   }
 
-  /**
-   * Convierte a formato para actualizar en BD
-   */
+  // Convierte a formato para actualizar en BD
   toDatabaseUpdate(): {
-    nombre_gestion?: string;
-    activo?: boolean;
+    descripcion?: string;
+    fecha_inicio?: Date;
+    fecha_fin?: Date;
+    estado_gestion?: "planificada" | "activa" | "finalizada";
+    activa?: boolean;
   } {
     return {
-      nombre_gestion: this.data.nombre_gestion?.trim(),
-      activo: this.data.activo,
+      descripcion: this.data.descripcion?.trim(),
+      fecha_inicio: this.data.fecha_inicio,
+      fecha_fin: this.data.fecha_fin,
+      estado_gestion: this.data.estado_gestion,
+      activa: this.data.activa,
     };
   }
 
-  /**
-   * Convierte a formato JSON público
-   */
+  // Convierte a formato JSON publico
   toJSON(): GestionPublicData {
     return {
       id_gestion: this.data.id_gestion,
       anio_gestion: this.data.anio_gestion,
-      nombre_gestion: this.data.nombre_gestion,
-      activo: this.data.activo,
-      created_at: this.data.created_at.toISOString(),
+      descripcion: this.data.descripcion,
+      fecha_inicio: this.data.fecha_inicio?.toISOString(),
+      fecha_fin: this.data.fecha_fin?.toISOString(),
+      estado_gestion: this.data.estado_gestion,
+      activa: this.data.activa,
     };
   }
 
-  /**
-   * Verifica si la gestión puede ser desactivada
-   */
+  // Verifica si la gestion puede ser desactivada
   puedeDesactivar(): { valid: boolean; error?: string } {
-    if (!this.data.activo) {
+    if (!this.data.activa) {
       return {
         valid: false,
-        error: "La gestión ya está inactiva",
+        error: "La gestion ya esta inactiva",
       };
     }
-
-    // Aquí se podría verificar si tiene fichas asociadas
-    // Por ahora solo validamos el estado
 
     return { valid: true };
   }
 
-  /**
-   * Verifica si la gestión es del año actual
-   */
+  // Verifica si la gestion es del año actual
   esActual(): boolean {
     const anioActual = new Date().getFullYear();
     return this.data.anio_gestion === anioActual;
   }
 
-  /**
-   * Verifica si la gestión es futura
-   */
+  // Verifica si la gestion es futura
   esFutura(): boolean {
     const anioActual = new Date().getFullYear();
     return this.data.anio_gestion > anioActual;
   }
 
-  /**
-   * Verifica si la gestión es pasada
-   */
+  // Verifica si la gestion es pasada
   esPasada(): boolean {
     const anioActual = new Date().getFullYear();
     return this.data.anio_gestion < anioActual;
   }
 
-  /**
-   * Actualiza el nombre de la gestión
-   */
-  actualizarNombre(nuevoNombre: string): void {
-    if (!nuevoNombre || nuevoNombre.trim().length < 4) {
-      throw new Error("Nombre debe tener al menos 4 caracteres");
+  // Actualiza la descripcion de la gestion
+  actualizarDescripcion(nuevaDescripcion: string): void {
+    if (!nuevaDescripcion || nuevaDescripcion.trim().length < 4) {
+      throw new Error("Descripcion debe tener al menos 4 caracteres");
     }
-    this.data.nombre_gestion = nuevoNombre.trim();
+    this.data.descripcion = nuevaDescripcion.trim();
   }
 
-  /**
-   * Activa la gestión
-   */
+  // Actualiza las fechas de la gestion
+  actualizarFechas(fechaInicio: Date, fechaFin: Date): void {
+    if (fechaInicio > fechaFin) {
+      throw new Error("Fecha inicio debe ser anterior a fecha fin");
+    }
+    this.data.fecha_inicio = fechaInicio;
+    this.data.fecha_fin = fechaFin;
+  }
+
+  // Actualiza el estado de la gestion
+  actualizarEstado(nuevoEstado: "planificada" | "activa" | "finalizada"): void {
+    this.data.estado_gestion = nuevoEstado;
+  }
+
+  // Activa la gestion
   activar(): void {
-    this.data.activo = true;
+    this.data.activa = true;
   }
 
-  /**
-   * Desactiva la gestión
-   */
+  // Desactiva la gestion
   desactivar(): void {
-    this.data.activo = false;
+    this.data.activa = false;
   }
 }

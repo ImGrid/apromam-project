@@ -3,6 +3,8 @@ import { checkDatabaseConnection } from "./config/database.js";
 import { config } from "./config/environment.js";
 import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
+import comunidadesRoutes from "./routes/comunidades.routes.js";
+import catalogosRoutes from "./routes/catalogos.routes.js";
 
 // Funcion principal de inicializacion
 const startServer = async () => {
@@ -41,21 +43,9 @@ const startServer = async () => {
       "Database connection verified"
     );
 
-    // Registrar rutas de autenticación
     await server.register(authRoutes, { prefix: "/api/auth" });
-
-    logger.info(
-      {
-        routes_registered: [
-          "POST /api/auth/register",
-          "POST /api/auth/login",
-          "POST /api/auth/refresh",
-          "POST /api/auth/logout",
-          "GET /api/auth/me",
-        ],
-      },
-      "Auth routes registered"
-    );
+    await server.register(comunidadesRoutes, { prefix: "/api/comunidades" });
+    await server.register(catalogosRoutes, { prefix: "/api/catalogos" });
 
     // Iniciar servidor HTTP
     await server.listen({
@@ -105,9 +95,15 @@ const startServer = async () => {
             health: `${localUrl}/health`,
             database_health: `${localUrl}/health/database`,
             documentation: `${localUrl}/documentation`,
+            // Endpoints autenticacion
             auth_register: `${localUrl}/api/auth/register`,
             auth_login: `${localUrl}/api/auth/login`,
             auth_me: `${localUrl}/api/auth/me`,
+            // Endpoints comunidades
+            comunidades: `${localUrl}/api/comunidades`,
+            // Endpoints catalogos
+            tipos_cultivo: `${localUrl}/api/catalogos/tipos-cultivo`,
+            gestiones: `${localUrl}/api/catalogos/gestiones`,
           },
         },
         "Development URLs available"

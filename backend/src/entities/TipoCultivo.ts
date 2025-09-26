@@ -1,29 +1,25 @@
-/**
- * Interfaz para datos de TipoCultivo desde BD
- */
+// Interfaz para datos de TipoCultivo desde BD
 export interface TipoCultivoData {
   id_tipo_cultivo: string;
-  nombre_tipo_cultivo: string;
-  rendimiento_promedio_qq_ha?: number;
-  activo: boolean;
-  created_at: Date;
+  nombre_cultivo: string;
+  descripcion?: string | null;
+  es_principal_certificable: boolean | null;
+  rendimiento_promedio_qq_ha?: string | number | null;
+  activo: boolean | null;
 }
 
-/**
- * Interfaz para datos públicos de TipoCultivo (response)
- */
+// Interfaz para datos publicos de TipoCultivo (response)
 export interface TipoCultivoPublicData {
   id_tipo_cultivo: string;
-  nombre_tipo_cultivo: string;
-  rendimiento_promedio_qq_ha?: number;
-  activo: boolean;
-  created_at: string;
+  nombre_cultivo: string;
+  descripcion?: string | null;
+  es_principal_certificable: boolean | null;
+  rendimiento_promedio_qq_ha?: number | null;
+  activo: boolean | null;
 }
 
-/**
- * Entidad TipoCultivo
- * Representa los tipos de cultivo disponibles en el sistema
- */
+// Entidad TipoCultivo
+// Representa los tipos de cultivo disponibles en el sistema
 export class TipoCultivo {
   private data: TipoCultivoData;
 
@@ -37,59 +33,82 @@ export class TipoCultivo {
   }
 
   get nombre(): string {
-    return this.data.nombre_tipo_cultivo;
+    return this.data.nombre_cultivo;
   }
 
-  get rendimientoPromedio(): number | undefined {
+  get descripcion(): string | undefined {
+    return this.data.descripcion;
+  }
+
+  get esPrincipalCertificable(): boolean | null {
+    return this.data.es_principal_certificable;
+  }
+
+  get rendimientoPromedio(): number | null | undefined {
     return this.data.rendimiento_promedio_qq_ha;
   }
 
-  get activo(): boolean {
+  get activo(): boolean | null {
     return this.data.activo;
   }
 
-  get createdAt(): Date {
-    return this.data.created_at;
-  }
-
-  /**
-   * Crea una nueva instancia de TipoCultivo
-   */
+  // Crea una nueva instancia de TipoCultivo
   static create(data: {
-    nombre_tipo_cultivo: string;
+    nombre_cultivo: string;
+    descripcion?: string;
+    es_principal_certificable?: boolean;
     rendimiento_promedio_qq_ha?: number;
   }): TipoCultivo {
     return new TipoCultivo({
-      id_tipo_cultivo: "", // Se genera en BD
-      nombre_tipo_cultivo: data.nombre_tipo_cultivo,
+      id_tipo_cultivo: "",
+      nombre_cultivo: data.nombre_cultivo,
+      descripcion: data.descripcion,
+      es_principal_certificable: data.es_principal_certificable ?? false,
       rendimiento_promedio_qq_ha: data.rendimiento_promedio_qq_ha,
       activo: true,
-      created_at: new Date(),
     });
   }
 
-  /**
-   * Crea instancia desde datos de BD
-   */
+  // Crea instancia desde datos de BD
   static fromDatabase(data: TipoCultivoData): TipoCultivo {
-    return new TipoCultivo(data);
+    // Convertir rendimiento de string a number si viene como string
+    // PostgreSQL devuelve NUMERIC como string
+    let rendimiento: number | null = null;
+
+    if (
+      data.rendimiento_promedio_qq_ha !== null &&
+      data.rendimiento_promedio_qq_ha !== undefined
+    ) {
+      rendimiento =
+        typeof data.rendimiento_promedio_qq_ha === "string"
+          ? parseFloat(data.rendimiento_promedio_qq_ha)
+          : data.rendimiento_promedio_qq_ha;
+    }
+
+    return new TipoCultivo({
+      id_tipo_cultivo: data.id_tipo_cultivo,
+      nombre_cultivo: data.nombre_cultivo,
+      descripcion: data.descripcion,
+      es_principal_certificable: data.es_principal_certificable,
+      rendimiento_promedio_qq_ha: rendimiento,
+      activo: data.activo,
+    });
   }
 
-  /**
-   * Valida los datos del tipo cultivo
-   */
+  // Valida los datos del tipo cultivo
   validate(): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     if (
-      !this.data.nombre_tipo_cultivo ||
-      this.data.nombre_tipo_cultivo.trim().length < 2
+      !this.data.nombre_cultivo ||
+      this.data.nombre_cultivo.trim().length < 2
     ) {
       errors.push("Nombre de tipo cultivo debe tener al menos 2 caracteres");
     }
 
     if (
       this.data.rendimiento_promedio_qq_ha !== undefined &&
+      this.data.rendimiento_promedio_qq_ha !== null &&
       this.data.rendimiento_promedio_qq_ha <= 0
     ) {
       errors.push("Rendimiento promedio debe ser positivo");
@@ -101,69 +120,65 @@ export class TipoCultivo {
     };
   }
 
-  /**
-   * Convierte a formato para insertar en BD
-   */
+  // Convierte a formato para insertar en BD
   toDatabaseInsert(): {
-    nombre_tipo_cultivo: string;
-    rendimiento_promedio_qq_ha?: number;
-    activo: boolean;
+    nombre_cultivo: string;
+    descripcion?: string | null;
+    es_principal_certificable: boolean | null;
+    rendimiento_promedio_qq_ha?: number | null;
+    activo: boolean | null;
   } {
     return {
-      nombre_tipo_cultivo: this.data.nombre_tipo_cultivo.trim(),
+      nombre_cultivo: this.data.nombre_cultivo.trim(),
+      descripcion: this.data.descripcion?.trim() || null,
+      es_principal_certificable: this.data.es_principal_certificable,
       rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha,
       activo: this.data.activo,
     };
   }
 
-  /**
-   * Convierte a formato para actualizar en BD
-   */
+  // Convierte a formato para actualizar en BD
   toDatabaseUpdate(): {
-    nombre_tipo_cultivo?: string;
-    rendimiento_promedio_qq_ha?: number;
-    activo?: boolean;
+    nombre_cultivo?: string;
+    descripcion?: string | null;
+    es_principal_certificable?: boolean | null;
+    rendimiento_promedio_qq_ha?: number | null;
+    activo?: boolean | null;
   } {
     return {
-      nombre_tipo_cultivo: this.data.nombre_tipo_cultivo?.trim(),
+      nombre_cultivo: this.data.nombre_cultivo?.trim(),
+      descripcion: this.data.descripcion?.trim() || null,
+      es_principal_certificable: this.data.es_principal_certificable,
       rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha,
       activo: this.data.activo,
     };
   }
 
-  /**
-   * Convierte a formato JSON público (sin datos sensibles)
-   */
+  // Convierte a formato JSON publico (sin datos sensibles)
   toJSON(): TipoCultivoPublicData {
     return {
       id_tipo_cultivo: this.data.id_tipo_cultivo,
-      nombre_tipo_cultivo: this.data.nombre_tipo_cultivo,
+      nombre_cultivo: this.data.nombre_cultivo,
+      descripcion: this.data.descripcion,
+      es_principal_certificable: this.data.es_principal_certificable,
       rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha,
       activo: this.data.activo,
-      created_at: this.data.created_at.toISOString(),
     };
   }
 
-  /**
-   * Verifica si el tipo cultivo puede ser desactivado
-   */
+  // Verifica si el tipo cultivo puede ser desactivado
   puedeDesactivar(): { valid: boolean; error?: string } {
     if (!this.data.activo) {
       return {
         valid: false,
-        error: "El tipo cultivo ya está inactivo",
+        error: "El tipo cultivo ya esta inactivo",
       };
     }
-
-    // Aquí se podría verificar si tiene cultivos asociados
-    // Por ahora solo validamos el estado
 
     return { valid: true };
   }
 
-  /**
-   * Actualiza el rendimiento promedio
-   */
+  // Actualiza el rendimiento promedio
   actualizarRendimiento(nuevoRendimiento: number): void {
     if (nuevoRendimiento <= 0) {
       throw new Error("Rendimiento debe ser positivo");
@@ -171,26 +186,30 @@ export class TipoCultivo {
     this.data.rendimiento_promedio_qq_ha = nuevoRendimiento;
   }
 
-  /**
-   * Actualiza el nombre
-   */
+  // Actualiza el nombre
   actualizarNombre(nuevoNombre: string): void {
     if (!nuevoNombre || nuevoNombre.trim().length < 2) {
       throw new Error("Nombre debe tener al menos 2 caracteres");
     }
-    this.data.nombre_tipo_cultivo = nuevoNombre.trim();
+    this.data.nombre_cultivo = nuevoNombre.trim();
   }
 
-  /**
-   * Activa el tipo cultivo
-   */
+  // Actualiza la descripcion
+  actualizarDescripcion(nuevaDescripcion: string): void {
+    this.data.descripcion = nuevaDescripcion.trim();
+  }
+
+  // Actualiza si es principal certificable
+  actualizarPrincipalCertificable(valor: boolean): void {
+    this.data.es_principal_certificable = valor;
+  }
+
+  // Activa el tipo cultivo
   activar(): void {
     this.data.activo = true;
   }
 
-  /**
-   * Desactiva el tipo cultivo
-   */
+  // Desactiva el tipo cultivo
   desactivar(): void {
     this.data.activo = false;
   }

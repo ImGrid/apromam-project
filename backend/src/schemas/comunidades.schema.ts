@@ -7,10 +7,6 @@ const UUIDSchema = z.string().uuid({
   message: "Formato UUID inválido",
 });
 
-// ==========================================
-// SCHEMAS DE REQUEST - COMUNIDADES
-// ==========================================
-
 /**
  * Schema para crear comunidad
  * Solo admin puede crear
@@ -69,10 +65,6 @@ export const ComunidadQuerySchema = z.object({
 
 export type ComunidadQuery = z.infer<typeof ComunidadQuerySchema>;
 
-// ==========================================
-// SCHEMAS DE RESPONSE - COMUNIDADES
-// ==========================================
-
 /**
  * Schema para respuesta de comunidad completa
  */
@@ -113,10 +105,6 @@ export const ComunidadCreatedResponseSchema = z.object({
 export type ComunidadCreatedResponse = z.infer<
   typeof ComunidadCreatedResponseSchema
 >;
-
-// ==========================================
-// SCHEMAS DE ERROR
-// ==========================================
 
 /**
  * Schema para errores de comunidades

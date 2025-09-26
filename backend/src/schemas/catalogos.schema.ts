@@ -1,26 +1,27 @@
 import { z } from "zod/v4";
 
-/**
- * Schema base para UUID
- */
+// Schema base para UUID
 const UUIDSchema = z.string().uuid({
-  message: "Formato UUID inválido",
+  message: "Formato UUID invalido",
 });
 
-// ==========================================
 // SCHEMAS TIPOS CULTIVO
-// ==========================================
 
-/**
- * Schema para crear tipo cultivo
- * Solo admin puede crear
- */
+// Schema para crear tipo cultivo
+// Solo admin puede crear
 export const CreateTipoCultivoSchema = z.object({
-  nombre_tipo_cultivo: z
+  nombre_cultivo: z
     .string()
     .min(2, "Nombre debe tener al menos 2 caracteres")
     .max(100, "Nombre no puede exceder 100 caracteres")
     .trim(),
+  descripcion: z
+    .string()
+    .min(3, "Descripcion debe tener al menos 3 caracteres")
+    .max(500, "Descripcion no puede exceder 500 caracteres")
+    .trim()
+    .optional(),
+  es_principal_certificable: z.boolean().optional(),
   rendimiento_promedio_qq_ha: z
     .number()
     .positive("Rendimiento debe ser positivo")
@@ -29,16 +30,21 @@ export const CreateTipoCultivoSchema = z.object({
 
 export type CreateTipoCultivoInput = z.infer<typeof CreateTipoCultivoSchema>;
 
-/**
- * Schema para actualizar tipo cultivo
- */
+// Schema para actualizar tipo cultivo
 export const UpdateTipoCultivoSchema = z.object({
-  nombre_tipo_cultivo: z
+  nombre_cultivo: z
     .string()
     .min(2, "Nombre debe tener al menos 2 caracteres")
     .max(100, "Nombre no puede exceder 100 caracteres")
     .trim()
     .optional(),
+  descripcion: z
+    .string()
+    .min(3, "Descripcion debe tener al menos 3 caracteres")
+    .max(500, "Descripcion no puede exceder 500 caracteres")
+    .trim()
+    .optional(),
+  es_principal_certificable: z.boolean().optional(),
   rendimiento_promedio_qq_ha: z
     .number()
     .positive("Rendimiento debe ser positivo")
@@ -48,87 +54,80 @@ export const UpdateTipoCultivoSchema = z.object({
 
 export type UpdateTipoCultivoInput = z.infer<typeof UpdateTipoCultivoSchema>;
 
-/**
- * Schema para respuesta tipo cultivo
- */
+// Schema para respuesta tipo cultivo
 export const TipoCultivoResponseSchema = z.object({
   id_tipo_cultivo: UUIDSchema,
-  nombre_tipo_cultivo: z.string(),
-  rendimiento_promedio_qq_ha: z.number().optional(),
-  activo: z.boolean(),
-  created_at: z.string().datetime(),
+  nombre_cultivo: z.string(),
+  descripcion: z.string().nullable(),
+  es_principal_certificable: z.boolean().nullable(),
+  rendimiento_promedio_qq_ha: z.number().nullable(),
+  activo: z.boolean().nullable(),
 });
 
 export type TipoCultivoResponse = z.infer<typeof TipoCultivoResponseSchema>;
 
-// ==========================================
 // SCHEMAS GESTIONES
-// ==========================================
 
-/**
- * Schema para crear gestión
- * Solo admin puede crear
- */
+// Schema para crear gestion
+// Solo admin puede crear
 export const CreateGestionSchema = z.object({
   anio_gestion: z
     .number()
     .int()
     .min(2000, "Año debe ser mayor a 2000")
     .max(2100, "Año debe ser menor a 2100"),
-  nombre_gestion: z
+  descripcion: z
     .string()
-    .min(4, "Nombre debe tener al menos 4 caracteres")
-    .max(50, "Nombre no puede exceder 50 caracteres")
+    .min(4, "Descripcion debe tener al menos 4 caracteres")
+    .max(200, "Descripcion no puede exceder 200 caracteres")
     .trim()
     .optional(),
+  fecha_inicio: z.string().datetime().optional(),
+  fecha_fin: z.string().datetime().optional(),
+  estado_gestion: z.enum(["planificada", "activa", "finalizada"]).optional(),
 });
 
 export type CreateGestionInput = z.infer<typeof CreateGestionSchema>;
 
-/**
- * Schema para actualizar gestión
- */
+// Schema para actualizar gestion
 export const UpdateGestionSchema = z.object({
-  nombre_gestion: z
+  descripcion: z
     .string()
-    .min(4, "Nombre debe tener al menos 4 caracteres")
-    .max(50, "Nombre no puede exceder 50 caracteres")
+    .min(4, "Descripcion debe tener al menos 4 caracteres")
+    .max(200, "Descripcion no puede exceder 200 caracteres")
     .trim()
     .optional(),
-  activo: z.boolean().optional(),
+  fecha_inicio: z.string().datetime().optional(),
+  fecha_fin: z.string().datetime().optional(),
+  estado_gestion: z.enum(["planificada", "activa", "finalizada"]).optional(),
+  activa: z.boolean().optional(),
 });
 
 export type UpdateGestionInput = z.infer<typeof UpdateGestionSchema>;
 
-/**
- * Schema para respuesta gestión
- */
+// Schema para respuesta gestion
 export const GestionResponseSchema = z.object({
   id_gestion: UUIDSchema,
   anio_gestion: z.number().int(),
-  nombre_gestion: z.string().optional(),
-  activo: z.boolean(),
-  created_at: z.string().datetime(),
+  descripcion: z.string().optional(),
+  fecha_inicio: z.string().optional(),
+  fecha_fin: z.string().optional(),
+  estado_gestion: z.enum(["planificada", "activa", "finalizada"]),
+  activa: z.boolean(),
 });
 
 export type GestionResponse = z.infer<typeof GestionResponseSchema>;
 
-// ==========================================
 // SCHEMAS PARAMS Y QUERY
-// ==========================================
 
-/**
- * Schema para parámetros de URL
- */
+// Schema para parametros de URL
 export const CatalogoParamsSchema = z.object({
   id: UUIDSchema,
 });
 
 export type CatalogoParams = z.infer<typeof CatalogoParamsSchema>;
 
-/**
- * Schema para query params de filtrado
- */
+// Schema para query params de filtrado
 export const CatalogoQuerySchema = z.object({
   activo: z
     .string()
@@ -138,13 +137,9 @@ export const CatalogoQuerySchema = z.object({
 
 export type CatalogoQuery = z.infer<typeof CatalogoQuerySchema>;
 
-// ==========================================
 // SCHEMAS DE RESPONSE LISTAS
-// ==========================================
 
-/**
- * Schema para lista de tipos cultivo
- */
+// Schema para lista de tipos cultivo
 export const TiposCultivoListResponseSchema = z.object({
   tipos_cultivo: z.array(TipoCultivoResponseSchema),
   total: z.number().int(),
@@ -154,9 +149,7 @@ export type TiposCultivoListResponse = z.infer<
   typeof TiposCultivoListResponseSchema
 >;
 
-/**
- * Schema para lista de gestiones
- */
+// Schema para lista de gestiones
 export const GestionesListResponseSchema = z.object({
   gestiones: z.array(GestionResponseSchema),
   total: z.number().int(),
@@ -164,13 +157,9 @@ export const GestionesListResponseSchema = z.object({
 
 export type GestionesListResponse = z.infer<typeof GestionesListResponseSchema>;
 
-// ==========================================
 // SCHEMAS DE ERROR
-// ==========================================
 
-/**
- * Schema para errores de catálogos
- */
+// Schema para errores de catalogos
 export const CatalogoErrorSchema = z.object({
   error: z.string(),
   message: z.string(),
