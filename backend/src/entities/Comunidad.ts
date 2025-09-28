@@ -1,10 +1,9 @@
-/**
- * Interfaz para datos de Comunidad desde BD
- */
+// Interfaz para datos de Comunidad desde BD
 export interface ComunidadData {
   id_comunidad: string;
   id_municipio: string;
   nombre_comunidad: string;
+  abreviatura_comunidad: string;
   nombre_municipio?: string;
   nombre_provincia?: string;
   cantidad_tecnicos?: number;
@@ -13,13 +12,12 @@ export interface ComunidadData {
   created_at: Date;
 }
 
-/**
- * Interfaz para datos públicos de Comunidad (response)
- */
+// Interfaz para datos publicos de Comunidad (response)
 export interface ComunidadPublicData {
   id_comunidad: string;
   id_municipio: string;
   nombre_comunidad: string;
+  abreviatura_comunidad: string;
   nombre_municipio?: string;
   nombre_provincia?: string;
   cantidad_tecnicos?: number;
@@ -28,10 +26,8 @@ export interface ComunidadPublicData {
   created_at: string;
 }
 
-/**
- * Entidad Comunidad
- * Representa una comunidad dentro de un municipio
- */
+// Entidad Comunidad
+// Representa una comunidad dentro de un municipio
 export class Comunidad {
   private data: ComunidadData;
 
@@ -50,6 +46,10 @@ export class Comunidad {
 
   get nombre(): string {
     return this.data.nombre_comunidad;
+  }
+
+  get abreviatura(): string {
+    return this.data.abreviatura_comunidad;
   }
 
   get nombreMunicipio(): string | undefined {
@@ -76,32 +76,28 @@ export class Comunidad {
     return this.data.created_at;
   }
 
-  /**
-   * Crea una nueva instancia de Comunidad
-   */
+  // Crea una nueva instancia de Comunidad
   static create(data: {
     id_municipio: string;
     nombre_comunidad: string;
+    abreviatura_comunidad: string;
   }): Comunidad {
     return new Comunidad({
-      id_comunidad: "", // Se genera en BD
+      id_comunidad: "",
       id_municipio: data.id_municipio,
       nombre_comunidad: data.nombre_comunidad,
+      abreviatura_comunidad: data.abreviatura_comunidad,
       activo: true,
       created_at: new Date(),
     });
   }
 
-  /**
-   * Crea instancia desde datos de BD
-   */
+  // Crea instancia desde datos de BD
   static fromDatabase(data: ComunidadData): Comunidad {
     return new Comunidad(data);
   }
 
-  /**
-   * Valida los datos de la comunidad
-   */
+  // Valida los datos de la comunidad
   validate(): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
@@ -116,48 +112,69 @@ export class Comunidad {
       errors.push("ID de municipio es requerido");
     }
 
+    if (
+      !this.data.abreviatura_comunidad ||
+      this.data.abreviatura_comunidad.trim().length < 2 ||
+      this.data.abreviatura_comunidad.trim().length > 5
+    ) {
+      errors.push("Abreviatura debe tener entre 2 y 5 caracteres");
+    }
+
+    // Validar que abreviatura sea solo letras mayusculas
+    if (
+      this.data.abreviatura_comunidad &&
+      !/^[A-Z]+$/.test(this.data.abreviatura_comunidad.trim())
+    ) {
+      errors.push(
+        "Abreviatura debe contener solo letras mayusculas sin espacios"
+      );
+    }
+
     return {
       valid: errors.length === 0,
       errors,
     };
   }
 
-  /**
-   * Convierte a formato para insertar en BD
-   */
+  // Convierte a formato para insertar en BD
   toDatabaseInsert(): {
     id_municipio: string;
     nombre_comunidad: string;
+    abreviatura_comunidad: string;
     activo: boolean;
   } {
     return {
       id_municipio: this.data.id_municipio,
       nombre_comunidad: this.data.nombre_comunidad.trim(),
+      abreviatura_comunidad: this.data.abreviatura_comunidad
+        .trim()
+        .toUpperCase(),
       activo: this.data.activo,
     };
   }
 
-  /**
-   * Convierte a formato para actualizar en BD
-   */
+  // Convierte a formato para actualizar en BD
   toDatabaseUpdate(): {
     nombre_comunidad?: string;
+    abreviatura_comunidad?: string;
     activo?: boolean;
   } {
     return {
       nombre_comunidad: this.data.nombre_comunidad?.trim(),
+      abreviatura_comunidad: this.data.abreviatura_comunidad
+        ?.trim()
+        .toUpperCase(),
       activo: this.data.activo,
     };
   }
 
-  /**
-   * Convierte a formato JSON público (sin datos sensibles)
-   */
+  // Convierte a formato JSON publico (sin datos sensibles)
   toJSON(): ComunidadPublicData {
     return {
       id_comunidad: this.data.id_comunidad,
       id_municipio: this.data.id_municipio,
       nombre_comunidad: this.data.nombre_comunidad,
+      abreviatura_comunidad: this.data.abreviatura_comunidad,
       nombre_municipio: this.data.nombre_municipio,
       nombre_provincia: this.data.nombre_provincia,
       cantidad_tecnicos: this.data.cantidad_tecnicos,
@@ -167,9 +184,7 @@ export class Comunidad {
     };
   }
 
-  /**
-   * Verifica si la comunidad puede ser desactivada
-   */
+  // Verifica si la comunidad puede ser desactivada
   puedeDesactivar(): { valid: boolean; error?: string } {
     if (!this.data.activo) {
       return {
@@ -178,15 +193,13 @@ export class Comunidad {
       };
     }
 
-    // Verificar si tiene técnicos asignados
     if (this.data.cantidad_tecnicos && this.data.cantidad_tecnicos > 0) {
       return {
         valid: false,
-        error: `La comunidad tiene ${this.data.cantidad_tecnicos} técnico(s) asignado(s)`,
+        error: `La comunidad tiene ${this.data.cantidad_tecnicos} tecnico(s) asignado(s)`,
       };
     }
 
-    // Verificar si tiene productores asignados
     if (this.data.cantidad_productores && this.data.cantidad_productores > 0) {
       return {
         valid: false,
@@ -197,23 +210,17 @@ export class Comunidad {
     return { valid: true };
   }
 
-  /**
-   * Verifica si tiene técnicos asignados
-   */
+  // Verifica si tiene tecnicos asignados
   tieneTecnicos(): boolean {
     return (this.data.cantidad_tecnicos ?? 0) > 0;
   }
 
-  /**
-   * Verifica si tiene productores asignados
-   */
+  // Verifica si tiene productores asignados
   tieneProductores(): boolean {
     return (this.data.cantidad_productores ?? 0) > 0;
   }
 
-  /**
-   * Actualiza el nombre de la comunidad
-   */
+  // Actualiza el nombre de la comunidad
   actualizarNombre(nuevoNombre: string): void {
     if (!nuevoNombre || nuevoNombre.trim().length < 3) {
       throw new Error("Nombre debe tener al menos 3 caracteres");
@@ -221,19 +228,30 @@ export class Comunidad {
     this.data.nombre_comunidad = nuevoNombre.trim();
   }
 
-  /**
-   * Actualiza la cantidad de técnicos (usado internamente)
-   */
+  // Actualiza la abreviatura de la comunidad
+  actualizarAbreviatura(nuevaAbreviatura: string): void {
+    const abrev = nuevaAbreviatura.trim().toUpperCase();
+
+    if (abrev.length < 2 || abrev.length > 5) {
+      throw new Error("Abreviatura debe tener entre 2 y 5 caracteres");
+    }
+
+    if (!/^[A-Z]+$/.test(abrev)) {
+      throw new Error("Abreviatura debe contener solo letras mayusculas");
+    }
+
+    this.data.abreviatura_comunidad = abrev;
+  }
+
+  // Actualiza la cantidad de tecnicos (usado internamente)
   actualizarCantidadTecnicos(cantidad: number): void {
     if (cantidad < 0) {
-      throw new Error("Cantidad de técnicos no puede ser negativa");
+      throw new Error("Cantidad de tecnicos no puede ser negativa");
     }
     this.data.cantidad_tecnicos = cantidad;
   }
 
-  /**
-   * Actualiza la cantidad de productores (usado internamente)
-   */
+  // Actualiza la cantidad de productores (usado internamente)
   actualizarCantidadProductores(cantidad: number): void {
     if (cantidad < 0) {
       throw new Error("Cantidad de productores no puede ser negativa");
@@ -241,16 +259,12 @@ export class Comunidad {
     this.data.cantidad_productores = cantidad;
   }
 
-  /**
-   * Activa la comunidad
-   */
+  // Activa la comunidad
   activar(): void {
     this.data.activo = true;
   }
 
-  /**
-   * Desactiva la comunidad
-   */
+  // Desactiva la comunidad
   desactivar(): void {
     const validacion = this.puedeDesactivar();
     if (!validacion.valid) {
@@ -259,9 +273,7 @@ export class Comunidad {
     this.data.activo = false;
   }
 
-  /**
-   * Obtiene información resumida de la comunidad
-   */
+  // Obtiene informacion resumida de la comunidad
   getResumen(): string {
     const partes = [this.data.nombre_comunidad];
 
@@ -276,9 +288,7 @@ export class Comunidad {
     return partes.join(", ");
   }
 
-  /**
-   * Verifica si es una comunidad sin asignaciones
-   */
+  // Verifica si es una comunidad sin asignaciones
   estaSinAsignaciones(): boolean {
     return !this.tieneTecnicos() && !this.tieneProductores();
   }

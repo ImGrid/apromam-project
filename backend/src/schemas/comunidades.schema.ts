@@ -1,16 +1,12 @@
 import { z } from "zod/v4";
 
-/**
- * Schema base para UUID
- */
+// Schema base para UUID
 const UUIDSchema = z.string().uuid({
-  message: "Formato UUID inválido",
+  message: "Formato UUID invalido",
 });
 
-/**
- * Schema para crear comunidad
- * Solo admin puede crear
- */
+// Schema para crear comunidad
+// Solo admin puede crear
 export const CreateComunidadSchema = z.object({
   id_municipio: UUIDSchema,
   nombre_comunidad: z
@@ -18,14 +14,22 @@ export const CreateComunidadSchema = z.object({
     .min(3, "Nombre debe tener al menos 3 caracteres")
     .max(200, "Nombre no puede exceder 200 caracteres")
     .trim(),
+  abreviatura_comunidad: z
+    .string()
+    .min(2, "Abreviatura debe tener al menos 2 caracteres")
+    .max(5, "Abreviatura no puede exceder 5 caracteres")
+    .regex(
+      /^[A-Z]+$/,
+      "Abreviatura debe contener solo letras mayusculas sin espacios"
+    )
+    .transform((val) => val.toUpperCase())
+    .transform((val) => val.trim().toUpperCase()),
 });
 
 export type CreateComunidadInput = z.infer<typeof CreateComunidadSchema>;
 
-/**
- * Schema para actualizar comunidad
- * Solo admin puede actualizar
- */
+// Schema para actualizar comunidad
+// Solo admin puede actualizar
 export const UpdateComunidadSchema = z.object({
   nombre_comunidad: z
     .string()
@@ -33,23 +37,27 @@ export const UpdateComunidadSchema = z.object({
     .max(200, "Nombre no puede exceder 200 caracteres")
     .trim()
     .optional(),
+  abreviatura_comunidad: z
+    .string()
+    .min(2, "Abreviatura debe tener al menos 2 caracteres")
+    .max(5, "Abreviatura no puede exceder 5 caracteres")
+    .regex(/^[A-Z]+$/, "Abreviatura debe contener solo letras mayusculas")
+    .transform((val) => val.toUpperCase())
+    .transform((val) => val.trim().toUpperCase())
+    .optional(),
   activo: z.boolean().optional(),
 });
 
 export type UpdateComunidadInput = z.infer<typeof UpdateComunidadSchema>;
 
-/**
- * Schema para parámetros de URL
- */
+// Schema para parametros de URL
 export const ComunidadParamsSchema = z.object({
   id: UUIDSchema,
 });
 
 export type ComunidadParams = z.infer<typeof ComunidadParamsSchema>;
 
-/**
- * Schema para query params de filtrado
- */
+// Schema para query params de filtrado
 export const ComunidadQuerySchema = z.object({
   municipio: UUIDSchema.optional(),
   provincia: UUIDSchema.optional(),
@@ -65,13 +73,12 @@ export const ComunidadQuerySchema = z.object({
 
 export type ComunidadQuery = z.infer<typeof ComunidadQuerySchema>;
 
-/**
- * Schema para respuesta de comunidad completa
- */
+// Schema para respuesta de comunidad completa
 export const ComunidadResponseSchema = z.object({
   id_comunidad: UUIDSchema,
   id_municipio: UUIDSchema,
   nombre_comunidad: z.string(),
+  abreviatura_comunidad: z.string(),
   nombre_municipio: z.string().optional(),
   nombre_provincia: z.string().optional(),
   cantidad_tecnicos: z.number().int().optional(),
@@ -82,9 +89,7 @@ export const ComunidadResponseSchema = z.object({
 
 export type ComunidadResponse = z.infer<typeof ComunidadResponseSchema>;
 
-/**
- * Schema para lista de comunidades
- */
+// Schema para lista de comunidades
 export const ComunidadesListResponseSchema = z.object({
   comunidades: z.array(ComunidadResponseSchema),
   total: z.number().int(),
@@ -94,9 +99,7 @@ export type ComunidadesListResponse = z.infer<
   typeof ComunidadesListResponseSchema
 >;
 
-/**
- * Schema para respuesta de comunidad creada
- */
+// Schema para respuesta de comunidad creada
 export const ComunidadCreatedResponseSchema = z.object({
   comunidad: ComunidadResponseSchema,
   message: z.string(),
@@ -106,9 +109,7 @@ export type ComunidadCreatedResponse = z.infer<
   typeof ComunidadCreatedResponseSchema
 >;
 
-/**
- * Schema para errores de comunidades
- */
+// Schema para errores de comunidades
 export const ComunidadErrorSchema = z.object({
   error: z.string(),
   message: z.string(),

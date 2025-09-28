@@ -69,13 +69,15 @@ export class CatalogosService {
   ): Promise<TipoCultivoResponse> {
     logger.info(
       {
-        nombre: input.nombre_tipo_cultivo,
+        nombre: input.nombre_cultivo, // ✅ Corregido: era nombre_tipo_cultivo
       },
       "Creating tipo cultivo"
     );
 
     const tipoCultivo = TipoCultivo.create({
-      nombre_tipo_cultivo: input.nombre_tipo_cultivo,
+      nombre_cultivo: input.nombre_cultivo,
+      descripcion: input.descripcion,
+      es_principal_certificable: input.es_principal_certificable,
       rendimiento_promedio_qq_ha: input.rendimiento_promedio_qq_ha,
     });
 
@@ -116,8 +118,18 @@ export class CatalogosService {
     }
 
     // Aplicar cambios
-    if (input.nombre_tipo_cultivo) {
-      tipoCultivoActual.actualizarNombre(input.nombre_tipo_cultivo);
+    if (input.nombre_cultivo) {
+      tipoCultivoActual.actualizarNombre(input.nombre_cultivo);
+    }
+
+    if (input.descripcion !== undefined) {
+      tipoCultivoActual.actualizarDescripcion(input.descripcion);
+    }
+
+    if (input.es_principal_certificable !== undefined) {
+      tipoCultivoActual.actualizarPrincipalCertificable(
+        input.es_principal_certificable
+      );
     }
 
     if (input.rendimiento_promedio_qq_ha) {
@@ -222,7 +234,11 @@ export class CatalogosService {
 
     const gestion = Gestion.create({
       anio_gestion: input.anio_gestion,
-      nombre_gestion: input.nombre_gestion,
+      descripcion: input.descripcion, // ✅ Corregido: era nombre_gestion
+      fecha_inicio: input.fecha_inicio
+        ? new Date(input.fecha_inicio)
+        : undefined,
+      fecha_fin: input.fecha_fin ? new Date(input.fecha_fin) : undefined,
     });
 
     const gestionCreada = await this.gestionRepository.create(gestion);
@@ -260,12 +276,23 @@ export class CatalogosService {
     }
 
     // Aplicar cambios
-    if (input.nombre_gestion) {
-      gestionActual.actualizarNombre(input.nombre_gestion);
+    if (input.descripcion) {
+      gestionActual.actualizarDescripcion(input.descripcion);
     }
 
-    if (input.activo !== undefined) {
-      if (input.activo) {
+    if (input.fecha_inicio && input.fecha_fin) {
+      gestionActual.actualizarFechas(
+        new Date(input.fecha_inicio),
+        new Date(input.fecha_fin)
+      );
+    }
+
+    if (input.estado_gestion) {
+      gestionActual.actualizarEstado(input.estado_gestion);
+    }
+
+    if (input.activa !== undefined) {
+      if (input.activa) {
         gestionActual.activar();
       } else {
         gestionActual.desactivar();

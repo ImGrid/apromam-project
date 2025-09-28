@@ -1,30 +1,24 @@
 import bcrypt from "bcryptjs";
-import { createAuthLogger } from "./logger.js"; // ✅
+import { createAuthLogger } from "./logger.js";
 const logger = createAuthLogger();
 
-/**
- * Salt rounds para bcrypt
- * 10 = ~100ms hash time (balance seguridad/performance)
- * Ajustar según hardware del servidor
- */
+// Rounds de salt para bcrypt
+// 10 rounds = aproximadamente 100ms de tiempo de hash
+// Balance entre seguridad y performance
+// Ajustar segun el hardware del servidor
 const SALT_ROUNDS = 10;
 
-/**
- * Hashea un password usando bcrypt
- * Salt se genera automáticamente
- *
- * @param plainPassword - Password en texto plano
- * @returns Hash bcrypt del password
- * @throws Error si hash falla
- */
+// Hashea un password usando bcrypt
+// El salt se genera automaticamente
+// Lanza error si el hash falla o el password es invalido
 export async function hashPassword(plainPassword: string): Promise<string> {
   try {
-    // Validar longitud antes de hashear
+    // Validar que el password no este vacio
     if (plainPassword.length < 1) {
       throw new Error("Password cannot be empty");
     }
 
-    // bcrypt tiene límite de 72 bytes
+    // bcrypt tiene limite de 72 bytes
     if (plainPassword.length > 72) {
       throw new Error("Password exceeds maximum length of 72 characters");
     }
@@ -52,21 +46,15 @@ export async function hashPassword(plainPassword: string): Promise<string> {
   }
 }
 
-/**
- * Verifica un password contra su hash
- * Tiempo constante para prevenir timing attacks
- *
- * @param plainPassword - Password a verificar
- * @param passwordHash - Hash almacenado en BD
- * @returns true si password coincide, false caso contrario
- * @throws Error si verificación falla
- */
+// Verifica un password contra su hash
+// Usa tiempo constante para prevenir timing attacks
+// bcrypt.compare es constant-time por diseño
 export async function verifyPassword(
   plainPassword: string,
   passwordHash: string
 ): Promise<boolean> {
   try {
-    // Validar inputs
+    // Validar que los inputs no esten vacios
     if (!plainPassword || !passwordHash) {
       logger.warn("Empty password or hash provided for verification");
       return false;
@@ -94,29 +82,26 @@ export async function verifyPassword(
   }
 }
 
-/**
- * Verifica un password con protección contra timing attacks
- * Usa dummy hash cuando usuario no existe
- *
- * @param plainPassword - Password a verificar
- * @param passwordHash - Hash almacenado (o null si usuario no existe)
- * @returns true si password coincide Y hash existe, false caso contrario
- */
+// Verifica un password con proteccion contra timing attacks
+// Usa un hash dummy cuando el usuario no existe
+// Siempre toma el mismo tiempo en responder
+// Esto previene que un atacante pueda determinar si un usuario existe
 export async function verifyPasswordSafe(
   plainPassword: string,
   passwordHash: string | null | undefined
 ): Promise<boolean> {
   try {
-    // Dummy hash para timing attack prevention
-    // Mismo formato que hash real de bcrypt
+    // Hash dummy para timing attack prevention
+    // Tiene el mismo formato que un hash real de bcrypt
     const dummyHash =
       "$2a$10$dummyhashfortimingattackprotectionxxxxxxxxxxxxxxxxxxxxxxxxx";
 
     // Siempre hacer compare, incluso si hash es null
+    // Esto mantiene el tiempo de respuesta constante
     const hashToCompare = passwordHash || dummyHash;
     const isValid = await bcrypt.compare(plainPassword, hashToCompare);
 
-    // Solo retornar true si hash existe Y password es válido
+    // Solo retornar true si hash existe Y password es valido
     const result = passwordHash ? isValid : false;
 
     logger.debug(
@@ -139,18 +124,14 @@ export async function verifyPasswordSafe(
   }
 }
 
-/**
- * Valida fortaleza de password antes de hashear
- * Útil para validación en registro
- *
- * @param password - Password a validar
- * @returns Objeto con resultado y mensaje de error si aplica
- */
+// Valida la fortaleza de un password antes de hashearlo
+// Verifica requisitos minimos de seguridad
+// Util para validacion en registro de usuarios
 export function validatePasswordStrength(password: string): {
   valid: boolean;
   error?: string;
 } {
-  // Mínimo 8 caracteres
+  // Minimo 8 caracteres
   if (password.length < 8) {
     return {
       valid: false,
@@ -158,7 +139,7 @@ export function validatePasswordStrength(password: string): {
     };
   }
 
-  // Máximo 72 caracteres (límite bcrypt)
+  // Maximo 72 caracteres (limite de bcrypt)
   if (password.length > 72) {
     return {
       valid: false,
@@ -166,7 +147,7 @@ export function validatePasswordStrength(password: string): {
     };
   }
 
-  // Al menos una mayúscula
+  // Al menos una mayuscula
   if (!/[A-Z]/.test(password)) {
     return {
       valid: false,
@@ -174,7 +155,7 @@ export function validatePasswordStrength(password: string): {
     };
   }
 
-  // Al menos una minúscula
+  // Al menos una minuscula
   if (!/[a-z]/.test(password)) {
     return {
       valid: false,
@@ -182,7 +163,7 @@ export function validatePasswordStrength(password: string): {
     };
   }
 
-  // Al menos un número
+  // Al menos un numero
   if (!/[0-9]/.test(password)) {
     return {
       valid: false,
@@ -193,13 +174,9 @@ export function validatePasswordStrength(password: string): {
   return { valid: true };
 }
 
-/**
- * Genera un password aleatorio seguro
- * Útil para passwords temporales o testing
- *
- * @param length - Longitud del password (default: 12)
- * @returns Password aleatorio que cumple requisitos de fortaleza
- */
+// Genera un password aleatorio seguro
+// Cumple con todos los requisitos de fortaleza
+// Util para passwords temporales o testing
 export function generateSecurePassword(length: number = 12): string {
   if (length < 8 || length > 72) {
     throw new Error("Password length must be between 8 and 72");
@@ -211,7 +188,7 @@ export function generateSecurePassword(length: number = 12): string {
   const special = "!@#$%^&*()_+-=[]{}|;:,.<>?";
   const allChars = uppercase + lowercase + numbers + special;
 
-  // Garantizar al menos un carácter de cada tipo
+  // Garantizar al menos un caracter de cada tipo
   let password = "";
   password += uppercase[Math.floor(Math.random() * uppercase.length)];
   password += lowercase[Math.floor(Math.random() * lowercase.length)];
@@ -223,24 +200,20 @@ export function generateSecurePassword(length: number = 12): string {
     password += allChars[Math.floor(Math.random() * allChars.length)];
   }
 
-  // Shuffle para evitar patrón predecible
+  // Mezclar los caracteres para evitar patron predecible
   return password
     .split("")
     .sort(() => Math.random() - 0.5)
     .join("");
 }
 
-/**
- * Compara hash complexity (para migrations o updates)
- * Retorna true si el hash necesita ser actualizado
- *
- * @param hash - Hash bcrypt existente
- * @returns true si hash usa menos rounds que SALT_ROUNDS actual
- */
+// Verifica si un hash necesita ser actualizado
+// Retorna true si el hash usa menos rounds que el configurado actualmente
+// Util para migrations o actualizaciones de seguridad
 export function needsRehash(hash: string): boolean {
   try {
     // Extraer rounds del hash bcrypt
-    // Formato: $2a$10$... donde 10 es el número de rounds
+    // Formato bcrypt: $2a$10$... donde 10 es el numero de rounds
     const rounds = parseInt(hash.split("$")[2], 10);
 
     return rounds < SALT_ROUNDS;
@@ -251,7 +224,7 @@ export function needsRehash(hash: string): boolean {
       },
       "Failed to check if hash needs rehash"
     );
-    // Si no podemos parsear, asumir que necesita rehash
+    // Si no podemos parsear el hash, asumir que necesita rehash
     return true;
   }
 }

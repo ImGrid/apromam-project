@@ -7,21 +7,17 @@ import {
 
 const logger = createAuthLogger();
 
-/**
- * Middleware de autenticación principal
- * Verifica JWT y asigna usuario a request.user
- *
- * Uso en rutas:
- * fastify.get('/protected', {
- *   onRequest: [fastify.authenticate]
- * }, handler)
- */
+// Middleware de autenticacion principal
+// Verifica que el token JWT sea valido y asigna el usuario a request.user
+// Se usa en todas las rutas protegidas que requieren autenticacion
+// Uso: fastify.get('/protected', { onRequest: [fastify.authenticate] }, handler)
 export async function authenticate(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
   try {
     // Extraer token del header Authorization
+    // Formato esperado: "Bearer <token>"
     const authHeader = request.headers.authorization;
     const token = extractTokenFromHeader(authHeader);
 
@@ -42,7 +38,7 @@ export async function authenticate(
       });
     }
 
-    // Verificar si token está en blacklist (logout)
+    // Verificar si el token esta en la blacklist (usuario hizo logout)
     if (isTokenBlacklisted(token)) {
       logger.warn(
         {
@@ -60,12 +56,12 @@ export async function authenticate(
       });
     }
 
-    // Verificar JWT usando @fastify/jwt
-    // Esto automáticamente valida firma, expiración, issuer, audience
+    // Verificar JWT usando el plugin @fastify/jwt
+    // Esto valida automaticamente firma, expiracion, issuer y audience
     await request.jwtVerify();
 
-    // request.user ya está asignado por @fastify/jwt
-    // Validar que tenga los campos requeridos
+    // request.user ya esta asignado por @fastify/jwt
+    // Validar que contenga los campos requeridos
     if (!request.user?.userId || !request.user?.role) {
       logger.error(
         {
@@ -92,7 +88,9 @@ export async function authenticate(
       "User authenticated successfully"
     );
   } catch (error: any) {
-    // Manejar errores específicos de JWT
+    // Manejar errores especificos de JWT
+
+    // Token expirado
     if (error.message === "Authorization token expired") {
       logger.warn(
         {
@@ -110,6 +108,7 @@ export async function authenticate(
       });
     }
 
+    // Token invalido (firma incorrecta, formato malo, etc)
     if (error.message?.includes("Authorization token invalid")) {
       logger.warn(
         {
@@ -128,7 +127,7 @@ export async function authenticate(
       });
     }
 
-    // Error inesperado
+    // Error inesperado durante autenticacion
     logger.error(
       {
         error: error.message,
@@ -147,17 +146,11 @@ export async function authenticate(
   }
 }
 
-/**
- * Middleware de autenticación opcional
- * No falla si no hay token, pero lo verifica si existe
- *
- * Útil para endpoints públicos que retornan data extra si usuario autenticado
- *
- * Uso:
- * fastify.get('/api/productores', {
- *   onRequest: [optionalAuthenticate]
- * }, handler)
- */
+// Middleware de autenticacion opcional
+// No falla si no hay token, pero lo verifica si existe
+// Util para endpoints publicos que retornan datos extra si el usuario esta autenticado
+// Ejemplo: listado de productores publico pero con mas detalles si estas autenticado
+// Uso: fastify.get('/api/productores', { onRequest: [optionalAuthenticate] }, handler)
 export async function optionalAuthenticate(
   request: FastifyRequest,
   reply: FastifyReply
@@ -186,6 +179,7 @@ export async function optionalAuthenticate(
       return;
     }
 
+    // Intentar verificar el token
     await request.jwtVerify();
 
     logger.debug(
@@ -197,6 +191,7 @@ export async function optionalAuthenticate(
     );
   } catch (error) {
     // En modo opcional, ignorar errores de JWT
+    // El usuario continua sin autenticar
     logger.debug(
       {
         error: error instanceof Error ? error.message : "Unknown error",

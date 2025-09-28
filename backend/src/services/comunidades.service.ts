@@ -9,9 +9,7 @@ import type {
 
 const logger = createAuthLogger();
 
-/**
- * Service para gestión de comunidades
- */
+// Service para gestion de comunidades
 export class ComunidadesService {
   private comunidadRepository: ComunidadRepository;
 
@@ -19,9 +17,7 @@ export class ComunidadesService {
     this.comunidadRepository = comunidadRepository;
   }
 
-  /**
-   * Lista todas las comunidades
-   */
+  // Lista todas las comunidades
   async listAll(
     municipioId?: string,
     provinciaId?: string,
@@ -54,12 +50,9 @@ export class ComunidadesService {
     };
   }
 
-  /**
-   * Obtiene una comunidad por ID
-   */
+  // Obtiene una comunidad por ID
   async getById(id: string): Promise<ComunidadResponse> {
     const comunidad = await this.comunidadRepository.findById(id);
-
     if (!comunidad) {
       throw new Error("Comunidad no encontrada");
     }
@@ -67,14 +60,13 @@ export class ComunidadesService {
     return comunidad.toJSON();
   }
 
-  /**
-   * Crea una nueva comunidad
-   * Solo admin puede crear
-   */
+  // Crea una nueva comunidad
+  // Solo admin puede crear
   async create(input: CreateComunidadInput): Promise<ComunidadResponse> {
     logger.info(
       {
         nombre: input.nombre_comunidad,
+        abreviatura: input.abreviatura_comunidad,
         municipio_id: input.id_municipio,
       },
       "Creating comunidad"
@@ -84,6 +76,7 @@ export class ComunidadesService {
     const comunidad = Comunidad.create({
       id_municipio: input.id_municipio,
       nombre_comunidad: input.nombre_comunidad,
+      abreviatura_comunidad: input.abreviatura_comunidad,
     });
 
     // Guardar en BD
@@ -93,6 +86,7 @@ export class ComunidadesService {
       {
         comunidad_id: comunidadCreada.id,
         nombre: comunidadCreada.nombre,
+        abreviatura: comunidadCreada.abreviatura,
       },
       "Comunidad created successfully"
     );
@@ -100,10 +94,8 @@ export class ComunidadesService {
     return comunidadCreada.toJSON();
   }
 
-  /**
-   * Actualiza una comunidad existente
-   * Solo admin puede actualizar
-   */
+  // Actualiza una comunidad existente
+  // Solo admin puede actualizar
   async update(
     id: string,
     input: UpdateComunidadInput
@@ -125,6 +117,10 @@ export class ComunidadesService {
     // Aplicar cambios
     if (input.nombre_comunidad) {
       comunidadActual.actualizarNombre(input.nombre_comunidad);
+    }
+
+    if (input.abreviatura_comunidad) {
+      comunidadActual.actualizarAbreviatura(input.abreviatura_comunidad);
     }
 
     if (input.activo !== undefined) {
@@ -151,10 +147,8 @@ export class ComunidadesService {
     return comunidadActualizada.toJSON();
   }
 
-  /**
-   * Elimina (desactiva) una comunidad
-   * Solo admin puede eliminar
-   */
+  // Elimina (desactiva) una comunidad
+  // Solo admin puede eliminar
   async delete(id: string): Promise<void> {
     logger.info(
       {
@@ -173,30 +167,24 @@ export class ComunidadesService {
     );
   }
 
-  /**
-   * Lista comunidades con técnicos asignados
-   */
+  // Lista comunidades con tecnicos asignados
   async listWithTecnicos(): Promise<{
     comunidades: ComunidadResponse[];
     total: number;
   }> {
     const comunidades = await this.comunidadRepository.findWithTecnicos();
-
     return {
       comunidades: comunidades.map((c) => c.toJSON()),
       total: comunidades.length,
     };
   }
 
-  /**
-   * Lista comunidades sin técnicos asignados
-   */
+  // Lista comunidades sin tecnicos asignados
   async listWithoutTecnicos(): Promise<{
     comunidades: ComunidadResponse[];
     total: number;
   }> {
     const comunidades = await this.comunidadRepository.findWithoutTecnicos();
-
     return {
       comunidades: comunidades.map((c) => c.toJSON()),
       total: comunidades.length,

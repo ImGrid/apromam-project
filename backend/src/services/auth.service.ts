@@ -22,49 +22,42 @@ import type {
 
 const logger = createAuthLogger();
 
-/**
- * Resultado de operación de registro
- */
+// Resultado que retorna el metodo de registro
+// Incluye datos del usuario creado y los tokens JWT
 export interface RegisterResult {
   user: UserPublicData;
   tokens: TokenPair;
 }
 
-/**
- * Resultado de operación de login
- */
+// Resultado que retorna el metodo de login
+// Incluye datos del usuario autenticado y los tokens JWT
 export interface LoginResult {
   user: UserPublicData;
   tokens: TokenPair;
 }
 
-/**
- * Resultado de operación de refresh
- */
+// Resultado que retorna el metodo de refresh token
+// Solo incluye el nuevo access token
 export interface RefreshResult {
   accessToken: string;
   expiresIn: number;
 }
 
-/**
- * Resultado de operación me (usuario autenticado)
- */
+// Resultado que retorna el metodo me
+// Incluye datos del usuario y sus permisos completos
 export interface MeResult {
   user: UserPublicData;
   permisos: Record<string, any>;
 }
 
-/**
- * Rate limiting para login (in-memory)
- * En producción usar Redis
- */
+// Control de intentos de login fallidos en memoria
+// En produccion se debe usar Redis para persistencia entre reinicios
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 
-/**
- * Límite de intentos de login
- */
+// Configuracion de rate limit para login
+// Maximo 5 intentos fallidos cada 15 minutos
 const MAX_LOGIN_ATTEMPTS = 5;
-const LOGIN_ATTEMPT_WINDOW = 15 * 60 * 1000; // 15 minutos
+const LOGIN_ATTEMPT_WINDOW = 15 * 60 * 1000;
 
 export class AuthService {
   private usuarioRepository: UsuarioRepository;
@@ -78,13 +71,9 @@ export class AuthService {
     this.rolRepository = rolRepository;
   }
 
-  /**
-   * Registra un nuevo usuario en el sistema
-   *
-   * @param input - Datos de registro validados por Zod
-   * @returns Usuario creado con tokens
-   * @throws Error si validación falla o username/email ya existen
-   */
+  // Registra un nuevo usuario en el sistema
+  // Valida fortaleza del password, verifica duplicados y asigna rol
+  // Los tecnicos deben tener comunidad asignada obligatoriamente
   async register(input: RegisterInput): Promise<RegisterResult> {
     logger.info(
       {
@@ -95,24 +84,24 @@ export class AuthService {
       "Starting user registration"
     );
 
-    // Validar fortaleza del password
+    // Validar que el password cumple los requisitos minimos
     const passwordValidation = validatePasswordStrength(input.password);
     if (!passwordValidation.valid) {
       throw new Error(passwordValidation.error);
     }
 
-    // Verificar que el rol existe
+    // Verificar que el rol existe en la base de datos
     const rol = await this.rolRepository.findById(input.id_rol);
     if (!rol) {
       throw new Error("Rol no encontrado");
     }
 
-    // Validar que técnico tenga comunidad asignada
+    // Los tecnicos obligatoriamente deben tener comunidad
     if (rol.esTecnico() && !input.id_comunidad) {
       throw new Error("Técnico debe tener comunidad asignada");
     }
 
-    // Verificar que username no existe
+    // Verificar que el username no este en uso
     const existeUsername = await this.usuarioRepository.existsByUsername(
       input.username
     );
@@ -120,21 +109,21 @@ export class AuthService {
       throw new Error("Username ya existe");
     }
 
-    // Verificar que email no existe
+    // Verificar que el email no este en uso
     const existeEmail = await this.usuarioRepository.existsByEmail(input.email);
     if (existeEmail) {
       throw new Error("Email ya existe");
     }
 
-    // Hashear password
+    // Hashear el password antes de guardarlo
     const passwordHash = await hashPassword(input.password);
 
-    // Crear entidad Usuario
+    // Crear la entidad Usuario con los datos validados
     const usuario = Usuario.create(
       {
         username: input.username,
         email: input.email,
-        password: input.password, // No se usa, solo para tipo
+        password: input.password,
         nombre_completo: input.nombre_completo,
         id_rol: input.id_rol,
         id_comunidad: input.id_comunidad ?? undefined,
@@ -142,7 +131,7 @@ export class AuthService {
       passwordHash
     );
 
-    // Guardar en base de datos
+    // Guardar el usuario en la base de datos
     const usuarioCreado = await this.usuarioRepository.create(usuario);
 
     logger.info(
@@ -154,7 +143,7 @@ export class AuthService {
       "User registered successfully"
     );
 
-    // Generar tokens JWT
+    // Generar los tokens JWT para autenticacion
     const tokens = generateTokenPair({
       userId: usuarioCreado.id,
       username: usuarioCreado.username,
@@ -168,39 +157,36 @@ export class AuthService {
     };
   }
 
-  /**
-   * Autentica un usuario con username y password
-   *
-   * @param input - Credenciales validadas por Zod
-   * @returns Usuario autenticado con tokens
-   * @throws Error si credenciales inválidas o rate limit excedido
-   */
+  // Autentica un usuario con username y password
+  // Verifica credenciales, valida rate limit y retorna tokens
+  // Incrementa contador de intentos fallidos para prevenir ataques de fuerza bruta
   async login(input: LoginInput): Promise<LoginResult> {
     const { username, password } = input;
 
     logger.info(
       {
         username,
-        ip: "unknown", // El controller debe pasar esto
+        ip: "unknown",
       },
       "Login attempt"
     );
 
-    // Verificar rate limiting
+    // Verificar que no haya excedido el limite de intentos
     this.checkLoginRateLimit(username);
 
-    // Buscar usuario por username
+    // Buscar el usuario por username
     const usuario = await this.usuarioRepository.findByUsername(username);
 
-    // Verificar password con timing attack prevention
+    // Verificar password con proteccion contra timing attacks
+    // Usa dummy hash si el usuario no existe para mantener tiempo constante
     const isValidPassword = await verifyPasswordSafe(
       password,
       usuario?.passwordHash
     );
 
-    // Si usuario no existe O password inválido
+    // Si usuario no existe o password es invalido
     if (!usuario || !isValidPassword) {
-      // Incrementar intentos fallidos
+      // Incrementar contador de intentos fallidos
       this.incrementLoginAttempts(username);
 
       logger.warn(
@@ -214,7 +200,7 @@ export class AuthService {
       throw new Error("Credenciales inválidas");
     }
 
-    // Verificar que usuario esté activo
+    // Verificar que el usuario este activo
     if (!usuario.activo) {
       logger.warn(
         {
@@ -227,7 +213,7 @@ export class AuthService {
       throw new Error("Usuario inactivo");
     }
 
-    // Login exitoso - resetear intentos
+    // Login exitoso: resetear contador de intentos
     this.resetLoginAttempts(username);
 
     logger.info(
@@ -239,14 +225,15 @@ export class AuthService {
       "Login successful"
     );
 
-    // Actualizar last_login (async, no esperar)
+    // Actualizar fecha de ultimo login de forma asincrona
+    // No esperar la respuesta para no retrasar el login
     this.usuarioRepository
       .updateLastLogin(usuario.id)
       .catch((err) =>
         logger.error({ error: err.message }, "Failed to update last_login")
       );
 
-    // Generar tokens JWT
+    // Generar tokens JWT para la sesion
     const tokens = generateTokenPair({
       userId: usuario.id,
       username: usuario.username,
@@ -260,17 +247,12 @@ export class AuthService {
     };
   }
 
-  /**
-   * Renueva access token usando refresh token
-   *
-   * @param input - Refresh token validado por Zod
-   * @returns Nuevo access token
-   * @throws Error si refresh token inválido o expirado
-   */
+  // Renueva el access token usando un refresh token valido
+  // Verifica que el usuario siga activo antes de generar nuevo token
   async refresh(input: RefreshTokenInput): Promise<RefreshResult> {
     logger.debug("Refresh token request");
 
-    // Verificar refresh token
+    // Verificar que el refresh token sea valido
     let decoded;
     try {
       decoded = verifyRefreshToken(input.refresh_token);
@@ -285,7 +267,7 @@ export class AuthService {
       throw new Error("Refresh token inválido o expirado");
     }
 
-    // Obtener usuario actualizado de BD
+    // Obtener datos actualizados del usuario desde la base de datos
     const usuario = await this.usuarioRepository.findById(decoded.userId);
 
     if (!usuario) {
@@ -299,6 +281,7 @@ export class AuthService {
       throw new Error("Usuario no encontrado");
     }
 
+    // Verificar que el usuario siga activo
     if (!usuario.activo) {
       logger.warn(
         {
@@ -310,7 +293,7 @@ export class AuthService {
       throw new Error("Usuario inactivo");
     }
 
-    // Generar nuevo access token
+    // Generar nuevo access token con datos actualizados
     const tokens = generateTokenPair({
       userId: usuario.id,
       username: usuario.username,
@@ -332,27 +315,19 @@ export class AuthService {
     };
   }
 
-  /**
-   * Cierra sesión del usuario (invalida token)
-   *
-   * @param token - Access token a invalidar
-   */
+  // Cierra sesion del usuario invalidando su token
+  // Agrega el token a una lista negra para que no pueda usarse mas
   async logout(token: string): Promise<void> {
     logger.info("Logout request");
 
-    // Agregar token a blacklist
+    // Agregar token a blacklist para invalidarlo
     blacklistToken(token);
 
     logger.info("User logged out successfully");
   }
 
-  /**
-   * Obtiene información del usuario autenticado
-   *
-   * @param userId - ID del usuario autenticado
-   * @returns Usuario con permisos completos
-   * @throws Error si usuario no encontrado
-   */
+  // Obtiene informacion completa del usuario autenticado
+  // Incluye datos personales y permisos de su rol
   async me(userId: string): Promise<MeResult> {
     const usuario = await this.usuarioRepository.findById(userId);
 
@@ -367,7 +342,7 @@ export class AuthService {
       throw new Error("Usuario no encontrado");
     }
 
-    // Obtener permisos del rol
+    // Obtener permisos completos del rol del usuario
     const rol = await this.rolRepository.findById(usuario.idRol);
     const permisos = rol?.permisos || {};
 
@@ -385,25 +360,23 @@ export class AuthService {
     };
   }
 
-  /**
-   * Verifica rate limit de login
-   * @throws Error si límite excedido
-   */
+  // Verifica si un usuario ha excedido el limite de intentos de login
+  // Lanza error si ha alcanzado el maximo de intentos en la ventana de tiempo
   private checkLoginRateLimit(username: string): void {
     const now = Date.now();
     const attempts = loginAttempts.get(username);
 
     if (!attempts) {
-      return; // Sin intentos previos
+      return;
     }
 
-    // Si ventana expiró, resetear
+    // Si la ventana de tiempo expiro, resetear contador
     if (now > attempts.resetAt) {
       loginAttempts.delete(username);
       return;
     }
 
-    // Verificar si excede límite
+    // Verificar si excede el limite maximo
     if (attempts.count >= MAX_LOGIN_ATTEMPTS) {
       const minutesRemaining = Math.ceil((attempts.resetAt - now) / 60000);
 
@@ -422,9 +395,8 @@ export class AuthService {
     }
   }
 
-  /**
-   * Incrementa contador de intentos fallidos
-   */
+  // Incrementa el contador de intentos fallidos de login
+  // Se resetea automaticamente despues de la ventana de tiempo
   private incrementLoginAttempts(username: string): void {
     const now = Date.now();
     const attempts = loginAttempts.get(username);
@@ -439,9 +411,8 @@ export class AuthService {
     }
   }
 
-  /**
-   * Resetea contador de intentos (login exitoso)
-   */
+  // Resetea el contador de intentos fallidos
+  // Se llama cuando el login es exitoso
   private resetLoginAttempts(username: string): void {
     loginAttempts.delete(username);
   }

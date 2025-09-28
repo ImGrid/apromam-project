@@ -27,7 +27,6 @@ export const CreateTipoCultivoSchema = z.object({
     .positive("Rendimiento debe ser positivo")
     .optional(),
 });
-
 export type CreateTipoCultivoInput = z.infer<typeof CreateTipoCultivoSchema>;
 
 // Schema para actualizar tipo cultivo
@@ -109,9 +108,9 @@ export type UpdateGestionInput = z.infer<typeof UpdateGestionSchema>;
 export const GestionResponseSchema = z.object({
   id_gestion: UUIDSchema,
   anio_gestion: z.number().int(),
-  descripcion: z.string().optional(),
-  fecha_inicio: z.string().optional(),
-  fecha_fin: z.string().optional(),
+  descripcion: z.string().nullable(),
+  fecha_inicio: z.string().nullable(),
+  fecha_fin: z.string().nullable(),
   estado_gestion: z.enum(["planificada", "activa", "finalizada"]),
   activa: z.boolean(),
 });

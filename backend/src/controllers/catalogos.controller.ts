@@ -9,21 +9,16 @@ import type {
   CatalogoQuery,
 } from "../schemas/catalogos.schema.js";
 
-/**
- * Controller para endpoints de catálogos
- */
+// Controlador para endpoints de catalogos
+// Gestiona tipos de cultivo y gestiones agricolas
+// Solo admin puede crear, actualizar o eliminar catalogos
 export class CatalogosController {
   constructor(private catalogosService: CatalogosService) {}
 
-  // ==========================================
-  // TIPOS CULTIVO
-  // ==========================================
-
-  /**
-   * GET /api/catalogos/tipos-cultivo
-   * Lista todos los tipos de cultivo
-   * Acceso: todos los roles autenticados
-   */
+  // GET /api/catalogos/tipos-cultivo
+  // Lista todos los tipos de cultivo disponibles
+  // Puede filtrar solo los activos con query param activo=true
+  // Acceso: todos los roles autenticados
   async listTiposCultivo(
     request: FastifyRequest<{ Querystring: CatalogoQuery }>,
     reply: FastifyReply
@@ -43,11 +38,9 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * GET /api/catalogos/tipos-cultivo/:id
-   * Obtiene un tipo cultivo por ID
-   * Acceso: todos los roles autenticados
-   */
+  // GET /api/catalogos/tipos-cultivo/:id
+  // Obtiene un tipo cultivo especifico por su ID
+  // Acceso: todos los roles autenticados
   async getTipoCultivoById(
     request: FastifyRequest<{ Params: CatalogoParams }>,
     reply: FastifyReply
@@ -76,11 +69,10 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * POST /api/catalogos/tipos-cultivo
-   * Crea un nuevo tipo cultivo
-   * Acceso: solo admin
-   */
+  // POST /api/catalogos/tipos-cultivo
+  // Crea un nuevo tipo de cultivo en el sistema
+  // Valida que no exista duplicado por nombre
+  // Acceso: solo admin
   async createTipoCultivo(
     request: FastifyRequest<{ Body: CreateTipoCultivoInput }>,
     reply: FastifyReply
@@ -110,11 +102,10 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * PUT /api/catalogos/tipos-cultivo/:id
-   * Actualiza un tipo cultivo existente
-   * Acceso: solo admin
-   */
+  // PUT /api/catalogos/tipos-cultivo/:id
+  // Actualiza un tipo cultivo existente
+  // Puede modificar nombre, descripcion, rendimiento, etc
+  // Acceso: solo admin
   async updateTipoCultivo(
     request: FastifyRequest<{
       Params: CatalogoParams;
@@ -152,11 +143,10 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * DELETE /api/catalogos/tipos-cultivo/:id
-   * Elimina (desactiva) un tipo cultivo
-   * Acceso: solo admin
-   */
+  // DELETE /api/catalogos/tipos-cultivo/:id
+  // Elimina (desactiva) un tipo cultivo
+  // No borra fisicamente, solo marca como inactivo
+  // Acceso: solo admin
   async deleteTipoCultivo(
     request: FastifyRequest<{ Params: CatalogoParams }>,
     reply: FastifyReply
@@ -185,15 +175,10 @@ export class CatalogosController {
     }
   }
 
-  // ==========================================
-  // GESTIONES
-  // ==========================================
-
-  /**
-   * GET /api/catalogos/gestiones
-   * Lista todas las gestiones
-   * Acceso: todos los roles autenticados
-   */
+  // GET /api/catalogos/gestiones
+  // Lista todas las gestiones agricolas (años)
+  // Puede filtrar solo las activas con query param activo=true
+  // Acceso: todos los roles autenticados
   async listGestiones(
     request: FastifyRequest<{ Querystring: CatalogoQuery }>,
     reply: FastifyReply
@@ -213,11 +198,9 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * GET /api/catalogos/gestiones/:id
-   * Obtiene una gestión por ID
-   * Acceso: todos los roles autenticados
-   */
+  // GET /api/catalogos/gestiones/:id
+  // Obtiene una gestion especifica por su ID
+  // Acceso: todos los roles autenticados
   async getGestionById(
     request: FastifyRequest<{ Params: CatalogoParams }>,
     reply: FastifyReply
@@ -243,11 +226,10 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * GET /api/catalogos/gestiones/actual
-   * Obtiene la gestión actual (año actual)
-   * Acceso: todos los roles autenticados
-   */
+  // GET /api/catalogos/gestiones/actual
+  // Obtiene la gestion del año actual
+  // Retorna null si no existe gestion para este año
+  // Acceso: todos los roles autenticados
   async getGestionActual(request: FastifyRequest, reply: FastifyReply) {
     try {
       const gestion = await this.catalogosService.getGestionActual();
@@ -269,11 +251,10 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * POST /api/catalogos/gestiones
-   * Crea una nueva gestión
-   * Acceso: solo admin
-   */
+  // POST /api/catalogos/gestiones
+  // Crea una nueva gestion agricola
+  // Valida que no exista duplicado para el mismo año
+  // Acceso: solo admin
   async createGestion(
     request: FastifyRequest<{ Body: CreateGestionInput }>,
     reply: FastifyReply
@@ -301,11 +282,10 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * PUT /api/catalogos/gestiones/:id
-   * Actualiza una gestión existente
-   * Acceso: solo admin
-   */
+  // PUT /api/catalogos/gestiones/:id
+  // Actualiza una gestion existente
+  // Puede modificar descripcion, fechas, estado, etc
+  // Acceso: solo admin
   async updateGestion(
     request: FastifyRequest<{
       Params: CatalogoParams;
@@ -340,11 +320,10 @@ export class CatalogosController {
     }
   }
 
-  /**
-   * DELETE /api/catalogos/gestiones/:id
-   * Elimina (desactiva) una gestión
-   * Acceso: solo admin
-   */
+  // DELETE /api/catalogos/gestiones/:id
+  // Elimina (desactiva) una gestion
+  // No borra fisicamente, solo marca como inactiva
+  // Acceso: solo admin
   async deleteGestion(
     request: FastifyRequest<{ Params: CatalogoParams }>,
     reply: FastifyReply

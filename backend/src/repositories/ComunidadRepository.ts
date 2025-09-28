@@ -2,10 +2,8 @@ import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { Comunidad, ComunidadData } from "../entities/Comunidad.js";
 
 export class ComunidadRepository {
-  /**
-   * Encuentra comunidad por ID con datos enriquecidos
-   * JOIN con municipios y provincias para jerarquía completa
-   */
+  // Encuentra comunidad por ID con datos enriquecidos
+  // JOIN con municipios y provincias para jerarquia completa
   async findById(id: string): Promise<Comunidad | null> {
     const query = {
       name: "find-comunidad-by-id",
@@ -14,13 +12,14 @@ export class ComunidadRepository {
           c.id_comunidad,
           c.id_municipio,
           c.nombre_comunidad,
+          c.abreviatura_comunidad,
           c.activo,
           c.created_at,
           m.nombre_municipio,
           p.nombre_provincia,
           (
             SELECT COUNT(*) 
-            FROM usuarios u 
+            FROM usuarios u
             INNER JOIN roles r ON u.id_rol = r.id_rol
             WHERE u.id_comunidad = c.id_comunidad 
               AND LOWER(r.nombre_rol) = 'tecnico'
@@ -28,7 +27,7 @@ export class ComunidadRepository {
           ) as cantidad_tecnicos,
           (
             SELECT COUNT(*) 
-            FROM productores pr 
+            FROM productores pr
             WHERE pr.id_comunidad = c.id_comunidad 
               AND pr.activo = true
           ) as cantidad_productores
@@ -44,10 +43,8 @@ export class ComunidadRepository {
     return result ? Comunidad.fromDatabase(result) : null;
   }
 
-  /**
-   * Lista comunidades por municipio
-   * Ordenadas alfabéticamente
-   */
+  // Lista comunidades por municipio
+  // Ordenadas alfabeticamente
   async findByMunicipio(municipioId: string): Promise<Comunidad[]> {
     const query = {
       name: "find-comunidades-by-municipio",
@@ -56,6 +53,7 @@ export class ComunidadRepository {
           c.id_comunidad,
           c.id_municipio,
           c.nombre_comunidad,
+          c.abreviatura_comunidad,
           c.activo,
           c.created_at,
           m.nombre_municipio,
@@ -73,10 +71,8 @@ export class ComunidadRepository {
     return results.map((data) => Comunidad.fromDatabase(data));
   }
 
-  /**
-   * Lista todas las comunidades activas
-   * Con datos enriquecidos de técnicos y productores
-   */
+  // Lista todas las comunidades activas
+  // Con datos enriquecidos de tecnicos y productores
   async findAll(): Promise<Comunidad[]> {
     const query = {
       name: "find-all-comunidades-activas",
@@ -85,13 +81,14 @@ export class ComunidadRepository {
           c.id_comunidad,
           c.id_municipio,
           c.nombre_comunidad,
+          c.abreviatura_comunidad,
           c.activo,
           c.created_at,
           m.nombre_municipio,
           p.nombre_provincia,
           (
             SELECT COUNT(*) 
-            FROM usuarios u 
+            FROM usuarios u
             INNER JOIN roles r ON u.id_rol = r.id_rol
             WHERE u.id_comunidad = c.id_comunidad 
               AND LOWER(r.nombre_rol) = 'tecnico'
@@ -99,7 +96,7 @@ export class ComunidadRepository {
           ) as cantidad_tecnicos,
           (
             SELECT COUNT(*) 
-            FROM productores pr 
+            FROM productores pr
             WHERE pr.id_comunidad = c.id_comunidad 
               AND pr.activo = true
           ) as cantidad_productores
@@ -116,10 +113,8 @@ export class ComunidadRepository {
     return results.map((data) => Comunidad.fromDatabase(data));
   }
 
-  /**
-   * Busca comunidad por nombre (case-insensitive)
-   * Útil para validar duplicados
-   */
+  // Busca comunidad por nombre (case-insensitive)
+  // Util para validar duplicados
   async findByNombre(
     nombre: string,
     municipioId: string
@@ -130,6 +125,7 @@ export class ComunidadRepository {
           c.id_comunidad,
           c.id_municipio,
           c.nombre_comunidad,
+          c.abreviatura_comunidad,
           c.activo,
           c.created_at,
           m.nombre_municipio
@@ -146,10 +142,8 @@ export class ComunidadRepository {
     return result ? Comunidad.fromDatabase(result) : null;
   }
 
-  /**
-   * Verifica si existe comunidad con el nombre en el municipio
-   * Para evitar duplicados
-   */
+  // Verifica si existe comunidad con el nombre en el municipio
+  // Para evitar duplicados
   async existsByNombreInMunicipio(
     nombre: string,
     municipioId: string
@@ -158,7 +152,7 @@ export class ComunidadRepository {
       text: `
         SELECT EXISTS(
           SELECT 1 
-          FROM comunidades 
+          FROM comunidades
           WHERE LOWER(nombre_comunidad) = LOWER($1) 
             AND id_municipio = $2
         ) as exists
@@ -170,25 +164,58 @@ export class ComunidadRepository {
     return result?.exists ?? false;
   }
 
-  /**
-   * Crea una nueva comunidad
-   * Retorna comunidad creada con datos enriquecidos
-   */
+  // Verifica si existe comunidad con la abreviatura en el municipio
+  // Para evitar duplicados de abreviatura
+  async existsByAbreviaturaInMunicipio(
+    abreviatura: string,
+    municipioId: string
+  ): Promise<boolean> {
+    const query = {
+      text: `
+        SELECT EXISTS(
+          SELECT 1 
+          FROM comunidades
+          WHERE UPPER(abreviatura_comunidad) = UPPER($1)
+            AND id_municipio = $2
+            AND activo = true
+        ) as exists
+      `,
+      values: [abreviatura, municipioId],
+    };
+
+    const result = await ReadQuery.findOne<{ exists: boolean }>(query);
+    return result?.exists ?? false;
+  }
+
+  // Crea una nueva comunidad
+  // Retorna comunidad creada con datos enriquecidos
   async create(comunidad: Comunidad): Promise<Comunidad> {
     const validation = comunidad.validate();
     if (!validation.valid) {
-      throw new Error(`Validación falló: ${validation.errors.join(", ")}`);
+      throw new Error(`Validacion fallo: ${validation.errors.join(", ")}`);
     }
 
-    // Verificar duplicados en mismo municipio
-    const existe = await this.existsByNombreInMunicipio(
+    // Verificar duplicados por nombre en mismo municipio
+    const existeNombre = await this.existsByNombreInMunicipio(
       comunidad.nombre,
       comunidad.idMunicipio
     );
 
-    if (existe) {
+    if (existeNombre) {
       throw new Error(
         `Ya existe una comunidad "${comunidad.nombre}" en este municipio`
+      );
+    }
+
+    // Verificar duplicados por abreviatura en mismo municipio
+    const existeAbreviatura = await this.existsByAbreviaturaInMunicipio(
+      comunidad.abreviatura,
+      comunidad.idMunicipio
+    );
+
+    if (existeAbreviatura) {
+      throw new Error(
+        `Ya existe una comunidad con abreviatura "${comunidad.abreviatura}" en este municipio`
       );
     }
 
@@ -199,18 +226,21 @@ export class ComunidadRepository {
         INSERT INTO comunidades (
           id_municipio,
           nombre_comunidad,
+          abreviatura_comunidad,
           activo
-        ) VALUES ($1, $2, $3)
+        ) VALUES ($1, $2, $3, $4)
         RETURNING 
           id_comunidad,
           id_municipio,
           nombre_comunidad,
+          abreviatura_comunidad,
           activo,
           created_at
       `,
       values: [
         insertData.id_municipio,
         insertData.nombre_comunidad,
+        insertData.abreviatura_comunidad,
         insertData.activo,
       ],
     };
@@ -229,27 +259,32 @@ export class ComunidadRepository {
     return comunidadCreada;
   }
 
-  /**
-   * Actualiza una comunidad existente
-   * Solo campos modificables
-   */
+  // Actualiza una comunidad existente
+  // Solo campos modificables
   async update(id: string, comunidad: Comunidad): Promise<Comunidad> {
     const validation = comunidad.validate();
     if (!validation.valid) {
-      throw new Error(`Validación falló: ${validation.errors.join(", ")}`);
+      throw new Error(`Validacion fallo: ${validation.errors.join(", ")}`);
     }
 
     const updateData = comunidad.toDatabaseUpdate();
+
     const query = {
       text: `
         UPDATE comunidades
         SET 
           nombre_comunidad = $2,
-          activo = $3
+          abreviatura_comunidad = $3,
+          activo = $4
         WHERE id_comunidad = $1 AND activo = true
         RETURNING id_comunidad
       `,
-      values: [id, updateData.nombre_comunidad, updateData.activo],
+      values: [
+        id,
+        updateData.nombre_comunidad,
+        updateData.abreviatura_comunidad,
+        updateData.activo,
+      ],
     };
 
     const result = await WriteQuery.execute(query);
@@ -266,10 +301,8 @@ export class ComunidadRepository {
     return comunidadActualizada;
   }
 
-  /**
-   * Desactiva una comunidad (soft delete)
-   * Verifica que no tenga técnicos o productores activos
-   */
+  // Desactiva una comunidad (soft delete)
+  // Verifica que no tenga tecnicos o productores activos
   async softDelete(id: string): Promise<void> {
     // Obtener comunidad con contadores
     const comunidad = await this.findById(id);
@@ -302,10 +335,8 @@ export class ComunidadRepository {
     }
   }
 
-  /**
-   * Cuenta comunidades por municipio
-   * Para estadísticas
-   */
+  // Cuenta comunidades por municipio
+  // Para estadisticas
   async countByMunicipio(municipioId: string): Promise<number> {
     const query = {
       text: `
@@ -320,10 +351,8 @@ export class ComunidadRepository {
     return parseInt(result?.count || "0", 10);
   }
 
-  /**
-   * Obtiene comunidades con técnicos asignados
-   * Para dashboard y reportes
-   */
+  // Obtiene comunidades con tecnicos asignados
+  // Para dashboard y reportes
   async findWithTecnicos(): Promise<Comunidad[]> {
     const query = {
       text: `
@@ -331,6 +360,7 @@ export class ComunidadRepository {
           c.id_comunidad,
           c.id_municipio,
           c.nombre_comunidad,
+          c.abreviatura_comunidad,
           c.activo,
           c.created_at,
           m.nombre_municipio,
@@ -348,6 +378,7 @@ export class ComunidadRepository {
           c.id_comunidad,
           c.id_municipio,
           c.nombre_comunidad,
+          c.abreviatura_comunidad,
           c.activo,
           c.created_at,
           m.nombre_municipio,
@@ -362,10 +393,8 @@ export class ComunidadRepository {
     return results.map((data) => Comunidad.fromDatabase(data));
   }
 
-  /**
-   * Obtiene comunidades sin técnicos asignados
-   * Para alertas y gestión
-   */
+  // Obtiene comunidades sin tecnicos asignados
+  // Para alertas y gestion
   async findWithoutTecnicos(): Promise<Comunidad[]> {
     const query = {
       text: `
@@ -373,6 +402,7 @@ export class ComunidadRepository {
           c.id_comunidad,
           c.id_municipio,
           c.nombre_comunidad,
+          c.abreviatura_comunidad,
           c.activo,
           c.created_at,
           m.nombre_municipio,
@@ -399,10 +429,8 @@ export class ComunidadRepository {
     return results.map((data) => Comunidad.fromDatabase(data));
   }
 
-  /**
-   * Busca comunidades por provincia
-   * Con jerarquía completa
-   */
+  // Busca comunidades por provincia
+  // Con jerarquia completa
   async findByProvincia(provinciaId: string): Promise<Comunidad[]> {
     const query = {
       text: `
@@ -410,6 +438,7 @@ export class ComunidadRepository {
           c.id_comunidad,
           c.id_municipio,
           c.nombre_comunidad,
+          c.abreviatura_comunidad,
           c.activo,
           c.created_at,
           m.nombre_municipio,

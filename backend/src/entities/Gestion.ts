@@ -13,10 +13,10 @@ export interface GestionData {
 export interface GestionPublicData {
   id_gestion: string;
   anio_gestion: number;
-  descripcion?: string;
-  fecha_inicio?: string;
-  fecha_fin?: string;
-  estado_gestion: string;
+  descripcion: string | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  estado_gestion: "planificada" | "activa" | "finalizada";
   activa: boolean;
 }
 
@@ -38,16 +38,16 @@ export class Gestion {
     return this.data.anio_gestion;
   }
 
-  get descripcion(): string | undefined {
-    return this.data.descripcion;
+  get descripcion(): string | null {
+    return this.data.descripcion ?? null;
   }
 
-  get fechaInicio(): Date | undefined {
-    return this.data.fecha_inicio;
+  get fechaInicio(): Date | null {
+    return this.data.fecha_inicio ?? null;
   }
 
-  get fechaFin(): Date | undefined {
-    return this.data.fecha_fin;
+  get fechaFin(): Date | null {
+    return this.data.fecha_fin ?? null;
   }
 
   get estadoGestion(): "planificada" | "activa" | "finalizada" {
@@ -116,17 +116,17 @@ export class Gestion {
   // Convierte a formato para insertar en BD
   toDatabaseInsert(): {
     anio_gestion: number;
-    descripcion?: string;
-    fecha_inicio?: Date;
-    fecha_fin?: Date;
+    descripcion: string | null;
+    fecha_inicio: Date | null;
+    fecha_fin: Date | null;
     estado_gestion: "planificada" | "activa" | "finalizada";
     activa: boolean;
   } {
     return {
       anio_gestion: this.data.anio_gestion,
-      descripcion: this.data.descripcion?.trim(),
-      fecha_inicio: this.data.fecha_inicio,
-      fecha_fin: this.data.fecha_fin,
+      descripcion: this.data.descripcion?.trim() ?? null,
+      fecha_inicio: this.data.fecha_inicio ?? null,
+      fecha_fin: this.data.fecha_fin ?? null,
       estado_gestion: this.data.estado_gestion,
       activa: this.data.activa,
     };
@@ -134,16 +134,16 @@ export class Gestion {
 
   // Convierte a formato para actualizar en BD
   toDatabaseUpdate(): {
-    descripcion?: string;
-    fecha_inicio?: Date;
-    fecha_fin?: Date;
+    descripcion?: string | null;
+    fecha_inicio?: Date | null;
+    fecha_fin?: Date | null;
     estado_gestion?: "planificada" | "activa" | "finalizada";
     activa?: boolean;
   } {
     return {
-      descripcion: this.data.descripcion?.trim(),
-      fecha_inicio: this.data.fecha_inicio,
-      fecha_fin: this.data.fecha_fin,
+      descripcion: this.data.descripcion?.trim() ?? null,
+      fecha_inicio: this.data.fecha_inicio ?? null,
+      fecha_fin: this.data.fecha_fin ?? null,
       estado_gestion: this.data.estado_gestion,
       activa: this.data.activa,
     };
@@ -154,9 +154,9 @@ export class Gestion {
     return {
       id_gestion: this.data.id_gestion,
       anio_gestion: this.data.anio_gestion,
-      descripcion: this.data.descripcion,
-      fecha_inicio: this.data.fecha_inicio?.toISOString(),
-      fecha_fin: this.data.fecha_fin?.toISOString(),
+      descripcion: this.data.descripcion ?? null,
+      fecha_inicio: this.data.fecha_inicio?.toISOString() ?? null,
+      fecha_fin: this.data.fecha_fin?.toISOString() ?? null,
       estado_gestion: this.data.estado_gestion,
       activa: this.data.activa,
     };

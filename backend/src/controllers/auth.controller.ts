@@ -10,10 +10,9 @@ import type {
 
 const logger = createAuthLogger();
 
-/**
- * Controlador de autenticación
- * Maneja HTTP requests/responses para operaciones de auth
- */
+// Controlador de autenticacion
+// Maneja las peticiones HTTP y respuestas para todas las operaciones de auth
+// Delega la logica de negocio al AuthService
 export class AuthController {
   private authService: AuthService;
 
@@ -21,10 +20,9 @@ export class AuthController {
     this.authService = authService;
   }
 
-  /**
-   * POST /api/auth/register
-   * Registra un nuevo usuario
-   */
+  // POST /api/auth/register
+  // Registra un nuevo usuario en el sistema
+  // Valida datos, crea usuario y retorna tokens JWT
   async register(
     request: FastifyRequest<{ Body: RegisterInput }>,
     reply: FastifyReply
@@ -61,10 +59,11 @@ export class AuthController {
         "Registration failed"
       );
 
-      // Errores específicos con códigos HTTP apropiados
+      // Manejar errores especificos con codigos HTTP apropiados
       const errorMessage =
         error instanceof Error ? error.message : "Error al registrar usuario";
 
+      // Error 409: Conflicto (username o email duplicado)
       if (
         errorMessage.includes("ya existe") ||
         errorMessage.includes("Username") ||
@@ -77,6 +76,7 @@ export class AuthController {
         });
       }
 
+      // Error 400: Validacion (password debil, comunidad faltante)
       if (
         errorMessage.includes("Password") ||
         errorMessage.includes("comunidad")
@@ -88,6 +88,7 @@ export class AuthController {
         });
       }
 
+      // Error 500: Error interno no especificado
       return reply.code(500).send({
         error: "internal_error",
         message: "Error al registrar usuario",
@@ -96,10 +97,9 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/auth/login
-   * Autentica usuario con credenciales
-   */
+  // POST /api/auth/login
+  // Autentica usuario con username y password
+  // Verifica credenciales y retorna tokens JWT si son validas
   async login(
     request: FastifyRequest<{ Body: LoginInput }>,
     reply: FastifyReply
@@ -139,7 +139,7 @@ export class AuthController {
       const errorMessage =
         error instanceof Error ? error.message : "Error al iniciar sesión";
 
-      // Rate limit error
+      // Error 429: Demasiados intentos (rate limit)
       if (errorMessage.includes("Demasiados intentos")) {
         return reply.code(429).send({
           error: "too_many_requests",
@@ -148,7 +148,7 @@ export class AuthController {
         });
       }
 
-      // Invalid credentials o usuario inactivo
+      // Error 401: Credenciales invalidas o usuario inactivo
       return reply.code(401).send({
         error: "unauthorized",
         message: errorMessage,
@@ -157,10 +157,9 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/auth/refresh
-   * Renueva access token con refresh token
-   */
+  // POST /api/auth/refresh
+  // Renueva el access token usando el refresh token
+  // Permite mantener la sesion activa sin requerir nuevo login
   async refresh(
     request: FastifyRequest<{ Body: RefreshTokenInput }>,
     reply: FastifyReply
@@ -197,14 +196,12 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/auth/logout
-   * Cierra sesión (invalida token)
-   * Requiere autenticación
-   */
+  // POST /api/auth/logout
+  // Cierra sesion invalidando el token actual
+  // Requiere estar autenticado (token valido en header)
   async logout(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
-      // Extraer token del header
+      // Extraer token del header Authorization
       const authHeader = request.headers.authorization;
       const token = extractTokenFromHeader(authHeader);
 
@@ -216,6 +213,7 @@ export class AuthController {
         });
       }
 
+      // Agregar token a blacklist para invalidarlo
       await this.authService.logout(token);
 
       logger.info(
@@ -227,6 +225,7 @@ export class AuthController {
         "User logged out via API"
       );
 
+      // Respuesta 204: No Content (logout exitoso sin body)
       return reply.code(204).send();
     } catch (error) {
       logger.error(
@@ -246,14 +245,14 @@ export class AuthController {
     }
   }
 
-  /**
-   * GET /api/auth/me
-   * Obtiene información del usuario autenticado
-   * Requiere autenticación
-   */
+  // GET /api/auth/me
+  // Obtiene informacion del usuario autenticado actual
+  // Requiere token valido en header Authorization
+  // Retorna datos del usuario y sus permisos completos
   async me(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
-      // Usuario viene de authenticate middleware
+      // El usuario viene del middleware authenticate
+      // Si no existe userId, el middleware no funciono correctamente
       if (!request.user?.userId) {
         return reply.code(401).send({
           error: "unauthorized",

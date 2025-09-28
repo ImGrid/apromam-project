@@ -3,9 +3,8 @@ import { createAuthLogger } from "../utils/logger.js";
 
 const logger = createAuthLogger();
 
-/**
- * Roles del sistema APROMAM
- */
+// Roles del sistema APROMAM
+// Estos son los 5 roles definidos en la base de datos
 export const ROLES = {
   ADMINISTRADOR: "administrador",
   GERENTE: "gerente",
@@ -16,22 +15,13 @@ export const ROLES = {
 
 export type RoleName = (typeof ROLES)[keyof typeof ROLES];
 
-/**
- * Factory function para autorización por roles
- * Retorna middleware que valida si usuario tiene uno de los roles permitidos
- *
- * @param allowedRoles - Array de roles permitidos
- * @returns Middleware function
- *
- * Uso:
- * fastify.get('/api/admin/users', {
- *   onRequest: [fastify.authenticate],
- *   preHandler: [requireRoles('administrador')]
- * }, handler)
- */
+// Crea un middleware que valida si el usuario tiene uno de los roles permitidos
+// Retorna una funcion middleware que se usa en las rutas
+// Ejemplo: requireRoles('administrador', 'gerente')
+// Uso en ruta: preHandler: [requireRoles('administrador')]
 export function requireRoles(...allowedRoles: string[]) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    // Validar que usuario esté autenticado
+    // Validar que el usuario este autenticado primero
     if (!request.user) {
       logger.warn(
         {
@@ -51,7 +41,7 @@ export function requireRoles(...allowedRoles: string[]) {
 
     const userRole = request.user.role?.toLowerCase();
 
-    // Verificar si usuario tiene uno de los roles permitidos
+    // Verificar si el usuario tiene uno de los roles permitidos
     const hasPermission = allowedRoles.some(
       (role) => role.toLowerCase() === userRole
     );
@@ -88,44 +78,30 @@ export function requireRoles(...allowedRoles: string[]) {
   };
 }
 
-/**
- * Middleware para requerir rol de administrador
- * Atajo para requireRoles('administrador')
- */
+// Middleware para requerir rol de administrador
+// Atajo para requireRoles('administrador')
 export const requireAdmin = requireRoles(ROLES.ADMINISTRADOR);
 
-/**
- * Middleware para requerir rol de gerente o superior
- * Gerentes y admins pueden aprobar fichas
- */
+// Middleware para requerir rol de gerente o superior
+// Gerentes y admins pueden aprobar fichas
 export const requireGerente = requireRoles(ROLES.GERENTE, ROLES.ADMINISTRADOR);
 
-/**
- * Middleware para requerir rol de técnico
- * Solo técnicos capturan datos en campo
- */
+// Middleware para requerir rol de tecnico
+// Solo tecnicos capturan datos en campo
 export const requireTecnico = requireRoles(ROLES.TECNICO);
 
-/**
- * Middleware para requerir técnico, gerente o admin
- * Para operaciones comunes del sistema
- */
+// Middleware para requerir tecnico, gerente o admin
+// Para operaciones comunes del sistema
 export const requireStaff = requireRoles(
   ROLES.TECNICO,
   ROLES.GERENTE,
   ROLES.ADMINISTRADOR
 );
 
-/**
- * Factory function para autorización basada en permisos JSONB
- * Verifica permisos específicos en lugar de roles
- *
- * @param requiredPermission - Permiso requerido (ej: 'approve', 'create')
- * @returns Middleware function
- *
- * Uso:
- * preHandler: [requirePermission('approve')]
- */
+// Crea un middleware que verifica permisos especificos del rol
+// Los permisos estan almacenados en JSONB en la tabla roles
+// Ejemplo: requirePermission('approve') para aprobar fichas
+// Uso en ruta: preHandler: [requirePermission('approve')]
 export function requirePermission(requiredPermission: string) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {
@@ -150,7 +126,7 @@ export function requirePermission(requiredPermission: string) {
       return;
     }
 
-    // Verificar permiso específico
+    // Verificar si tiene el permiso especifico requerido
     if (permisos[requiredPermission] !== true) {
       logger.warn(
         {
@@ -179,17 +155,11 @@ export function requirePermission(requiredPermission: string) {
   };
 }
 
-/**
- * Middleware para verificar acceso a comunidad específica
- * Técnicos solo pueden acceder a su comunidad asignada
- * Gerentes y admins tienen acceso a todas
- *
- * @param getComunidadId - Function que extrae ID de comunidad del request
- * @returns Middleware function
- *
- * Uso:
- * preHandler: [requireComunidadAccess((req) => req.params.comunidadId)]
- */
+// Middleware para verificar acceso a comunidad especifica
+// Los tecnicos solo pueden acceder a su comunidad asignada
+// Gerentes y admins tienen acceso a todas las comunidades
+// getComunidadId: funcion que extrae el ID de comunidad del request
+// Ejemplo: requireComunidadAccess((req) => req.params.comunidadId)
 export function requireComunidadAccess(
   getComunidadId: (request: FastifyRequest) => string | undefined
 ) {
@@ -206,7 +176,7 @@ export function requireComunidadAccess(
     const userComunidadId = request.user.comunidadId;
     const targetComunidadId = getComunidadId(request);
 
-    // Admin tiene acceso a todo
+    // Admin tiene acceso a todas las comunidades
     if (userRole === ROLES.ADMINISTRADOR) {
       logger.debug(
         {
@@ -218,8 +188,8 @@ export function requireComunidadAccess(
       return;
     }
 
-    // Gerente tiene acceso a todas las comunidades de su región
-    // Por ahora permitir acceso total, refinar después con región
+    // Gerente tiene acceso a todas las comunidades
+    // En el futuro se puede refinar para limitar por region
     if (userRole === ROLES.GERENTE) {
       logger.debug(
         {
@@ -231,7 +201,7 @@ export function requireComunidadAccess(
       return;
     }
 
-    // Técnico solo puede acceder a su comunidad
+    // Tecnico solo puede acceder a su comunidad asignada
     if (userRole === ROLES.TECNICO) {
       if (!userComunidadId) {
         logger.error(
@@ -249,6 +219,7 @@ export function requireComunidadAccess(
         });
       }
 
+      // Verificar que este accediendo a su propia comunidad
       if (targetComunidadId && targetComunidadId !== userComunidadId) {
         logger.warn(
           {
@@ -276,7 +247,7 @@ export function requireComunidadAccess(
       return;
     }
 
-    // Otros roles (invitado, productor) no tienen acceso
+    // Otros roles (invitado, productor) no tienen acceso a comunidades
     logger.warn(
       {
         user_id: request.user.userId,
@@ -293,16 +264,10 @@ export function requireComunidadAccess(
   };
 }
 
-/**
- * Middleware para verificar que usuario puede editar recurso
- * Solo propietario o admin pueden editar
- *
- * @param getOwnerId - Function que extrae ID del propietario del recurso
- * @returns Middleware function
- *
- * Uso:
- * preHandler: [requireOwnership((req) => req.params.userId)]
- */
+// Middleware para verificar que el usuario puede editar un recurso
+// Solo el propietario del recurso o un admin pueden editarlo
+// getOwnerId: funcion que extrae el ID del propietario del recurso
+// Ejemplo: requireOwnership((req) => req.params.userId)
 export function requireOwnership(
   getOwnerId: (request: FastifyRequest) => string | undefined
 ) {
@@ -319,7 +284,7 @@ export function requireOwnership(
     const userRole = request.user.role?.toLowerCase();
     const ownerId = getOwnerId(request);
 
-    // Admin puede editar todo
+    // Admin puede editar cualquier recurso
     if (userRole === ROLES.ADMINISTRADOR) {
       logger.debug(
         {
@@ -331,7 +296,7 @@ export function requireOwnership(
       return;
     }
 
-    // Verificar que sea el propietario
+    // Verificar que el usuario sea el propietario del recurso
     if (ownerId && ownerId !== userId) {
       logger.warn(
         {

@@ -4,7 +4,7 @@ export interface TipoCultivoData {
   nombre_cultivo: string;
   descripcion?: string | null;
   es_principal_certificable: boolean | null;
-  rendimiento_promedio_qq_ha?: string | number | null;
+  rendimiento_promedio_qq_ha?: number | null;
   activo: boolean | null;
 }
 
@@ -12,9 +12,9 @@ export interface TipoCultivoData {
 export interface TipoCultivoPublicData {
   id_tipo_cultivo: string;
   nombre_cultivo: string;
-  descripcion?: string | null;
+  descripcion: string | null;
   es_principal_certificable: boolean | null;
-  rendimiento_promedio_qq_ha?: number | null;
+  rendimiento_promedio_qq_ha: number | null;
   activo: boolean | null;
 }
 
@@ -36,16 +36,16 @@ export class TipoCultivo {
     return this.data.nombre_cultivo;
   }
 
-  get descripcion(): string | undefined {
-    return this.data.descripcion;
+  get descripcion(): string | null {
+    return this.data.descripcion ?? null;
   }
 
   get esPrincipalCertificable(): boolean | null {
     return this.data.es_principal_certificable;
   }
 
-  get rendimientoPromedio(): number | null | undefined {
-    return this.data.rendimiento_promedio_qq_ha;
+  get rendimientoPromedio(): number | null {
+    return this.data.rendimiento_promedio_qq_ha ?? null;
   }
 
   get activo(): boolean | null {
@@ -62,37 +62,16 @@ export class TipoCultivo {
     return new TipoCultivo({
       id_tipo_cultivo: "",
       nombre_cultivo: data.nombre_cultivo,
-      descripcion: data.descripcion,
+      descripcion: data.descripcion ?? null,
       es_principal_certificable: data.es_principal_certificable ?? false,
-      rendimiento_promedio_qq_ha: data.rendimiento_promedio_qq_ha,
+      rendimiento_promedio_qq_ha: data.rendimiento_promedio_qq_ha ?? null,
       activo: true,
     });
   }
 
   // Crea instancia desde datos de BD
   static fromDatabase(data: TipoCultivoData): TipoCultivo {
-    // Convertir rendimiento de string a number si viene como string
-    // PostgreSQL devuelve NUMERIC como string
-    let rendimiento: number | null = null;
-
-    if (
-      data.rendimiento_promedio_qq_ha !== null &&
-      data.rendimiento_promedio_qq_ha !== undefined
-    ) {
-      rendimiento =
-        typeof data.rendimiento_promedio_qq_ha === "string"
-          ? parseFloat(data.rendimiento_promedio_qq_ha)
-          : data.rendimiento_promedio_qq_ha;
-    }
-
-    return new TipoCultivo({
-      id_tipo_cultivo: data.id_tipo_cultivo,
-      nombre_cultivo: data.nombre_cultivo,
-      descripcion: data.descripcion,
-      es_principal_certificable: data.es_principal_certificable,
-      rendimiento_promedio_qq_ha: rendimiento,
-      activo: data.activo,
-    });
+    return new TipoCultivo(data);
   }
 
   // Valida los datos del tipo cultivo
@@ -123,16 +102,16 @@ export class TipoCultivo {
   // Convierte a formato para insertar en BD
   toDatabaseInsert(): {
     nombre_cultivo: string;
-    descripcion?: string | null;
+    descripcion: string | null;
     es_principal_certificable: boolean | null;
-    rendimiento_promedio_qq_ha?: number | null;
+    rendimiento_promedio_qq_ha: number | null;
     activo: boolean | null;
   } {
     return {
       nombre_cultivo: this.data.nombre_cultivo.trim(),
-      descripcion: this.data.descripcion?.trim() || null,
+      descripcion: this.data.descripcion?.trim() ?? null,
       es_principal_certificable: this.data.es_principal_certificable,
-      rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha,
+      rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha ?? null,
       activo: this.data.activo,
     };
   }
@@ -147,9 +126,9 @@ export class TipoCultivo {
   } {
     return {
       nombre_cultivo: this.data.nombre_cultivo?.trim(),
-      descripcion: this.data.descripcion?.trim() || null,
+      descripcion: this.data.descripcion?.trim() ?? null,
       es_principal_certificable: this.data.es_principal_certificable,
-      rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha,
+      rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha ?? null,
       activo: this.data.activo,
     };
   }
@@ -159,9 +138,9 @@ export class TipoCultivo {
     return {
       id_tipo_cultivo: this.data.id_tipo_cultivo,
       nombre_cultivo: this.data.nombre_cultivo,
-      descripcion: this.data.descripcion,
+      descripcion: this.data.descripcion ?? null,
       es_principal_certificable: this.data.es_principal_certificable,
-      rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha,
+      rendimiento_promedio_qq_ha: this.data.rendimiento_promedio_qq_ha ?? null,
       activo: this.data.activo,
     };
   }

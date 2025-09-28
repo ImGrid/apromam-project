@@ -2,6 +2,15 @@ import { Pool, PoolClient, PoolConfig } from "pg";
 import { config } from "./environment.js";
 import { createDatabaseLogger } from "../utils/logger.js";
 
+import pg from "pg";
+
+// Configurar parsers de tipos numéricos ANTES de crear el pool
+// Esto convierte NUMERIC/DECIMAL/FLOAT de PostgreSQL a number automáticamente
+pg.types.setTypeParser(1700, parseFloat); // NUMERIC
+pg.types.setTypeParser(700, parseFloat); // REAL
+pg.types.setTypeParser(701, parseFloat); // DOUBLE PRECISION
+pg.types.setTypeParser(20, parseInt);
+
 // Logger especifico para operaciones de base de datos
 const logger = createDatabaseLogger();
 

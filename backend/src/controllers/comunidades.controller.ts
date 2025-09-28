@@ -7,17 +7,16 @@ import type {
   ComunidadQuery,
 } from "../schemas/comunidades.schema.js";
 
-/**
- * Controller para endpoints de comunidades
- */
+// Controlador para endpoints de comunidades
+// Gestiona la estructura geografica donde trabajan los tecnicos
+// Solo admin puede crear, actualizar o eliminar comunidades
 export class ComunidadesController {
   constructor(private comunidadesService: ComunidadesService) {}
 
-  /**
-   * GET /api/comunidades
-   * Lista todas las comunidades con filtros opcionales
-   * Acceso: técnico, gerente, admin
-   */
+  // GET /api/comunidades
+  // Lista todas las comunidades con filtros opcionales
+  // Puede filtrar por municipio, provincia o comunidades sin tecnicos
+  // Acceso: tecnico, gerente, admin
   async list(
     request: FastifyRequest<{ Querystring: ComunidadQuery }>,
     reply: FastifyReply
@@ -40,11 +39,10 @@ export class ComunidadesController {
     }
   }
 
-  /**
-   * GET /api/comunidades/:id
-   * Obtiene una comunidad por ID
-   * Acceso: técnico, gerente, admin
-   */
+  // GET /api/comunidades/:id
+  // Obtiene una comunidad especifica por su ID
+  // Incluye datos de municipio, provincia y contadores de tecnicos/productores
+  // Acceso: tecnico, gerente, admin
   async getById(
     request: FastifyRequest<{ Params: ComunidadParams }>,
     reply: FastifyReply
@@ -73,11 +71,10 @@ export class ComunidadesController {
     }
   }
 
-  /**
-   * POST /api/comunidades
-   * Crea una nueva comunidad
-   * Acceso: solo admin
-   */
+  // POST /api/comunidades
+  // Crea una nueva comunidad en el sistema
+  // Requiere municipio existente y nombre unico dentro del municipio
+  // Acceso: solo admin
   async create(
     request: FastifyRequest<{ Body: CreateComunidadInput }>,
     reply: FastifyReply
@@ -90,7 +87,7 @@ export class ComunidadesController {
       });
     } catch (error) {
       if (error instanceof Error) {
-        // Error de duplicado
+        // Error 409: Ya existe comunidad con ese nombre en el municipio
         if (error.message.includes("Ya existe")) {
           return reply.status(409).send({
             error: "conflict",
@@ -98,7 +95,7 @@ export class ComunidadesController {
             timestamp: new Date().toISOString(),
           });
         }
-        // Error de validación
+        // Error 400: Validacion de datos fallida
         if (error.message.includes("Validación falló")) {
           return reply.status(400).send({
             error: "validation_error",
@@ -116,11 +113,10 @@ export class ComunidadesController {
     }
   }
 
-  /**
-   * PUT /api/comunidades/:id
-   * Actualiza una comunidad existente
-   * Acceso: solo admin
-   */
+  // PUT /api/comunidades/:id
+  // Actualiza una comunidad existente
+  // Puede modificar nombre o estado activo/inactivo
+  // Acceso: solo admin
   async update(
     request: FastifyRequest<{
       Params: ComunidadParams;
@@ -155,11 +151,11 @@ export class ComunidadesController {
     }
   }
 
-  /**
-   * DELETE /api/comunidades/:id
-   * Elimina (desactiva) una comunidad
-   * Acceso: solo admin
-   */
+  // DELETE /api/comunidades/:id
+  // Elimina (desactiva) una comunidad
+  // No borra fisicamente, solo marca como inactiva
+  // No permite eliminar si tiene tecnicos o productores asignados
+  // Acceso: solo admin
   async delete(
     request: FastifyRequest<{ Params: ComunidadParams }>,
     reply: FastifyReply
@@ -177,7 +173,7 @@ export class ComunidadesController {
             timestamp: new Date().toISOString(),
           });
         }
-        // Error de integridad referencial
+        // Error 409: No se puede eliminar por tener asignaciones
         if (error.message.includes("tiene")) {
           return reply.status(409).send({
             error: "conflict",
@@ -195,11 +191,10 @@ export class ComunidadesController {
     }
   }
 
-  /**
-   * GET /api/comunidades/sin-tecnicos
-   * Lista comunidades sin técnicos asignados
-   * Acceso: gerente, admin
-   */
+  // GET /api/comunidades/sin-tecnicos
+  // Lista comunidades que no tienen tecnicos asignados
+  // Util para alertas y gestion de asignaciones
+  // Acceso: gerente, admin
   async listWithoutTecnicos(request: FastifyRequest, reply: FastifyReply) {
     try {
       const result = await this.comunidadesService.listWithoutTecnicos();

@@ -108,17 +108,17 @@ export const createServer = async (): Promise<FastifyInstance> => {
     max: config.rateLimit.max,
     timeWindow: config.rateLimit.timeWindow,
 
-    // Rate limit diferenciado por rol - Extraido de JWT
     keyGenerator: (request) => {
       const user = (request as any).user;
-      const role = user?.role || "anonymous";
-      const ip = request.ip;
-      return `${ip}-${role}`;
+      // Si está autenticado: por usuario
+      if (user?.userId) {
+        return user.userId;
+      }
+      // Si es anónimo: por IP
+      return request.ip;
     },
 
-    // Configuracion especifica por endpoint
     allowList: (req) => {
-      // Permitir health checks sin rate limit
       return req.url?.includes("/health") || false;
     },
   });

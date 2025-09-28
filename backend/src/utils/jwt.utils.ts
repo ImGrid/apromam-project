@@ -1,11 +1,10 @@
 import jwt, { JwtPayload, SignOptions, VerifyOptions } from "jsonwebtoken";
 import { config } from "../config/environment.js";
-import { createAuthLogger } from "./logger.js"; // ✅
+import { createAuthLogger } from "./logger.js";
 const logger = createAuthLogger();
 
-/**
- * Payload estándar JWT para access tokens
- */
+// Payload que se incluye en los access tokens
+// Contiene informacion del usuario para identificarlo en cada request
 export interface AccessTokenPayload {
   userId: string;
   username: string;
@@ -14,59 +13,51 @@ export interface AccessTokenPayload {
   type: "access";
 }
 
-/**
- * Payload estándar JWT para refresh tokens
- */
+// Payload que se incluye en los refresh tokens
+// Solo contiene el userId por seguridad
+// Los refresh tokens son de larga duracion y solo sirven para renovar access tokens
 export interface RefreshTokenPayload {
   userId: string;
   type: "refresh";
 }
 
-/**
- * Resultado de generación de tokens
- */
+// Resultado que retorna la generacion de tokens
+// Incluye ambos tokens y tiempo de expiracion
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
-  expiresIn: number; // segundos
+  expiresIn: number;
 }
 
-/**
- * Opciones para generar access token
- */
+// Opciones para generar access tokens
+// Configuracion de expiracion, algoritmo e issuer
 const ACCESS_TOKEN_OPTIONS: SignOptions = {
-  expiresIn: config.jwt.expiresIn, // 24h del config
+  expiresIn: config.jwt.expiresIn,
   algorithm: "HS256",
   issuer: "apromam-backend",
   audience: "apromam-client",
 };
 
-/**
- * Opciones para generar refresh token
- */
+// Opciones para generar refresh tokens
+// Duracion mas larga que access tokens
 const REFRESH_TOKEN_OPTIONS: SignOptions = {
-  expiresIn: config.jwt.refreshExpiresIn, // 7d del config
+  expiresIn: config.jwt.refreshExpiresIn,
   algorithm: "HS256",
   issuer: "apromam-backend",
   audience: "apromam-client",
 };
 
-/**
- * Opciones para verificar tokens
- */
+// Opciones para verificar tokens
+// Valida algoritmo, issuer y audience
 const VERIFY_OPTIONS: VerifyOptions = {
   algorithms: ["HS256"],
   issuer: "apromam-backend",
   audience: "apromam-client",
 };
 
-/**
- * Genera un access token JWT
- *
- * @param payload - Datos del usuario a incluir en el token
- * @returns Token JWT firmado
- * @throws Error si generación falla
- */
+// Genera un access token JWT
+// Incluye datos del usuario y marca como tipo access
+// Lanza error si la generacion falla
 export function generateAccessToken(
   payload: Omit<AccessTokenPayload, "type">
 ): string {
@@ -78,7 +69,7 @@ export function generateAccessToken(
 
     const token = jwt.sign(tokenPayload, config.jwt.secret, {
       ...ACCESS_TOKEN_OPTIONS,
-      jwtid: generateJwtId(), // ID único para tracking
+      jwtid: generateJwtId(),
     });
 
     logger.debug(
@@ -103,13 +94,9 @@ export function generateAccessToken(
   }
 }
 
-/**
- * Genera un refresh token JWT
- *
- * @param payload - Datos mínimos para refresh token
- * @returns Token JWT firmado
- * @throws Error si generación falla
- */
+// Genera un refresh token JWT
+// Solo incluye userId por seguridad
+// Lanza error si la generacion falla
 export function generateRefreshToken(
   payload: Omit<RefreshTokenPayload, "type">
 ): string {
@@ -145,19 +132,15 @@ export function generateRefreshToken(
   }
 }
 
-/**
- * Genera par de tokens (access + refresh)
- *
- * @param payload - Datos del usuario
- * @returns Objeto con ambos tokens y tiempo de expiración
- */
+// Genera un par de tokens (access y refresh)
+// Retorna ambos tokens y el tiempo de expiracion del access token
 export function generateTokenPair(
   payload: Omit<AccessTokenPayload, "type">
 ): TokenPair {
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken({ userId: payload.userId });
 
-  // Calcular segundos de expiración del access token
+  // Calcular segundos de expiracion del access token
   const expiresIn = parseExpiration(config.jwt.expiresIn);
 
   return {
@@ -167,13 +150,9 @@ export function generateTokenPair(
   };
 }
 
-/**
- * Verifica y decodifica un access token
- *
- * @param token - Token JWT a verificar
- * @returns Payload decodificado
- * @throws Error si token es inválido o expirado
- */
+// Verifica y decodifica un access token
+// Valida firma, expiracion, issuer y audience
+// Lanza error si el token es invalido o expirado
 export function verifyAccessToken(token: string): AccessTokenPayload {
   try {
     const decoded = jwt.verify(
@@ -182,7 +161,7 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
       VERIFY_OPTIONS
     ) as JwtPayload;
 
-    // Verificar que sea access token
+    // Verificar que sea access token y no refresh token
     if (decoded.type !== "access") {
       throw new Error("Invalid token type");
     }
@@ -222,13 +201,9 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   }
 }
 
-/**
- * Verifica y decodifica un refresh token
- *
- * @param token - Refresh token a verificar
- * @returns Payload decodificado
- * @throws Error si token es inválido o expirado
- */
+// Verifica y decodifica un refresh token
+// Valida firma, expiracion, issuer y audience
+// Lanza error si el token es invalido o expirado
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
   try {
     const decoded = jwt.verify(
@@ -237,7 +212,7 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload {
       VERIFY_OPTIONS
     ) as JwtPayload;
 
-    // Verificar que sea refresh token
+    // Verificar que sea refresh token y no access token
     if (decoded.type !== "refresh") {
       throw new Error("Invalid token type");
     }
@@ -276,13 +251,9 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload {
   }
 }
 
-/**
- * Decodifica un token sin verificar la firma
- * SOLO para debugging o análisis - NO usar para autenticación
- *
- * @param token - Token JWT
- * @returns Payload decodificado o null si inválido
- */
+// Decodifica un token sin verificar la firma
+// SOLO para debugging o analisis, NO usar para autenticacion
+// Retorna el payload o null si el token es invalido
 export function decodeToken(token: string): JwtPayload | null {
   try {
     const decoded = jwt.decode(token);
@@ -298,12 +269,9 @@ export function decodeToken(token: string): JwtPayload | null {
   }
 }
 
-/**
- * Extrae el token del header Authorization
- *
- * @param authHeader - Header Authorization completo
- * @returns Token extraído o null
- */
+// Extrae el token del header Authorization
+// Formato esperado: "Bearer <token>"
+// Retorna el token o null si el formato es invalido
 export function extractTokenFromHeader(authHeader?: string): string | null {
   if (!authHeader) {
     return null;
@@ -325,13 +293,9 @@ export function extractTokenFromHeader(authHeader?: string): string | null {
   return parts[1];
 }
 
-/**
- * Verifica si un token está próximo a expirar
- *
- * @param token - Token JWT
- * @param thresholdSeconds - Umbral en segundos (default: 300 = 5min)
- * @returns true si token expira pronto
- */
+// Verifica si un token esta proximo a expirar
+// Util para renovar tokens automaticamente antes de que expiren
+// thresholdSeconds: umbral en segundos (default: 300 = 5 minutos)
 export function isTokenExpiringSoon(
   token: string,
   thresholdSeconds: number = 300
@@ -340,7 +304,7 @@ export function isTokenExpiringSoon(
     const decoded = jwt.decode(token) as JwtPayload;
 
     if (!decoded || !decoded.exp) {
-      return true; // Asumir expirado si no hay exp
+      return true;
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -354,16 +318,12 @@ export function isTokenExpiringSoon(
       },
       "Failed to check token expiration"
     );
-    return true; // Asumir expirado en caso de error
+    return true;
   }
 }
 
-/**
- * Obtiene el tiempo restante de un token en segundos
- *
- * @param token - Token JWT
- * @returns Segundos hasta expiración, 0 si expirado, -1 si inválido
- */
+// Obtiene el tiempo restante de un token en segundos
+// Retorna 0 si esta expirado, -1 si es invalido
 export function getTokenRemainingTime(token: string): number {
   try {
     const decoded = jwt.decode(token) as JwtPayload;
@@ -381,21 +341,14 @@ export function getTokenRemainingTime(token: string): number {
   }
 }
 
-/**
- * Genera un JWT ID único para tracking
- *
- * @returns UUID v4 string
- */
+// Genera un ID unico para el JWT
+// Se usa para tracking y revocacion de tokens
 function generateJwtId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 }
 
-/**
- * Parsea string de expiración a segundos
- *
- * @param expiration - String tipo "24h", "7d", etc
- * @returns Segundos de expiración
- */
+// Convierte string de expiracion a segundos
+// Formato: "24h", "7d", "30m", etc
 function parseExpiration(expiration: string): number {
   const units: Record<string, number> = {
     s: 1,
@@ -413,17 +366,12 @@ function parseExpiration(expiration: string): number {
   return parseInt(value, 10) * units[unit];
 }
 
-/**
- * Blacklist de tokens (in-memory)
- * En producción usar Redis
- */
+// Blacklist de tokens en memoria
+// En produccion se debe usar Redis para persistencia
 const tokenBlacklist = new Set<string>();
 
-/**
- * Agrega token a blacklist (logout)
- *
- * @param token - Token a invalidar
- */
+// Agrega un token a la blacklist (logout)
+// El token ya no podra ser usado para autenticacion
 export function blacklistToken(token: string): void {
   const decoded = decodeToken(token);
 
@@ -439,12 +387,8 @@ export function blacklistToken(token: string): void {
   }
 }
 
-/**
- * Verifica si token está en blacklist
- *
- * @param token - Token a verificar
- * @returns true si está en blacklist
- */
+// Verifica si un token esta en la blacklist
+// Retorna true si el token fue invalidado
 export function isTokenBlacklisted(token: string): boolean {
   const decoded = decodeToken(token);
 
@@ -455,20 +399,15 @@ export function isTokenBlacklisted(token: string): boolean {
   return tokenBlacklist.has(decoded.jti);
 }
 
-/**
- * Limpia tokens expirados de blacklist
- * Ejecutar periódicamente (ej: cada hora)
- */
+// Limpia tokens expirados de la blacklist
+// Se debe ejecutar periodicamente (ej: cada hora)
+// En produccion con Redis esto se maneja automaticamente con TTL
 export function cleanupBlacklist(): void {
   const now = Math.floor(Date.now() / 1000);
   let cleaned = 0;
 
-  // Nota: En producción con Redis, esto se maneja automáticamente con TTL
-  for (const jti of tokenBlacklist) {
-    // En in-memory no podemos saber si expiró sin el token completo
-    // Simplificación: limpiar todo después de 8 días (más que refresh token)
-    // En producción real, Redis maneja esto con EXPIRE
-  }
+  // Nota: En in-memory no podemos saber si expiro sin el token completo
+  // En produccion con Redis, esto se maneja automaticamente con EXPIRE
 
   logger.info(
     {
