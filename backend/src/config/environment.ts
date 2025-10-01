@@ -216,7 +216,7 @@ const environmentSchema = Joi.object({
   RATE_LIMIT_MAX: Joi.number()
     .integer()
     .min(10)
-    .max(1000)
+    .max(5000)
     .default(100)
     .description("Requests máximos por ventana"),
 

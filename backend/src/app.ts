@@ -1,10 +1,13 @@
 import { createServer } from "./config/server.js";
 import { checkDatabaseConnection } from "./config/database.js";
+import { initializePostGIS } from "./config/postgis.js";
 import { config } from "./config/environment.js";
 import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
 import comunidadesRoutes from "./routes/comunidades.routes.js";
 import catalogosRoutes from "./routes/catalogos.routes.js";
+import geograficasRoutes from "./routes/geograficas.routes.js";
+import productoresRoutes from "./routes/productores.routes.js";
 
 // Funcion principal de inicializacion
 const startServer = async () => {
@@ -43,9 +46,17 @@ const startServer = async () => {
       "Database connection verified"
     );
 
+    // Inicializar parsers PostGIS
+    logger.info("Initializing PostGIS type parsers...");
+    await initializePostGIS();
+    logger.info("PostGIS initialized successfully");
+
+    // Registrar rutas
     await server.register(authRoutes, { prefix: "/api/auth" });
     await server.register(comunidadesRoutes, { prefix: "/api/comunidades" });
     await server.register(catalogosRoutes, { prefix: "/api/catalogos" });
+    await server.register(geograficasRoutes, { prefix: "/api/geograficas" });
+    await server.register(productoresRoutes, { prefix: "/api/productores" });
 
     // Iniciar servidor HTTP
     await server.listen({
@@ -104,6 +115,12 @@ const startServer = async () => {
             // Endpoints catalogos
             tipos_cultivo: `${localUrl}/api/catalogos/tipos-cultivo`,
             gestiones: `${localUrl}/api/catalogos/gestiones`,
+            // Endpoints geograficas
+            provincias: `${localUrl}/api/geograficas/provincias`,
+            municipios: `${localUrl}/api/geograficas/municipios`,
+            // Endpoints productores
+            productores: `${localUrl}/api/productores`,
+            productores_nearby: `${localUrl}/api/productores/nearby`,
           },
         },
         "Development URLs available"
@@ -138,7 +155,6 @@ const gracefulShutdown = async (signal: string) => {
     },
     "Received shutdown signal, closing server gracefully..."
   );
-
   try {
     // Aqui se agregarian otros cleanups necesarios
     logger.info("Server shutdown completed successfully");
