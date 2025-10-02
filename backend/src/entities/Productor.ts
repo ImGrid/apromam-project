@@ -1,7 +1,7 @@
 import {
   validateBolivianCoordinates,
   validateGPSPrecision,
-  createPointSQL,
+  createPointWKT,
   type Coordinates,
 } from "../utils/postgis.utils.js";
 
@@ -141,7 +141,7 @@ export class Productor {
   }
 
   // Getter coordenadas como objeto
-  // Usa campos decimales directamente (no parsea WKB)
+  // Usa campos decimales directamente
   get coordenadasDomicilio(): Coordinates | null {
     if (
       this.data.latitud_domicilio == null ||
@@ -188,6 +188,7 @@ export class Productor {
       updated_at: new Date(),
     });
   }
+
   // Asigna el codigo generado al productor
   asignarCodigo(codigo: string): void {
     if (!codigo || codigo.trim().length < 5) {
@@ -195,6 +196,7 @@ export class Productor {
     }
     this.data.codigo_productor = codigo.trim().toUpperCase();
   }
+
   // Crea instancia desde datos de BD
   static fromDatabase(data: ProductorData): Productor {
     return new Productor(data);
@@ -397,8 +399,23 @@ export class Productor {
     };
   }
 
-  // Genera SQL para coordenadas PostGIS en INSERT/UPDATE
-  getCoordenadasSQL(): string | null {
+  /**
+   * Genera string WKT para coordenadas PostGIS
+   * Este WKT se puede usar como parametro en queries preparados
+   *
+   * @returns WKT string o null si no hay coordenadas
+   *
+   * @example
+   * const wkt = productor.getCoordenadasWKT();
+   * // Retorna: "POINT(-64.123456 -17.123456)" o null
+   *
+   * // Usar en query:
+   * const query = {
+   *   text: "INSERT INTO productores (coordenadas_domicilio) VALUES (ST_GeomFromText($1, 4326))",
+   *   values: [wkt]
+   * };
+   */
+  getCoordenadasWKT(): string | null {
     if (
       this.data.latitud_domicilio === undefined ||
       this.data.longitud_domicilio === undefined
@@ -407,7 +424,7 @@ export class Productor {
     }
 
     try {
-      return createPointSQL(
+      return createPointWKT(
         this.data.latitud_domicilio,
         this.data.longitud_domicilio
       );

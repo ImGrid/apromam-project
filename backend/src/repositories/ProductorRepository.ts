@@ -267,29 +267,26 @@ export class ProductorRepository {
     const insertData = productor.toDatabaseInsert();
 
     // Generar SQL para coordenadas PostGIS si existen
-    const coordenadasSQL = productor.getCoordenadasSQL();
+    const coordenadasWKT = productor.getCoordenadasWKT();
 
     const query = {
       text: `
-        INSERT INTO productores (
-          codigo_productor,
-          nombre_productor,
-          ci_documento,
-          id_comunidad,
-          año_ingreso_programa,
-          latitud_domicilio,
-          longitud_domicilio,
-          altitud_domicilio,
-          coordenadas_domicilio,
-          categoria_actual,
-          superficie_total_has,
-          numero_parcelas_total,
-          inicio_conversion_organica,
-          activo
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ${
-          coordenadasSQL || "NULL"
-        }, $9, $10, $11, $12, $13)
-        RETURNING codigo_productor
+      INSERT INTO productores (
+        codigo_productor,
+        nombre_productor,
+        ci_documento,
+        id_comunidad,
+        año_ingreso_programa,
+        latitud_domicilio,
+        longitud_domicilio,
+        altitud_domicilio,
+        coordenadas_domicilio,
+        categoria_actual,
+        superficie_total_has,
+        numero_parcelas_total,
+        inicio_conversion_organica,
+        activo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ST_GeomFromText($9, 4326), $10, $11, $12, $13, $14)
       `,
       values: [
         insertData.codigo_productor,
@@ -300,6 +297,7 @@ export class ProductorRepository {
         insertData.latitud_domicilio || null,
         insertData.longitud_domicilio || null,
         insertData.altitud_domicilio || null,
+        coordenadasWKT,
         insertData.categoria_actual,
         insertData.superficie_total_has,
         insertData.numero_parcelas_total,
@@ -330,26 +328,25 @@ export class ProductorRepository {
     }
 
     const updateData = productor.toDatabaseUpdate();
-    const coordenadasSQL = productor.getCoordenadasSQL();
+    const coordenadasWKT = productor.getCoordenadasWKT();
 
     const query = {
       text: `
-        UPDATE productores
-        SET 
-          nombre_productor = $2,
-          ci_documento = $3,
-          latitud_domicilio = $4,
-          longitud_domicilio = $5,
-          altitud_domicilio = $6,
-          coordenadas_domicilio = ${coordenadasSQL || "NULL"},
-          categoria_actual = $7,
-          superficie_total_has = $8,
-          numero_parcelas_total = $9,
-          inicio_conversion_organica = $10,
-          activo = $11,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE codigo_productor = $1 AND activo = true
-        RETURNING codigo_productor
+      UPDATE productores
+      SET 
+        nombre_productor = $2,
+        ci_documento = $3,
+        latitud_domicilio = $4,
+        longitud_domicilio = $5,
+        altitud_domicilio = $6,
+        coordenadas_domicilio = ST_GeomFromText($7, 4326),
+        categoria_actual = $8,
+        superficie_total_has = $9,
+        numero_parcelas_total = $10,
+        inicio_conversion_organica = $11,
+        activo = $12,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE codigo_productor = $1 AND activo = true
       `,
       values: [
         codigo,
@@ -358,6 +355,7 @@ export class ProductorRepository {
         updateData.latitud_domicilio || null,
         updateData.longitud_domicilio || null,
         updateData.altitud_domicilio || null,
+        coordenadasWKT,
         updateData.categoria_actual,
         updateData.superficie_total_has,
         updateData.numero_parcelas_total,

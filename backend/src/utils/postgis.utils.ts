@@ -100,19 +100,33 @@ export function validateGPSPrecision(
   return { valid: true };
 }
 
-// Crear SQL para insertar punto PostGIS desde coordenadas decimales
-// Genera la funcion SQL ST_SetSRID(ST_Point()) necesaria para INSERT/UPDATE
-export function createPointSQL(
-  latitude: number,
-  longitude: number,
-  srid: number = WGS84_SRID
-): string {
+// ========================================
+// REFACTORIZADO: Crear WKT en lugar de SQL
+// ========================================
+
+/**
+ * Crea un string WKT (Well-Known Text) para un POINT
+ * Este string se puede usar como parametro en queries preparados
+ *
+ * @example
+ * const wkt = createPointWKT(-17.123456, -64.123456);
+ * // Retorna: "POINT(-64.123456 -17.123456)"
+ *
+ * // Usar en query:
+ * const query = {
+ *   text: "INSERT INTO table (geom) VALUES (ST_GeomFromText($1, 4326))",
+ *   values: [wkt]
+ * };
+ */
+export function createPointWKT(latitude: number, longitude: number): string {
   const validation = validateBolivianCoordinates(latitude, longitude);
   if (!validation.valid) {
     throw new Error(`Invalid coordinates: ${validation.error}`);
   }
 
-  return `ST_SetSRID(ST_Point(${longitude}, ${latitude}), ${srid})`;
+  // WKT usa orden: POINT(longitud latitud)
+  // NO es POINT(lat lng) - esto es importante
+  return `POINT(${longitude} ${latitude})`;
 }
 
 // Convertir coordenadas decimales a formato GeoJSON Point
@@ -127,6 +141,24 @@ export function coordinatesToGeoJSON(latitude: number, longitude: number): any {
     type: "Point",
     coordinates: [longitude, latitude], // GeoJSON usa [lng, lat]
   };
+}
+
+/**
+ * Crea un string GeoJSON para un POINT que puede usarse con ST_GeomFromGeoJSON
+ *
+ * @example
+ * const geojson = createPointGeoJSON(-17.123456, -64.123456);
+ * const query = {
+ *   text: "INSERT INTO table (geom) VALUES (ST_GeomFromGeoJSON($1))",
+ *   values: [geojson]
+ * };
+ */
+export function createPointGeoJSON(
+  latitude: number,
+  longitude: number
+): string {
+  const geojson = coordinatesToGeoJSON(latitude, longitude);
+  return JSON.stringify(geojson);
 }
 
 // Calcular distancia aproximada entre dos puntos en metros
@@ -202,4 +234,52 @@ export function parseCoordinateString(coordStr: string): Coordinates | null {
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * Crea un WKT POLYGON desde un array de coordenadas
+ * Util para parcelas con multiples vertices
+ *
+ * @param coordinates Array de [longitude, latitude] pairs
+ * @returns WKT string para POLYGON
+ *
+ * @example
+ * const coords = [
+ *   [-64.1, -17.1],
+ *   [-64.2, -17.1],
+ *   [-64.2, -17.2],
+ *   [-64.1, -17.2],
+ *   [-64.1, -17.1]  // Debe cerrar el polígono
+ * ];
+ * const wkt = createPolygonWKT(coords);
+ * // Retorna: "POLYGON((-64.1 -17.1, -64.2 -17.1, ...))"
+ */
+export function createPolygonWKT(coordinates: Array<[number, number]>): string {
+  if (coordinates.length < 4) {
+    throw new Error("Polygon must have at least 4 coordinates");
+  }
+
+  // Verificar que el polígono esté cerrado
+  const first = coordinates[0];
+  const last = coordinates[coordinates.length - 1];
+  if (first[0] !== last[0] || first[1] !== last[1]) {
+    throw new Error("Polygon must be closed (first point = last point)");
+  }
+
+  // Validar todas las coordenadas
+  for (const [lng, lat] of coordinates) {
+    const validation = validateBolivianCoordinates(lat, lng);
+    if (!validation.valid) {
+      throw new Error(
+        `Invalid coordinate [${lng}, ${lat}]: ${validation.error}`
+      );
+    }
+  }
+
+  // Crear WKT
+  const coordPairs = coordinates
+    .map(([lng, lat]) => `${lng} ${lat}`)
+    .join(", ");
+
+  return `POLYGON((${coordPairs}))`;
 }

@@ -9,6 +9,7 @@ import catalogosRoutes from "./routes/catalogos.routes.js";
 import geograficasRoutes from "./routes/geograficas.routes.js";
 import productoresRoutes from "./routes/productores.routes.js";
 import usuariosRoutes from "./routes/usuarios.routes.js";
+import parcelasRoutes from "./routes/parcelas.routes.js";
 // Funcion principal de inicializacion
 const startServer = async () => {
   try {
@@ -58,6 +59,7 @@ const startServer = async () => {
     await server.register(geograficasRoutes, { prefix: "/api/geograficas" });
     await server.register(productoresRoutes, { prefix: "/api/productores" });
     await server.register(usuariosRoutes, { prefix: "/api/usuarios" });
+    await server.register(parcelasRoutes, { prefix: "/api" });
     // Iniciar servidor HTTP
     await server.listen({
       port: config.port,
