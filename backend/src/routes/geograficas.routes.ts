@@ -5,7 +5,7 @@ import { GeograficasService } from "../services/geograficas.service.js";
 import { ProvinciaRepository } from "../repositories/ProvinciaRepository.js";
 import { MunicipioRepository } from "../repositories/MunicipioRepository.js";
 import { authenticate } from "../middleware/authenticate.js";
-import { requireAdmin } from "../middleware/authorize.js";
+import { requireRoles } from "../middleware/authorize.js";
 import {
   CreateProvinciaSchema,
   UpdateProvinciaSchema,
@@ -20,7 +20,6 @@ import {
   GeograficaErrorSchema,
 } from "../schemas/geograficas.schema.js";
 import { z } from "zod/v4";
-
 // Plugin de rutas para jerarquia geografica
 // Gestiona provincias y municipios
 export default async function geograficasRoutes(
@@ -91,7 +90,7 @@ export default async function geograficasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/provincias",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Crea una nueva provincia",
         tags: ["geograficas"],
@@ -120,7 +119,7 @@ export default async function geograficasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/provincias/:id",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Actualiza una provincia existente",
         tags: ["geograficas"],
@@ -150,7 +149,7 @@ export default async function geograficasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().delete(
     "/provincias/:id",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Elimina (desactiva) una provincia",
         tags: ["geograficas"],
@@ -230,7 +229,7 @@ export default async function geograficasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/municipios",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Crea un nuevo municipio",
         tags: ["geograficas"],
@@ -260,7 +259,7 @@ export default async function geograficasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/municipios/:id",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Actualiza un municipio existente",
         tags: ["geograficas"],
@@ -290,7 +289,7 @@ export default async function geograficasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().delete(
     "/municipios/:id",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Elimina (desactiva) un municipio",
         tags: ["geograficas"],

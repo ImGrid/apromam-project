@@ -40,6 +40,7 @@ export interface UsuarioPublicData {
   nombre_comunidad?: string;
   activo: boolean;
   last_login?: string;
+  created_at: string;
 }
 
 export class Usuario {
@@ -236,6 +237,7 @@ export class Usuario {
       nombre_comunidad: this.data.nombre_comunidad || undefined,
       activo: this.data.activo,
       last_login: this.data.last_login?.toISOString(),
+      created_at: this.data.created_at.toISOString(),
     };
   }
 

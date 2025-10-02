@@ -46,13 +46,6 @@ const CoordenadasSchema = z.object({
 // Schema para crear productor
 // Tecnico solo puede crear en su comunidad
 export const CreateProductorSchema = z.object({
-  codigo_productor: z
-    .string()
-    .min(5, "Codigo debe tener al menos 5 caracteres")
-    .max(20, "Codigo no puede exceder 20 caracteres")
-    .trim()
-    .toUpperCase()
-    .regex(/^[A-Z0-9]+$/, "Codigo solo puede contener letras y numeros"),
   nombre_productor: z
     .string()
     .min(3, "Nombre debe tener al menos 3 caracteres")

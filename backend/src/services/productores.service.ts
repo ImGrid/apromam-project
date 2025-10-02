@@ -124,7 +124,6 @@ export class ProductoresService {
   ): Promise<ProductorResponse> {
     logger.info(
       {
-        codigo: input.codigo_productor,
         comunidad_id: input.id_comunidad,
       },
       "Creating productor"
@@ -145,9 +144,23 @@ export class ProductoresService {
       }
     }
 
+    // Generar codigo automatico
+    const codigoGenerado =
+      await this.productorRepository.getNextCodigoByComunidad(
+        input.id_comunidad,
+        comunidad.abreviatura
+      );
+
+    logger.info(
+      {
+        codigo_generado: codigoGenerado,
+        comunidad: comunidad.nombre,
+      },
+      "Codigo productor generado"
+    );
+
     // Crear entity
     const productor = Productor.create({
-      codigo_productor: input.codigo_productor,
       nombre_productor: input.nombre_productor,
       ci_documento: input.ci_documento,
       id_comunidad: input.id_comunidad,
@@ -159,6 +172,9 @@ export class ProductoresService {
       longitud_domicilio: input.coordenadas?.longitud,
       altitud_domicilio: input.coordenadas?.altitud,
     });
+
+    // Asignar codigo generado
+    productor.asignarCodigo(codigoGenerado);
 
     const productorCreado = await this.productorRepository.create(productor);
 

@@ -144,8 +144,8 @@ export class Productor {
   // Usa campos decimales directamente (no parsea WKB)
   get coordenadasDomicilio(): Coordinates | null {
     if (
-      this.data.latitud_domicilio === undefined ||
-      this.data.longitud_domicilio === undefined
+      this.data.latitud_domicilio == null ||
+      this.data.longitud_domicilio == null
     ) {
       return null;
     }
@@ -159,7 +159,7 @@ export class Productor {
 
   // Crea una nueva instancia de Productor
   static create(data: {
-    codigo_productor: string;
+    codigo_productor?: string;
     nombre_productor: string;
     ci_documento?: string;
     id_comunidad: string;
@@ -172,7 +172,7 @@ export class Productor {
     altitud_domicilio?: number;
   }): Productor {
     return new Productor({
-      codigo_productor: data.codigo_productor,
+      codigo_productor: data.codigo_productor || "",
       nombre_productor: data.nombre_productor,
       ci_documento: data.ci_documento,
       id_comunidad: data.id_comunidad,
@@ -188,7 +188,13 @@ export class Productor {
       updated_at: new Date(),
     });
   }
-
+  // Asigna el codigo generado al productor
+  asignarCodigo(codigo: string): void {
+    if (!codigo || codigo.trim().length < 5) {
+      throw new Error("Codigo debe tener al menos 5 caracteres");
+    }
+    this.data.codigo_productor = codigo.trim().toUpperCase();
+  }
   // Crea instancia desde datos de BD
   static fromDatabase(data: ProductorData): Productor {
     return new Productor(data);

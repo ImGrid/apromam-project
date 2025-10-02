@@ -41,7 +41,58 @@ export class ProductorRepository {
     const result = await ReadQuery.findOne<ProductorData>(query);
     return result ? Productor.fromDatabase(result) : null;
   }
+  // Genera el siguiente codigo de productor para una comunidad
+  // Formato: VS + ABREVIATURA + NUMERO (ej: VSSLP01, VSSLP02)
+  async getNextCodigoByComunidad(
+    comunidadId: string,
+    abreviaturaComunidad: string
+  ): Promise<string> {
+    // Normalizar abreviatura
+    const abreviatura = abreviaturaComunidad.trim().toUpperCase();
+    const prefijo = `VS${abreviatura}`;
 
+    // Obtener el ultimo codigo de esta comunidad
+    const query = {
+      text: `
+        SELECT codigo_productor 
+        FROM productores 
+        WHERE id_comunidad = $1 
+          AND codigo_productor LIKE $2
+        ORDER BY codigo_productor DESC 
+        LIMIT 1
+      `,
+      values: [comunidadId, `${prefijo}%`],
+    };
+
+    const result = await ReadQuery.findOne<{ codigo_productor: string }>(query);
+
+    let numeroSiguiente = 1;
+
+    if (result && result.codigo_productor) {
+      // Extraer el numero del ultimo codigo
+      // Ejemplo: VSSLP05 -> extraer "05"
+      const ultimoCodigo = result.codigo_productor;
+      const numeroStr = ultimoCodigo.substring(prefijo.length);
+      const numeroActual = parseInt(numeroStr, 10);
+
+      if (!isNaN(numeroActual)) {
+        numeroSiguiente = numeroActual + 1;
+      }
+    }
+
+    // Validar que no exceda 99
+    if (numeroSiguiente > 99) {
+      throw new Error(
+        `La comunidad ${abreviatura} ha alcanzado el limite de 99 productores`
+      );
+    }
+
+    // Formatear con padding de 2 digitos
+    const numeroFormateado = numeroSiguiente.toString().padStart(2, "0");
+    const codigoGenerado = `${prefijo}${numeroFormateado}`;
+
+    return codigoGenerado;
+  }
   // Lista productores por comunidad
   // Usado por tecnicos para ver sus productores
   async findByComunidad(comunidadId: string): Promise<Productor[]> {
