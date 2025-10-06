@@ -5,12 +5,7 @@ import {
   type Coordinates,
 } from "../utils/postgis.utils.js";
 
-// Enums para tipos específicos de parcela
-export type MetodoCapturaCoords =
-  | "manual"
-  | "gps"
-  | "satelital"
-  | "topografico";
+// Enums para tipos especificos de parcela
 export type TipoBarrera = "ninguna" | "viva" | "muerta";
 
 // Interfaz para datos de Parcela desde BD
@@ -20,20 +15,14 @@ export interface ParcelaData {
   numero_parcela: number;
   superficie_ha: number;
 
-  // Coordenadas decimales (nomenclatura específica de parcelas)
+  // Coordenadas decimales
   latitud_sud?: number;
   longitud_oeste?: number;
-  precision_gps?: number;
 
-  // Metadatos de captura
-  metodo_captura: MetodoCapturaCoords;
-  fecha_captura_coords?: Date;
-
-  // Características agronómicas
+  // Caracteristicas agronomicas
   utiliza_riego: boolean;
   situacion_cumple: boolean;
   tipo_barrera: TipoBarrera;
-  descripcion_barrera?: string;
 
   activo: boolean;
   created_at: Date;
@@ -43,7 +32,7 @@ export interface ParcelaData {
   nombre_comunidad?: string;
 }
 
-// Interfaz para datos públicos de Parcela (response)
+// Interfaz para datos publicos de Parcela (response)
 export interface ParcelaPublicData {
   id_parcela: string;
   codigo_productor: string;
@@ -51,13 +40,9 @@ export interface ParcelaPublicData {
   numero_parcela: number;
   superficie_ha: number;
   coordenadas?: Coordinates;
-  precision_gps?: number;
-  metodo_captura: MetodoCapturaCoords;
-  fecha_captura_coords?: string;
   utiliza_riego: boolean;
   situacion_cumple: boolean;
   tipo_barrera: TipoBarrera;
-  descripcion_barrera?: string;
   activo: boolean;
   created_at: string;
 }
@@ -96,18 +81,6 @@ export class Parcela {
     return this.data.longitud_oeste;
   }
 
-  get precisionGPS(): number | undefined {
-    return this.data.precision_gps;
-  }
-
-  get metodoCapturaCoords(): MetodoCapturaCoords {
-    return this.data.metodo_captura;
-  }
-
-  get fechaCapturaCoords(): Date | undefined {
-    return this.data.fecha_captura_coords;
-  }
-
   get utilizaRiego(): boolean {
     return this.data.utiliza_riego;
   }
@@ -118,10 +91,6 @@ export class Parcela {
 
   get tipoBarrera(): TipoBarrera {
     return this.data.tipo_barrera;
-  }
-
-  get descripcionBarrera(): string | undefined {
-    return this.data.descripcion_barrera;
   }
 
   get activo(): boolean {
@@ -159,13 +128,9 @@ export class Parcela {
     superficie_ha: number;
     latitud_sud?: number;
     longitud_oeste?: number;
-    precision_gps?: number;
-    metodo_captura?: MetodoCapturaCoords;
-    fecha_captura_coords?: Date;
     utiliza_riego?: boolean;
     situacion_cumple?: boolean;
     tipo_barrera?: TipoBarrera;
-    descripcion_barrera?: string;
   }): Parcela {
     return new Parcela({
       id_parcela: "",
@@ -174,13 +139,9 @@ export class Parcela {
       superficie_ha: data.superficie_ha,
       latitud_sud: data.latitud_sud,
       longitud_oeste: data.longitud_oeste,
-      precision_gps: data.precision_gps,
-      metodo_captura: data.metodo_captura || "manual",
-      fecha_captura_coords: data.fecha_captura_coords,
       utiliza_riego: data.utiliza_riego || false,
       situacion_cumple: data.situacion_cumple !== false,
       tipo_barrera: data.tipo_barrera || "ninguna",
-      descripcion_barrera: data.descripcion_barrera,
       activo: true,
       created_at: new Date(),
     });
@@ -195,17 +156,17 @@ export class Parcela {
   validate(): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    // Validar código productor
+    // Validar codigo productor
     if (
       !this.data.codigo_productor ||
       this.data.codigo_productor.trim().length < 5
     ) {
-      errors.push("Código de productor es requerido");
+      errors.push("Codigo de productor es requerido");
     }
 
-    // Validar número de parcela
+    // Validar numero de parcela
     if (this.data.numero_parcela < 1 || this.data.numero_parcela > 100) {
-      errors.push("Número de parcela debe estar entre 1 y 100");
+      errors.push("Numero de parcela debe estar entre 1 y 100");
     }
 
     // Validar superficie
@@ -214,7 +175,7 @@ export class Parcela {
     }
 
     if (this.data.superficie_ha > 10000) {
-      errors.push("Superficie no puede exceder 10,000 hectáreas");
+      errors.push("Superficie no puede exceder 10,000 hectareas");
     }
 
     // Validar coordenadas si existen
@@ -228,7 +189,7 @@ export class Parcela {
       );
 
       if (!coordValidation.valid) {
-        errors.push(`Coordenadas inválidas: ${coordValidation.error}`);
+        errors.push(`Coordenadas invalidas: ${coordValidation.error}`);
       }
 
       const precisionValidation = validateGPSPrecision(
@@ -237,7 +198,7 @@ export class Parcela {
       );
 
       if (!precisionValidation.valid) {
-        errors.push(`Precisión GPS insuficiente: ${precisionValidation.error}`);
+        errors.push(`Precision GPS insuficiente: ${precisionValidation.error}`);
       }
     }
 
@@ -249,36 +210,10 @@ export class Parcela {
       errors.push("Debe proporcionar tanto latitud como longitud, o ninguna");
     }
 
-    // Validar precisión GPS
-    if (this.data.precision_gps !== undefined) {
-      if (this.data.precision_gps < 0 || this.data.precision_gps > 100) {
-        errors.push("Precisión GPS debe estar entre 0 y 100 metros");
-      }
-    }
-
-    // Validar método de captura
-    const metodosValidos: MetodoCapturaCoords[] = [
-      "manual",
-      "gps",
-      "satelital",
-      "topografico",
-    ];
-    if (!metodosValidos.includes(this.data.metodo_captura)) {
-      errors.push("Método de captura inválido");
-    }
-
     // Validar tipo barrera
     const barrerasValidas: TipoBarrera[] = ["ninguna", "viva", "muerta"];
     if (!barrerasValidas.includes(this.data.tipo_barrera)) {
-      errors.push("Tipo de barrera inválido");
-    }
-
-    // Validar descripción barrera si tiene barrera
-    if (
-      this.data.tipo_barrera !== "ninguna" &&
-      !this.data.descripcion_barrera
-    ) {
-      errors.push("Descripción de barrera es requerida cuando hay barrera");
+      errors.push("Tipo de barrera invalido");
     }
 
     return {
@@ -294,13 +229,9 @@ export class Parcela {
     superficie_ha: number;
     latitud_sud?: number;
     longitud_oeste?: number;
-    precision_gps?: number;
-    metodo_captura: MetodoCapturaCoords;
-    fecha_captura_coords?: Date;
     utiliza_riego: boolean;
     situacion_cumple: boolean;
     tipo_barrera: TipoBarrera;
-    descripcion_barrera?: string;
     activo: boolean;
   } {
     return {
@@ -309,13 +240,9 @@ export class Parcela {
       superficie_ha: this.data.superficie_ha,
       latitud_sud: this.data.latitud_sud,
       longitud_oeste: this.data.longitud_oeste,
-      precision_gps: this.data.precision_gps,
-      metodo_captura: this.data.metodo_captura,
-      fecha_captura_coords: this.data.fecha_captura_coords,
       utiliza_riego: this.data.utiliza_riego,
       situacion_cumple: this.data.situacion_cumple,
       tipo_barrera: this.data.tipo_barrera,
-      descripcion_barrera: this.data.descripcion_barrera?.trim(),
       activo: this.data.activo,
     };
   }
@@ -325,31 +252,23 @@ export class Parcela {
     superficie_ha?: number;
     latitud_sud?: number;
     longitud_oeste?: number;
-    precision_gps?: number;
-    metodo_captura?: MetodoCapturaCoords;
-    fecha_captura_coords?: Date;
     utiliza_riego?: boolean;
     situacion_cumple?: boolean;
     tipo_barrera?: TipoBarrera;
-    descripcion_barrera?: string;
     activo?: boolean;
   } {
     return {
       superficie_ha: this.data.superficie_ha,
       latitud_sud: this.data.latitud_sud,
       longitud_oeste: this.data.longitud_oeste,
-      precision_gps: this.data.precision_gps,
-      metodo_captura: this.data.metodo_captura,
-      fecha_captura_coords: this.data.fecha_captura_coords,
       utiliza_riego: this.data.utiliza_riego,
       situacion_cumple: this.data.situacion_cumple,
       tipo_barrera: this.data.tipo_barrera,
-      descripcion_barrera: this.data.descripcion_barrera?.trim(),
       activo: this.data.activo,
     };
   }
 
-  // Convierte a formato JSON público
+  // Convierte a formato JSON publico
   toJSON(): ParcelaPublicData {
     return {
       id_parcela: this.data.id_parcela,
@@ -358,22 +277,16 @@ export class Parcela {
       numero_parcela: this.data.numero_parcela,
       superficie_ha: this.data.superficie_ha,
       coordenadas: this.coordenadas || undefined,
-      precision_gps: this.data.precision_gps,
-      metodo_captura: this.data.metodo_captura,
-      fecha_captura_coords: this.data.fecha_captura_coords?.toISOString(),
       utiliza_riego: this.data.utiliza_riego,
       situacion_cumple: this.data.situacion_cumple,
       tipo_barrera: this.data.tipo_barrera,
-      descripcion_barrera: this.data.descripcion_barrera,
       activo: this.data.activo,
       created_at: this.data.created_at.toISOString(),
     };
   }
 
-  /**
-   * Genera string WKT para coordenadas PostGIS
-   * Usa latitud_sud y longitud_oeste (nomenclatura de parcelas)
-   */
+  // Genera string WKT para coordenadas PostGIS
+  // Usa latitud_sud y longitud_oeste
   getCoordenadasWKT(): string | null {
     if (
       this.data.latitud_sud === undefined ||
@@ -394,7 +307,7 @@ export class Parcela {
     if (!this.data.activo) {
       return {
         valid: false,
-        error: "La parcela ya está inactiva",
+        error: "La parcela ya esta inactiva",
       };
     }
 
@@ -410,29 +323,21 @@ export class Parcela {
   }
 
   // Actualiza coordenadas GPS
-  actualizarCoordenadas(
-    latitud: number,
-    longitud: number,
-    precision?: number,
-    metodo?: MetodoCapturaCoords
-  ): void {
+  actualizarCoordenadas(latitud: number, longitud: number): void {
     const validation = validateBolivianCoordinates(latitud, longitud);
     if (!validation.valid) {
-      throw new Error(`Coordenadas inválidas: ${validation.error}`);
+      throw new Error(`Coordenadas invalidas: ${validation.error}`);
     }
 
     const precisionValidation = validateGPSPrecision(latitud, longitud);
     if (!precisionValidation.valid) {
       throw new Error(
-        `Precisión GPS insuficiente: ${precisionValidation.error}`
+        `Precision GPS insuficiente: ${precisionValidation.error}`
       );
     }
 
     this.data.latitud_sud = latitud;
     this.data.longitud_oeste = longitud;
-    this.data.precision_gps = precision;
-    this.data.metodo_captura = metodo || this.data.metodo_captura;
-    this.data.fecha_captura_coords = new Date();
   }
 
   // Actualiza superficie
@@ -442,7 +347,7 @@ export class Parcela {
     }
 
     if (nuevaSuperficie > 10000) {
-      throw new Error("Superficie no puede exceder 10,000 hectáreas");
+      throw new Error("Superficie no puede exceder 10,000 hectareas");
     }
 
     this.data.superficie_ha = nuevaSuperficie;
@@ -453,19 +358,14 @@ export class Parcela {
     this.data.utiliza_riego = utilizaRiego;
   }
 
-  // Actualiza situación de cumplimiento
+  // Actualiza situacion de cumplimiento
   actualizarSituacion(cumple: boolean): void {
     this.data.situacion_cumple = cumple;
   }
 
   // Actualiza barrera
-  actualizarBarrera(tipo: TipoBarrera, descripcion?: string): void {
-    if (tipo !== "ninguna" && !descripcion) {
-      throw new Error("Descripción de barrera es requerida");
-    }
-
+  actualizarBarrera(tipo: TipoBarrera): void {
     this.data.tipo_barrera = tipo;
-    this.data.descripcion_barrera = descripcion;
   }
 
   // Activa la parcela
@@ -483,12 +383,12 @@ export class Parcela {
     this.data.activo = false;
   }
 
-  // Obtiene información resumida
+  // Obtiene informacion resumida
   getResumen(): string {
     return `Parcela ${this.data.numero_parcela} - ${this.data.superficie_ha} ha (${this.data.codigo_productor})`;
   }
 
-  // Compara dos parcelas por número
+  // Compara dos parcelas por numero
   static compararPorNumero(a: Parcela, b: Parcela): number {
     return a.numeroParcela - b.numeroParcela;
   }

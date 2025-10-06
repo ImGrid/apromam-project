@@ -12,8 +12,8 @@ import type {
 
 const logger = createAuthLogger();
 
-// Service para gestión de parcelas
-// Incluye validación de acceso por comunidad del productor
+// Service para gestion de parcelas
+// Incluye validacion de acceso por comunidad del productor
 export class ParcelasService {
   private parcelaRepository: ParcelaRepository;
   private productorRepository: ProductorRepository;
@@ -27,7 +27,7 @@ export class ParcelasService {
   }
 
   // Lista todas las parcelas de un productor
-  // Valida acceso según rol y comunidad
+  // Valida acceso segun rol y comunidad
   async listParcelasByProductor(
     codigoProductor: string,
     usuarioComunidadId?: string,
@@ -46,7 +46,7 @@ export class ParcelasService {
       throw new Error("Productor no encontrado");
     }
 
-    // Si es técnico, validar acceso a la comunidad
+    // Si es tecnico, validar acceso a la comunidad
     if (!esAdminOGerente && usuarioComunidadId) {
       if (productor.idComunidad !== usuarioComunidadId) {
         throw new Error("No tiene acceso a este productor");
@@ -67,7 +67,7 @@ export class ParcelasService {
   }
 
   // Obtiene una parcela por ID
-  // Valida acceso según rol
+  // Valida acceso segun rol
   async getParcelaById(
     id: string,
     usuarioComunidadId?: string,
@@ -79,7 +79,7 @@ export class ParcelasService {
       throw new Error("Parcela no encontrada");
     }
 
-    // Si es técnico, validar acceso a la comunidad del productor
+    // Si es tecnico, validar acceso a la comunidad del productor
     if (!esAdminOGerente && usuarioComunidadId) {
       const productor = await this.productorRepository.findByCodigo(
         parcela.codigoProductor
@@ -93,7 +93,7 @@ export class ParcelasService {
     return parcela.toJSON();
   }
 
-  // Busca parcelas cercanas a una ubicación
+  // Busca parcelas cercanas a una ubicacion
   async searchNearby(
     input: ProximitySearchParcelaInput,
     usuarioComunidadId?: string,
@@ -114,7 +114,7 @@ export class ParcelasService {
       input.radio_metros
     );
 
-    // Si es técnico, filtrar solo parcelas de su comunidad
+    // Si es tecnico, filtrar solo parcelas de su comunidad
     if (!esAdminOGerente && usuarioComunidadId) {
       const parcelasFiltradas: Parcela[] = [];
 
@@ -138,7 +138,7 @@ export class ParcelasService {
   }
 
   // Crea una nueva parcela
-  // Técnico solo puede crear en su comunidad
+  // Tecnico solo puede crear en su comunidad
   async createParcela(
     input: CreateParcelaInput,
     usuarioComunidadId?: string,
@@ -161,7 +161,7 @@ export class ParcelasService {
       throw new Error("Productor no encontrado");
     }
 
-    // Si es técnico, validar que sea de su comunidad
+    // Si es tecnico, validar que sea de su comunidad
     if (!esAdminOGerente && usuarioComunidadId) {
       if (productor.idComunidad !== usuarioComunidadId) {
         throw new Error(
@@ -177,15 +177,9 @@ export class ParcelasService {
       superficie_ha: input.superficie_ha,
       latitud_sud: input.coordenadas?.latitud,
       longitud_oeste: input.coordenadas?.longitud,
-      precision_gps: input.coordenadas?.precision_gps,
-      metodo_captura: input.metodo_captura,
-      fecha_captura_coords: input.fecha_captura_coords
-        ? new Date(input.fecha_captura_coords)
-        : undefined,
       utiliza_riego: input.utiliza_riego,
       situacion_cumple: input.situacion_cumple,
       tipo_barrera: input.tipo_barrera,
-      descripcion_barrera: input.descripcion_barrera,
     });
 
     const parcelaCreada = await this.parcelaRepository.create(parcela);
@@ -203,7 +197,7 @@ export class ParcelasService {
   }
 
   // Actualiza una parcela existente
-  // Técnico solo puede actualizar en su comunidad
+  // Tecnico solo puede actualizar en su comunidad
   async updateParcela(
     id: string,
     input: UpdateParcelaInput,
@@ -223,7 +217,7 @@ export class ParcelasService {
       throw new Error("Parcela no encontrada");
     }
 
-    // Si es técnico, validar acceso
+    // Si es tecnico, validar acceso
     if (!esAdminOGerente && usuarioComunidadId) {
       const productor = await this.productorRepository.findByCodigo(
         parcelaActual.codigoProductor
@@ -242,9 +236,7 @@ export class ParcelasService {
     if (input.coordenadas) {
       parcelaActual.actualizarCoordenadas(
         input.coordenadas.latitud,
-        input.coordenadas.longitud,
-        input.coordenadas.precision_gps,
-        input.metodo_captura
+        input.coordenadas.longitud
       );
     }
 
@@ -257,10 +249,7 @@ export class ParcelasService {
     }
 
     if (input.tipo_barrera) {
-      parcelaActual.actualizarBarrera(
-        input.tipo_barrera,
-        input.descripcion_barrera
-      );
+      parcelaActual.actualizarBarrera(input.tipo_barrera);
     }
 
     if (input.activo !== undefined) {
@@ -306,14 +295,13 @@ export class ParcelasService {
     );
   }
 
-  // Obtiene estadísticas de parcelas
+  // Obtiene estadisticas de parcelas
   async getEstadisticas(
     usuarioComunidadId?: string,
     esAdminOGerente: boolean = false
   ): Promise<ParcelasEstadisticas> {
     if (!esAdminOGerente && usuarioComunidadId) {
-      // Estadísticas solo de su comunidad
-      // Obtener todos los productores de la comunidad
+      // Estadisticas solo de su comunidad
       const productores = await this.productorRepository.findByComunidad(
         usuarioComunidadId
       );
@@ -344,7 +332,7 @@ export class ParcelasService {
         con_riego: conRiego,
       };
     } else {
-      // Estadísticas globales
+      // Estadisticas globales
       return await this.parcelaRepository.getEstadisticas();
     }
   }
@@ -356,7 +344,7 @@ export class ParcelasService {
   ): Promise<{ parcelas: ParcelaResponse[]; total: number }> {
     let parcelas = await this.parcelaRepository.findWithoutCoordinates();
 
-    // Si es técnico, filtrar por su comunidad
+    // Si es tecnico, filtrar por su comunidad
     if (!esAdminOGerente && usuarioComunidadId) {
       const parcelasFiltradas: Parcela[] = [];
 

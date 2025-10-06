@@ -14,13 +14,9 @@ export class ParcelaRepository {
           pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
-          pa.precision_gps,
-          pa.metodo_captura,
-          pa.fecha_captura_coords,
           pa.utiliza_riego,
           pa.situacion_cumple,
           pa.tipo_barrera,
-          pa.descripcion_barrera,
           pa.activo,
           pa.created_at,
           p.nombre_productor,
@@ -49,13 +45,9 @@ export class ParcelaRepository {
           pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
-          pa.precision_gps,
-          pa.metodo_captura,
-          pa.fecha_captura_coords,
           pa.utiliza_riego,
           pa.situacion_cumple,
           pa.tipo_barrera,
-          pa.descripcion_barrera,
           pa.activo,
           pa.created_at,
           p.nombre_productor
@@ -83,13 +75,9 @@ export class ParcelaRepository {
           pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
-          pa.precision_gps,
-          pa.metodo_captura,
-          pa.fecha_captura_coords,
           pa.utiliza_riego,
           pa.situacion_cumple,
           pa.tipo_barrera,
-          pa.descripcion_barrera,
           pa.activo,
           pa.created_at,
           p.nombre_productor,
@@ -107,7 +95,7 @@ export class ParcelaRepository {
     return results.map((data) => Parcela.fromDatabase(data));
   }
 
-  // Busca parcelas cercanas a una ubicación
+  // Busca parcelas cercanas a una ubicacion
   // Usa PostGIS para calcular distancias
   async findNearby(
     latitude: number,
@@ -124,13 +112,9 @@ export class ParcelaRepository {
           pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
-          pa.precision_gps,
-          pa.metodo_captura,
-          pa.fecha_captura_coords,
           pa.utiliza_riego,
           pa.situacion_cumple,
           pa.tipo_barrera,
-          pa.descripcion_barrera,
           pa.activo,
           pa.created_at,
           p.nombre_productor,
@@ -160,7 +144,7 @@ export class ParcelaRepository {
     return results.map((data) => Parcela.fromDatabase(data));
   }
 
-  // Verifica si existe una parcela con ese número para el productor
+  // Verifica si existe una parcela con ese numero para el productor
   async existsByNumero(
     codigoProductor: string,
     numeroParcela: number
@@ -185,7 +169,7 @@ export class ParcelaRepository {
   async create(parcela: Parcela): Promise<Parcela> {
     const validation = parcela.validate();
     if (!validation.valid) {
-      throw new Error(`Validación falló: ${validation.errors.join(", ")}`);
+      throw new Error(`Validacion fallo: ${validation.errors.join(", ")}`);
     }
 
     // Verificar duplicados
@@ -212,15 +196,11 @@ export class ParcelaRepository {
           coordenadas,
           latitud_sud,
           longitud_oeste,
-          precision_gps,
-          metodo_captura,
-          fecha_captura_coords,
           utiliza_riego,
           situacion_cumple,
           tipo_barrera,
-          descripcion_barrera,
           activo
-        ) VALUES ($1, $2, $3, ST_GeomFromText($4, 4326), $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        ) VALUES ($1, $2, $3, ST_GeomFromText($4, 4326), $5, $6, $7, $8, $9, $10)
         RETURNING id_parcela
       `,
       values: [
@@ -230,13 +210,9 @@ export class ParcelaRepository {
         coordenadasWKT,
         insertData.latitud_sud || null,
         insertData.longitud_oeste || null,
-        insertData.precision_gps || null,
-        insertData.metodo_captura,
-        insertData.fecha_captura_coords || null,
         insertData.utiliza_riego,
         insertData.situacion_cumple,
         insertData.tipo_barrera,
-        insertData.descripcion_barrera || null,
         insertData.activo,
       ],
     };
@@ -247,7 +223,6 @@ export class ParcelaRepository {
     }
 
     // Obtener la parcela creada con sus datos completos
-    // El ID se genera automáticamente, necesitamos recuperarlo
     const parcelaCreada = await this.findByProductorAndNumero(
       parcela.codigoProductor,
       parcela.numeroParcela
@@ -260,7 +235,7 @@ export class ParcelaRepository {
     return parcelaCreada;
   }
 
-  // Helper para encontrar por productor y número
+  // Helper para encontrar por productor y numero
   private async findByProductorAndNumero(
     codigoProductor: string,
     numeroParcela: number
@@ -274,13 +249,9 @@ export class ParcelaRepository {
           pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
-          pa.precision_gps,
-          pa.metodo_captura,
-          pa.fecha_captura_coords,
           pa.utiliza_riego,
           pa.situacion_cumple,
           pa.tipo_barrera,
-          pa.descripcion_barrera,
           pa.activo,
           pa.created_at,
           p.nombre_productor
@@ -301,7 +272,7 @@ export class ParcelaRepository {
   async update(id: string, parcela: Parcela): Promise<Parcela> {
     const validation = parcela.validate();
     if (!validation.valid) {
-      throw new Error(`Validación falló: ${validation.errors.join(", ")}`);
+      throw new Error(`Validacion fallo: ${validation.errors.join(", ")}`);
     }
 
     const updateData = parcela.toDatabaseUpdate();
@@ -315,14 +286,10 @@ export class ParcelaRepository {
           coordenadas = ST_GeomFromText($3, 4326),
           latitud_sud = $4,
           longitud_oeste = $5,
-          precision_gps = $6,
-          metodo_captura = $7,
-          fecha_captura_coords = $8,
-          utiliza_riego = $9,
-          situacion_cumple = $10,
-          tipo_barrera = $11,
-          descripcion_barrera = $12,
-          activo = $13
+          utiliza_riego = $6,
+          situacion_cumple = $7,
+          tipo_barrera = $8,
+          activo = $9
         WHERE id_parcela = $1 AND activo = true
         RETURNING id_parcela
       `,
@@ -332,13 +299,9 @@ export class ParcelaRepository {
         coordenadasWKT,
         updateData.latitud_sud || null,
         updateData.longitud_oeste || null,
-        updateData.precision_gps || null,
-        updateData.metodo_captura,
-        updateData.fecha_captura_coords || null,
         updateData.utiliza_riego,
         updateData.situacion_cumple,
         updateData.tipo_barrera,
-        updateData.descripcion_barrera || null,
         updateData.activo,
       ],
     };
@@ -445,13 +408,9 @@ export class ParcelaRepository {
           pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
-          pa.precision_gps,
-          pa.metodo_captura,
-          pa.fecha_captura_coords,
           pa.utiliza_riego,
           pa.situacion_cumple,
           pa.tipo_barrera,
-          pa.descripcion_barrera,
           pa.activo,
           pa.created_at,
           p.nombre_productor,
@@ -469,7 +428,7 @@ export class ParcelaRepository {
     return results.map((data) => Parcela.fromDatabase(data));
   }
 
-  // Obtiene estadísticas de parcelas
+  // Obtiene estadisticas de parcelas
   async getEstadisticas(): Promise<{
     total: number;
     con_coordenadas: number;

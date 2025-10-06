@@ -15,7 +15,7 @@ export class ParcelasController {
 
   // GET /api/productores/:codigo/parcelas
   // Lista todas las parcelas de un productor
-  // Técnico: solo si es de su comunidad
+  // Tecnico: solo si es de su comunidad
   // Gerente/Admin: cualquier productor
   async listByProductor(
     request: FastifyRequest<{ Params: ProductorParcelaParams }>,
@@ -63,7 +63,7 @@ export class ParcelasController {
 
   // GET /api/parcelas/:id
   // Obtiene una parcela por ID
-  // Técnico: solo si el productor es de su comunidad
+  // Tecnico: solo si el productor es de su comunidad
   // Gerente/Admin: cualquier parcela
   async getById(
     request: FastifyRequest<{ Params: ParcelaParams }>,
@@ -110,8 +110,8 @@ export class ParcelasController {
   }
 
   // POST /api/parcelas/nearby
-  // Busca parcelas cercanas a una ubicación GPS
-  // Técnico: solo de su comunidad
+  // Busca parcelas cercanas a una ubicacion GPS
+  // Tecnico: solo de su comunidad
   // Gerente/Admin: de todas las comunidades
   async searchNearby(
     request: FastifyRequest<{ Body: ProximitySearchParcelaInput }>,
@@ -142,7 +142,7 @@ export class ParcelasController {
 
   // POST /api/productores/:codigo/parcelas
   // Crea una nueva parcela para un productor
-  // Técnico: solo para productores de su comunidad
+  // Tecnico: solo para productores de su comunidad
   // Admin: para cualquier productor
   async create(
     request: FastifyRequest<{
@@ -158,7 +158,7 @@ export class ParcelasController {
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
-      // Agregar código de productor al body
+      // Agregar codigo de productor al body
       const input: CreateParcelaInput = {
         ...request.body,
         codigo_productor: codigo,
@@ -209,7 +209,7 @@ export class ParcelasController {
 
   // PUT /api/parcelas/:id
   // Actualiza una parcela existente
-  // Técnico: solo de su comunidad
+  // Tecnico: solo de su comunidad
   // Admin: cualquier parcela
   async update(
     request: FastifyRequest<{
@@ -291,9 +291,9 @@ export class ParcelasController {
   }
 
   // GET /api/parcelas/estadisticas
-  // Obtiene estadísticas de parcelas
-  // Técnico: solo su comunidad
-  // Gerente/Admin: estadísticas globales
+  // Obtiene estadisticas de parcelas
+  // Tecnico: solo su comunidad
+  // Gerente/Admin: estadisticas globales
   async getEstadisticas(request: FastifyRequest, reply: FastifyReply) {
     try {
       const usuarioComunidadId = request.user?.comunidadId;
@@ -311,7 +311,7 @@ export class ParcelasController {
       request.log.error(error, "Error getting estadisticas");
       return reply.status(500).send({
         error: "internal_server_error",
-        message: "Error al obtener estadísticas",
+        message: "Error al obtener estadisticas",
         timestamp: new Date().toISOString(),
       });
     }
@@ -319,8 +319,8 @@ export class ParcelasController {
 
   // GET /api/parcelas/sin-coordenadas
   // Lista parcelas sin coordenadas GPS
-  // Útil para alertas y seguimiento
-  // Técnico: solo su comunidad
+  // Util para alertas y seguimiento
+  // Tecnico: solo su comunidad
   // Gerente/Admin: todas
   async listSinCoordenadas(request: FastifyRequest, reply: FastifyReply) {
     try {
