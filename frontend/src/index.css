@@ -44,6 +44,10 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Mejora para móviles */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Tipografía */
@@ -103,4 +107,40 @@ button:disabled {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+/* Clase utility para elementos touch-safe (WCAG 2.1 AA) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Clase utility para elementos touch-safe recomendado */
+.touch-target-lg {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Focus visible para teclado (no para mouse/touch) */
+@supports selector(:focus-visible) {
+  *:focus {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+  }
+}
+
+/* Smooth scroll para mejor UX en móvil */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Evitar scroll horizontal en móvil */
+body {
+  overflow-x: hidden;
 }

@@ -1,76 +1,141 @@
-/**
- * Auth Service
- * Servicio para operaciones de autenticacion
- */
-
-import { apiClient, ENDPOINTS } from "@/shared/services/api";
+import {
+  apiClient,
+  ENDPOINTS,
+  getErrorMessage,
+  isAuthError,
+} from "@/shared/services/api";
 import { saveTokens, clearTokens } from "@/shared/services/storage";
-import type { AuthResponse, UserPublicData } from "@/shared/types";
+import type {
+  AuthResponse,
+  MeResponse,
+  RefreshResponse,
+  RegisterInput,
+  LoginInput,
+} from "../types/auth.types";
 
 /**
- * Datos para registro
+ * Servicio de autenticación
+ * Todas las funciones lanzan errores que deben ser manejados por el caller
  */
-export interface RegisterInput {
-  username: string;
-  email: string;
-  password: string;
-  nombre_completo: string;
-  id_rol: string;
-  id_comunidad?: string;
-}
+export const authService = {
+  /**
+   * Registra un nuevo usuario en el sistema
+   */
+  async register(data: RegisterInput): Promise<AuthResponse> {
+    try {
+      const response = await apiClient.post<AuthResponse>(
+        ENDPOINTS.AUTH.REGISTER,
+        data
+      );
+
+      // Guardar tokens automáticamente
+      if (response.data.tokens) {
+        saveTokens(response.data.tokens);
+      }
+
+      return response.data;
+    } catch (error) {
+      const message = getErrorMessage(error);
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Inicia sesión con username y password
+   */
+  async login(data: LoginInput): Promise<AuthResponse> {
+    try {
+      const response = await apiClient.post<AuthResponse>(
+        ENDPOINTS.AUTH.LOGIN,
+        data
+      );
+
+      // Guardar tokens automáticamente
+      if (response.data.tokens) {
+        saveTokens(response.data.tokens);
+      }
+
+      return response.data;
+    } catch (error) {
+      const message = getErrorMessage(error);
+
+      // Mejorar mensajes de error comunes
+      if (message.includes("Credenciales inválidas")) {
+        throw new Error("Usuario o contraseña incorrectos");
+      }
+
+      if (message.includes("Demasiados intentos")) {
+        throw new Error("Demasiados intentos fallidos. Intenta más tarde");
+      }
+
+      if (message.includes("Usuario inactivo")) {
+        throw new Error("Tu cuenta está inactiva. Contacta al administrador");
+      }
+
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Cierra la sesión del usuario
+   * Invalida el token en el backend y limpia el almacenamiento local
+   */
+  async logout(): Promise<void> {
+    try {
+      // Intentar invalidar token en backend
+      await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
+    } catch (error) {
+      // Si falla, solo logueamos pero continuamos con la limpieza local
+      console.warn("Error al invalidar token en backend:", error);
+    } finally {
+      // Siempre limpiar tokens localmente
+      clearTokens();
+    }
+  },
+
+  /**
+   * Obtiene la información del usuario autenticado actual
+   * Incluye permisos completos del rol
+   */
+  async getCurrentUser(): Promise<MeResponse> {
+    try {
+      const response = await apiClient.get<MeResponse>(ENDPOINTS.AUTH.ME);
+      return response.data;
+    } catch (error) {
+      // Si es error 401, el token expiró o es inválido
+      if (isAuthError(error)) {
+        clearTokens();
+        throw new Error("Sesión expirada. Por favor inicia sesión nuevamente");
+      }
+
+      const message = getErrorMessage(error);
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Refresca el access token usando el refresh token
+   */
+  async refreshToken(refreshToken: string): Promise<RefreshResponse> {
+    try {
+      const response = await apiClient.post<RefreshResponse>(
+        ENDPOINTS.AUTH.REFRESH,
+        { refresh_token: refreshToken }
+      );
+
+      return response.data;
+    } catch (error) {
+      // Si falla el refresh, limpiar tokens
+      clearTokens();
+
+      const message = getErrorMessage(error);
+      throw new Error(message);
+    }
+  },
+};
 
 /**
- * Datos para login
+ * Export individual para backward compatibility
  */
-export interface LoginInput {
-  username: string;
-  password: string;
-}
-
-/**
- * Registra un nuevo usuario
- */
-export async function register(data: RegisterInput): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>(
-    ENDPOINTS.AUTH.REGISTER,
-    data
-  );
-
-  saveTokens(response.data.tokens);
-  return response.data;
-}
-
-/**
- * Inicia sesion con username y password
- */
-export async function login(data: LoginInput): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>(
-    ENDPOINTS.AUTH.LOGIN,
-    data
-  );
-
-  saveTokens(response.data.tokens);
-  return response.data;
-}
-
-/**
- * Cierra la sesion del usuario
- */
-export async function logout(): Promise<void> {
-  try {
-    await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
-  } finally {
-    clearTokens();
-  }
-}
-
-/**
- * Obtiene la informacion del usuario autenticado
- */
-export async function getCurrentUser(): Promise<{
-  user: UserPublicData;
-  permisos: Record<string, unknown>;
-}> {
-  const response = await apiClient.get(ENDPOINTS.AUTH.ME);
-  return response.data;
-}
+export const { register, login, logout, getCurrentUser, refreshToken } =
+  authService;

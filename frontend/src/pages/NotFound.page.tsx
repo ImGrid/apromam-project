@@ -6,6 +6,7 @@
 
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/shared/config/routes.config";
+import { Button } from "@/shared/components/ui/Button";
 
 export function NotFoundPage() {
   return (
@@ -28,19 +29,16 @@ export function NotFoundPage() {
         </p>
 
         {/* Acciones */}
-        <div className="flex justify-center gap-4">
-          <Link
-            to={ROUTES.DASHBOARD}
-            className="inline-block px-6 py-3 font-medium text-white transition-all rounded-md bg-primary hover:bg-primary-light"
-          >
-            Ir al Dashboard
+        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <Link to={ROUTES.DASHBOARD}>
+            <Button variant="primary" size="medium">
+              Ir al Dashboard
+            </Button>
           </Link>
-
-          <Link
-            to={ROUTES.LOGIN}
-            className="inline-block px-6 py-3 font-medium transition-all bg-white border rounded-md text-text-primary border-neutral-border hover:bg-neutral-bg"
-          >
-            Iniciar Sesión
+          <Link to={ROUTES.LOGIN}>
+            <Button variant="secondary" size="medium">
+              Iniciar Sesión
+            </Button>
           </Link>
         </div>
 
