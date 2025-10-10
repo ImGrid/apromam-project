@@ -1,10 +1,14 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/features/auth/stores/authStore";
+import {
+  isAdmin,
+  isGerente,
+  isTecnico,
+  isSameComunidad,
+} from "../utils/roleHelpers";
 
-// Hook para acceder al estado de autenticacion
-// Integrado con authStore de Zustand
 export function useAuth() {
-  // Obtener datos del store
+  // Estado del store
   const user = useAuthStore((state) => state.user);
   const permisos = useAuthStore((state) => state.permisos);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -18,48 +22,16 @@ export function useAuth() {
     (state) => state.loadUserFromStorage
   );
 
-  // Cargar usuario desde storage al montar el componente
-  // Solo si no esta autenticado y no esta cargando
+  // Cargar usuario desde storage al montar
   useEffect(() => {
     if (!isAuthenticated && !isLoading && status === "idle") {
       loadUserFromStorage();
     }
   }, [isAuthenticated, isLoading, status, loadUserFromStorage]);
 
-  // Verificar si el usuario tiene un rol especifico
+  // Helpers de rol (usando roleHelpers)
   const hasRole = (role: string): boolean => {
     return user?.nombre_rol.toLowerCase() === role.toLowerCase();
-  };
-
-  // Verificar si el usuario es administrador
-  const isAdmin = (): boolean => {
-    return hasRole("administrador");
-  };
-
-  // Verificar si el usuario es gerente
-  const isGerente = (): boolean => {
-    return hasRole("gerente");
-  };
-
-  // Verificar si el usuario es tecnico
-  const isTecnico = (): boolean => {
-    return hasRole("tecnico");
-  };
-
-  // Verificar si el usuario tiene acceso a una comunidad especifica
-  const hasAccessToComunidad = (comunidadId: string): boolean => {
-    // Admin tiene acceso a todas las comunidades
-    if (isAdmin()) {
-      return true;
-    }
-
-    // Gerente tiene acceso a todas las comunidades
-    if (isGerente()) {
-      return true;
-    }
-
-    // Tecnico solo tiene acceso a su comunidad
-    return user?.id_comunidad === comunidadId;
   };
 
   return {
@@ -74,11 +46,16 @@ export function useAuth() {
     // Acciones
     logout,
 
-    // Helpers
+    // Helpers basicos
     hasRole,
-    isAdmin,
-    isGerente,
-    isTecnico,
-    hasAccessToComunidad,
+    isAdmin: () => isAdmin(user),
+    isGerente: () => isGerente(user),
+    isTecnico: () => isTecnico(user),
+
+    // Validacion de comunidad
+    hasAccessToComunidad: (comunidadId: string) => {
+      if (isAdmin(user) || isGerente(user)) return true;
+      return isSameComunidad(user, comunidadId);
+    },
   };
 }
