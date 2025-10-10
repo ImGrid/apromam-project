@@ -1,12 +1,25 @@
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
+import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
+import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { usePermissions } from "@/shared/hooks/usePermissions";
 import { PermissionGate } from "@/shared/components/layout/PermissionGate";
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const { isAdmin, isGerente, isTecnico } = usePermissions();
+
+  // Seleccionar layout segun rol
+  const Layout = isAdmin()
+    ? AdminLayout
+    : isGerente()
+    ? GerenteLayout
+    : isTecnico()
+    ? TecnicoLayout
+    : AdminLayout; // Default
 
   return (
-    <AdminLayout title="Dashboard">
+    <Layout title="Dashboard">
       <div className="space-y-6">
         {/* Bienvenida */}
         <div className="p-6 bg-white border rounded-lg border-neutral-border">
@@ -24,9 +37,8 @@ export function DashboardPage() {
           )}
         </div>
 
-        {/* Stats cards (ejemplo) */}
+        {/* Stats cards */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Solo admin y gerente ven estadisticas generales */}
           <PermissionGate permission="report">
             <div className="p-6 bg-white border rounded-lg border-neutral-border">
               <h3 className="mb-2 text-sm font-medium text-text-secondary">
@@ -36,7 +48,6 @@ export function DashboardPage() {
             </div>
           </PermissionGate>
 
-          {/* Todos ven fichas */}
           <PermissionGate resource="fichas" action="read">
             <div className="p-6 bg-white border rounded-lg border-neutral-border">
               <h3 className="mb-2 text-sm font-medium text-text-secondary">
@@ -46,7 +57,6 @@ export function DashboardPage() {
             </div>
           </PermissionGate>
 
-          {/* Solo quien puede aprobar ve esto */}
           <PermissionGate permission="approve">
             <div className="p-6 bg-white border rounded-lg border-neutral-border">
               <h3 className="mb-2 text-sm font-medium text-text-secondary">
@@ -83,6 +93,6 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </Layout>
   );
 }

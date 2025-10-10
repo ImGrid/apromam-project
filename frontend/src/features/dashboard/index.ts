@@ -1,0 +1,11 @@
+export { AdminDashboard } from "./pages/AdminDashboard";
+export { GerenteDashboard } from "./pages/GerenteDashboard";
+export { TecnicoDashboard } from "./pages/TecnicoDashboard";
+export { StatCard } from "./components/StatCard";
+export { AlertCard } from "./components/AlertCard";
+export { QuickActions } from "./components/QuickActions";
+export { FichasPendientesList } from "./components/FichasPendientesList";
+export { MisFichasTabs } from "./components/MisFichasTabs";
+export { useDashboardStats } from "./hooks/useDashboardStats";
+export { useMisFichas } from "./hooks/useMisFichas";
+export * from "./types/dashboard.types";

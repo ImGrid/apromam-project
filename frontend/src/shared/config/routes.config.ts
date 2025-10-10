@@ -14,6 +14,7 @@ export const ROUTES = {
 
   // Dashboard
   DASHBOARD: "/dashboard",
+  REPORTES: "/reportes",
 
   // Usuarios
   USUARIOS: "/usuarios",

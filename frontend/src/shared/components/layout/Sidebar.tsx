@@ -79,7 +79,7 @@ export function Sidebar() {
     },
     {
       label: "Reportes",
-      path: ROUTES.DASHBOARD,
+      path: ROUTES.REPORTES,
       icon: BarChart3,
       permission: () => permissions.hasPermission("report"),
     },

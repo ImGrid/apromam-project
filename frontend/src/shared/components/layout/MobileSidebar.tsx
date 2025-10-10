@@ -103,7 +103,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     },
     {
       label: "Reportes",
-      path: ROUTES.DASHBOARD,
+      path: ROUTES.REPORTES,
       icon: BarChart3,
       permission: () => permissions.hasPermission("report"),
     },
