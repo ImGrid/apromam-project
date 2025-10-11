@@ -1,8 +1,3 @@
-/**
- * Dashboard principal del administrador
- * Muestra estadisticas, acciones rapidas y alertas
- */
-
 import { useNavigate } from "react-router-dom";
 import { Users, Building2, Leaf, ClipboardList, RefreshCw } from "lucide-react";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
@@ -133,12 +128,11 @@ export function AdminDashboard() {
             </div>
           )}
 
-          {/* Acciones rapidas */}
           <div>
             <h3 className="mb-4 text-lg font-semibold text-text-primary">
               Acciones Rápidas
             </h3>
-            <QuickActions />
+            <QuickActions onRefresh={refetch} />
           </div>
         </div>
       </PageContainer>

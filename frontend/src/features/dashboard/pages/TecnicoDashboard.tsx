@@ -1,9 +1,4 @@
-// src/features/dashboard/pages/TecnicoDashboard.tsx
-/**
- * Dashboard del tecnico
- * Simplificado para uso en campo
- */
-
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlusCircle, Leaf, Map } from "lucide-react";
 import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
@@ -11,40 +6,58 @@ import { PageContainer } from "@/shared/components/layout/PageContainer";
 import { StatCard } from "../components/StatCard";
 import { MisFichasTabs } from "../components/MisFichasTabs";
 import { AlertCard } from "../components/AlertCard";
+import { CreateProductorModal } from "@/features/productores/components/CreateProductorModal";
 import { useMisFichas } from "../hooks/useMisFichas";
 import { ROUTES } from "@/shared/config/routes.config";
 import { useAuth } from "@/shared/hooks/useAuth";
-import { useState, useEffect } from "react";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
+import type { Productor } from "@/features/productores/services/productores.service";
 
 export function TecnicoDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { borradores, enRevision, aprobadas, isLoading } = useMisFichas();
+  const { borradores, enRevision, aprobadas, isLoading, refetch } =
+    useMisFichas();
   const [totalProductores, setTotalProductores] = useState(0);
   const [productoresSinGPS, setProductoresSinGPS] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [productorModalOpen, setProductorModalOpen] = useState(false);
+
+  // Fetch stats - memoizado
+  const fetchStats = useCallback(async () => {
+    try {
+      const [productores] = await Promise.all([
+        apiClient.get(ENDPOINTS.PRODUCTORES.BASE),
+      ]);
+
+      setTotalProductores(productores.data.total || 0);
+      // TODO: Implementar endpoint para productores sin GPS
+      setProductoresSinGPS(0);
+    } catch {
+      console.error("Error fetching stats");
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [productores] = await Promise.all([
-          apiClient.get(ENDPOINTS.PRODUCTORES.BASE),
-        ]);
-
-        setTotalProductores(productores.data.total || 0);
-
-        // TODO: Implementar endpoint para productores sin GPS
-        setProductoresSinGPS(0);
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-
     fetchStats();
-  }, []);
+  }, [fetchStats]);
+
+  const handleProductorCreated = (productor: Productor) => {
+    // Refrescar estadisticas
+    fetchStats();
+    refetch();
+
+    // Preguntar si quiere agregar parcelas
+    const agregarParcelas = window.confirm(
+      `Productor ${productor.codigo_productor} creado exitosamente. ¿Deseas agregar parcelas ahora?`
+    );
+
+    if (agregarParcelas) {
+      navigate(ROUTES.PARCELAS_BY_PRODUCTOR(productor.codigo_productor));
+    }
+  };
 
   return (
     <TecnicoLayout title="Inicio">
@@ -64,7 +77,7 @@ export function TecnicoDashboard() {
             </button>
 
             <button
-              onClick={() => navigate(ROUTES.PRODUCTORES_CREATE)}
+              onClick={() => setProductorModalOpen(true)}
               className="flex flex-col items-center justify-center gap-3 p-8 text-white transition-colors rounded-lg bg-success hover:bg-green-700"
             >
               <Leaf className="w-10 h-10" />
@@ -123,6 +136,13 @@ export function TecnicoDashboard() {
             />
           </div>
         </div>
+
+        {/* Modal de crear productor */}
+        <CreateProductorModal
+          isOpen={productorModalOpen}
+          onClose={() => setProductorModalOpen(false)}
+          onSuccess={handleProductorCreated}
+        />
       </PageContainer>
     </TecnicoLayout>
   );

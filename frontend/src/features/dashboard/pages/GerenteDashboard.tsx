@@ -1,4 +1,4 @@
-// src/features/dashboard/pages/GerenteDashboard.tsx (ACTUALIZAR)
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -13,11 +13,12 @@ import { StatCard } from "../components/StatCard";
 import { FichasPendientesList } from "../components/FichasPendientesList";
 import { Button } from "@/shared/components/ui/Button";
 import { useDashboardStats } from "../hooks/useDashboardStats";
+import { CreateUsuarioModal } from "@/features/usuarios/components/CreateUsuarioModal";
+import { CreateProductorModal } from "@/features/productores/components/CreateProductorModal";
 import { ROUTES } from "@/shared/config/routes.config";
-import { useState, useEffect } from "react";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
 
-// Definir el tipo de ficha que viene del backend
+// Tipo de ficha del backend
 interface FichaBackend {
   id_ficha: string;
   codigo_productor: string;
@@ -37,42 +38,49 @@ export function GerenteDashboard() {
   const { stats, isLoading, refetch } = useDashboardStats();
   const [fichasPendientes, setFichasPendientes] = useState<FichaConDias[]>([]);
   const [loadingFichas, setLoadingFichas] = useState(true);
+  const [usuarioModalOpen, setUsuarioModalOpen] = useState(false);
+  const [productorModalOpen, setProductorModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchFichasPendientes = async () => {
-      try {
-        const response = await apiClient.get<{ fichas: FichaBackend[] }>(
-          `${ENDPOINTS.FICHAS.BASE}?estado=revision`
-        );
-
-        // Calcular dias en revision
-        const fichasConDias: FichaConDias[] = response.data.fichas.map(
-          (ficha) => ({
-            ...ficha,
-            dias_en_revision: Math.floor(
-              (Date.now() - new Date(ficha.fecha_inspeccion).getTime()) /
-                (1000 * 60 * 60 * 24)
-            ),
-          })
-        );
-
-        // Ordenar por fecha mas antigua primero
-        fichasConDias.sort(
-          (a, b) =>
-            new Date(a.fecha_inspeccion).getTime() -
-            new Date(b.fecha_inspeccion).getTime()
-        );
-
-        setFichasPendientes(fichasConDias);
-      } catch (error) {
-        console.error("Error fetching fichas pendientes:", error);
-      } finally {
-        setLoadingFichas(false);
-      }
-    };
-
     fetchFichasPendientes();
   }, []);
+
+  const fetchFichasPendientes = async () => {
+    try {
+      const response = await apiClient.get<{ fichas: FichaBackend[] }>(
+        `${ENDPOINTS.FICHAS.BASE}?estado=revision`
+      );
+
+      // Calcular dias en revision
+      const fichasConDias: FichaConDias[] = response.data.fichas.map(
+        (ficha) => ({
+          ...ficha,
+          dias_en_revision: Math.floor(
+            (Date.now() - new Date(ficha.fecha_inspeccion).getTime()) /
+              (1000 * 60 * 60 * 24)
+          ),
+        })
+      );
+
+      // Ordenar por fecha mas antigua primero
+      fichasConDias.sort(
+        (a, b) =>
+          new Date(a.fecha_inspeccion).getTime() -
+          new Date(b.fecha_inspeccion).getTime()
+      );
+
+      setFichasPendientes(fichasConDias);
+    } catch (error) {
+      console.error("Error fetching fichas pendientes:", error);
+    } finally {
+      setLoadingFichas(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    fetchFichasPendientes();
+  };
 
   return (
     <GerenteLayout title="Dashboard">
@@ -83,7 +91,7 @@ export function GerenteDashboard() {
           <Button
             size="small"
             variant="secondary"
-            onClick={refetch}
+            onClick={handleRefresh}
             disabled={isLoading}
           >
             <RefreshCw
@@ -126,7 +134,7 @@ export function GerenteDashboard() {
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <button
-                onClick={() => navigate(ROUTES.USUARIOS_CREATE)}
+                onClick={() => setUsuarioModalOpen(true)}
                 className="flex flex-col items-center justify-center gap-3 p-6 text-white transition-colors rounded-lg bg-primary hover:bg-primary-dark"
               >
                 <UserPlus className="w-8 h-8" />
@@ -134,7 +142,7 @@ export function GerenteDashboard() {
               </button>
 
               <button
-                onClick={() => navigate(ROUTES.PRODUCTORES_CREATE)}
+                onClick={() => setProductorModalOpen(true)}
                 className="flex flex-col items-center justify-center gap-3 p-6 text-white transition-colors rounded-lg bg-success hover:bg-green-700"
               >
                 <Leaf className="w-8 h-8" />
@@ -164,6 +172,19 @@ export function GerenteDashboard() {
             />
           </div>
         </div>
+
+        {/* Modales */}
+        <CreateUsuarioModal
+          isOpen={usuarioModalOpen}
+          onClose={() => setUsuarioModalOpen(false)}
+          onSuccess={handleRefresh}
+        />
+
+        <CreateProductorModal
+          isOpen={productorModalOpen}
+          onClose={() => setProductorModalOpen(false)}
+          onSuccess={handleRefresh}
+        />
       </PageContainer>
     </GerenteLayout>
   );
