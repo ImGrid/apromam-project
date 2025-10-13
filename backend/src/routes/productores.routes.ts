@@ -158,11 +158,14 @@ export default async function productoresRoutes(
   // POST /api/productores
   // Crea un nuevo productor
   // Tecnico: solo en su comunidad
-  // Admin: en cualquier comunidad
+  // Gerente y Admin: en cualquier comunidad
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/",
     {
-      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      onRequest: [
+        authenticate,
+        requireRoles("tecnico", "gerente", "administrador"),
+      ],
       schema: {
         description: "Crea un nuevo productor",
         tags: ["productores"],
@@ -189,11 +192,14 @@ export default async function productoresRoutes(
   // PUT /api/productores/:codigo
   // Actualiza un productor existente
   // Tecnico: solo de su comunidad
-  // Admin: cualquier productor
+  // Gerente y Admin: cualquier productor
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/:codigo",
     {
-      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      onRequest: [
+        authenticate,
+        requireRoles("tecnico", "gerente", "administrador"),
+      ],
       schema: {
         description: "Actualiza un productor existente",
         tags: ["productores"],
@@ -219,11 +225,11 @@ export default async function productoresRoutes(
 
   // DELETE /api/productores/:codigo
   // Elimina (desactiva) un productor
-  // Solo admin puede eliminar
+  // Gerente y admin pueden eliminar
   fastify.withTypeProvider<ZodTypeProvider>().delete(
     "/:codigo",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Elimina (desactiva) un productor",
         tags: ["productores"],

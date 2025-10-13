@@ -1,30 +1,13 @@
 import { apiClient, ENDPOINTS, getErrorMessage } from "@/shared/services/api";
-
-export interface CreateComunidadInput {
-  nombre_comunidad: string;
-  abreviatura_comunidad: string;
-  id_municipio: string;
-}
-
-export interface UpdateComunidadInput {
-  nombre_comunidad?: string;
-  abreviatura_comunidad?: string;
-  activo?: boolean;
-}
-
-export interface Comunidad {
-  id_comunidad: string;
-  nombre_comunidad: string;
-  abreviatura_comunidad: string;
-  id_municipio: string;
-  nombre_municipio: string;
-  nombre_provincia: string;
-  activo: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import type {
+  Comunidad,
+  CreateComunidadInput,
+  UpdateComunidadInput,
+  ComunidadFilters,
+} from "../types/comunidad.types";
 
 export const comunidadesService = {
+  // Crear comunidad
   async createComunidad(data: CreateComunidadInput): Promise<Comunidad> {
     try {
       const response = await apiClient.post<{
@@ -37,10 +20,10 @@ export const comunidadesService = {
     }
   },
 
-  async listComunidades(filters?: {
-    municipio_id?: string;
-    provincia_id?: string;
-  }): Promise<{ comunidades: Comunidad[]; total: number }> {
+  // Listar comunidades con filtros
+  async listComunidades(
+    filters?: ComunidadFilters
+  ): Promise<{ comunidades: Comunidad[]; total: number }> {
     try {
       const response = await apiClient.get<{
         comunidades: Comunidad[];
@@ -52,6 +35,7 @@ export const comunidadesService = {
     }
   },
 
+  // Obtener comunidad por ID
   async getComunidadById(id: string): Promise<Comunidad> {
     try {
       const response = await apiClient.get<{ comunidad: Comunidad }>(
@@ -63,6 +47,7 @@ export const comunidadesService = {
     }
   },
 
+  // Actualizar comunidad
   async updateComunidad(
     id: string,
     data: UpdateComunidadInput
@@ -78,9 +63,26 @@ export const comunidadesService = {
     }
   },
 
+  // Eliminar comunidad
   async deleteComunidad(id: string): Promise<void> {
     try {
       await apiClient.delete(ENDPOINTS.COMUNIDADES.BY_ID(id));
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  // Listar comunidades sin tecnicos
+  async listComunidadesSinTecnicos(): Promise<{
+    comunidades: Comunidad[];
+    total: number;
+  }> {
+    try {
+      const response = await apiClient.get<{
+        comunidades: Comunidad[];
+        total: number;
+      }>(ENDPOINTS.COMUNIDADES.SIN_TECNICOS);
+      return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }

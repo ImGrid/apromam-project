@@ -8,7 +8,7 @@ import type {
 } from "../schemas/usuarios.schema.js";
 
 // Controlador para endpoints de usuarios
-// Gerente puede crear tecnicos
+// Gerente puede crear tecnicos y productores, NO administradores ni gerentes
 // Admin puede crear cualquier rol
 export class UsuariosController {
   constructor(private usuariosService: UsuariosService) {}
@@ -20,8 +20,8 @@ export class UsuariosController {
     reply: FastifyReply
   ) {
     try {
-      const { rol } = request.query;
-      const result = await this.usuariosService.listUsuarios(rol);
+      const { rol, activo } = request.query;
+      const result = await this.usuariosService.listUsuarios(rol, activo);
       return reply.status(200).send(result);
     } catch (error) {
       request.log.error(error, "Error listing usuarios");
@@ -62,7 +62,7 @@ export class UsuariosController {
 
   // POST /api/usuarios
   // Crea un nuevo usuario
-  // Gerente solo puede crear tecnicos
+  // Gerente puede crear tecnicos y productores, NO administradores ni gerentes
   async create(
     request: FastifyRequest<{ Body: CreateUsuarioInput }>,
     reply: FastifyReply
@@ -191,6 +191,22 @@ export class UsuariosController {
       return reply.status(500).send({
         error: "internal_server_error",
         message: "Error al listar usuarios por comunidad",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // GET /api/usuarios/roles
+  // Lista todos los roles disponibles del sistema
+  async listRoles(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const result = await this.usuariosService.listRoles();
+      return reply.status(200).send(result);
+    } catch (error) {
+      request.log.error(error, "Error listing roles");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al listar roles",
         timestamp: new Date().toISOString(),
       });
     }

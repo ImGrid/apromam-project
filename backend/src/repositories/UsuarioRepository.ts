@@ -142,12 +142,12 @@ export class UsuarioRepository {
   }
 
   /**
-   * Lista todos los usuarios activos
-   * Con filtro opcional por rol
+   * Lista todos los usuarios
+   * Con filtros opcionales por rol y estado activo
    */
-  async findAll(rolNombre?: string): Promise<Usuario[]> {
+  async findAll(rolNombre?: string, activo?: boolean): Promise<Usuario[]> {
     let queryText = `
-      SELECT 
+      SELECT
         u.id_usuario,
         u.username,
         u.email,
@@ -164,13 +164,23 @@ export class UsuarioRepository {
       FROM usuarios u
       INNER JOIN roles r ON u.id_rol = r.id_rol
       LEFT JOIN comunidades c ON u.id_comunidad = c.id_comunidad
-      WHERE u.activo = true
+      WHERE 1=1
     `;
 
     const values: any[] = [];
+    let paramCount = 0;
 
+    // Filtrar por estado activo si se especifica
+    if (activo !== undefined) {
+      paramCount++;
+      queryText += ` AND u.activo = $${paramCount}`;
+      values.push(activo);
+    }
+
+    // Filtrar por rol si se especifica
     if (rolNombre) {
-      queryText += ` AND LOWER(r.nombre_rol) = LOWER($1)`;
+      paramCount++;
+      queryText += ` AND LOWER(r.nombre_rol) = LOWER($${paramCount})`;
       values.push(rolNombre);
     }
 

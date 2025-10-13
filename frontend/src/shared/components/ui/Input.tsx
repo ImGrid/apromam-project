@@ -1,6 +1,6 @@
 import { type InputHTMLAttributes, forwardRef } from "react";
 
-type InputType = "text" | "email" | "password" | "number" | "tel" | "url";
+type InputType = "text" | "email" | "password" | "number" | "tel" | "url" | "date";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;

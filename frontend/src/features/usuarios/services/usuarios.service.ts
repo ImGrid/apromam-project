@@ -1,34 +1,11 @@
 import { apiClient, ENDPOINTS, getErrorMessage } from "@/shared/services/api";
-
-export interface CreateUsuarioInput {
-  username: string;
-  email: string;
-  password: string;
-  nombre_completo: string;
-  id_rol: string;
-  id_comunidad?: string;
-}
-
-export interface UpdateUsuarioInput {
-  email?: string;
-  nombre_completo?: string;
-  id_comunidad?: string | null;
-  activo?: boolean;
-}
-
-export interface Usuario {
-  id_usuario: string;
-  username: string;
-  email: string;
-  nombre_completo: string;
-  id_rol: string;
-  nombre_rol: string;
-  id_comunidad?: string;
-  nombre_comunidad?: string;
-  activo: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import type {
+  Usuario,
+  CreateUsuarioInput,
+  UpdateUsuarioInput,
+  UsuarioFilters,
+  UsuarioListResponse,
+} from "../types/usuario.types";
 
 export const usuariosService = {
   async createUsuario(data: CreateUsuarioInput): Promise<Usuario> {
@@ -43,14 +20,12 @@ export const usuariosService = {
     }
   },
 
-  async listUsuarios(filters?: {
-    rol?: string;
-  }): Promise<{ usuarios: Usuario[]; total: number }> {
+  async listUsuarios(filters?: UsuarioFilters): Promise<UsuarioListResponse> {
     try {
-      const response = await apiClient.get<{
-        usuarios: Usuario[];
-        total: number;
-      }>(ENDPOINTS.USUARIOS.BASE, { params: filters });
+      const response = await apiClient.get<UsuarioListResponse>(
+        ENDPOINTS.USUARIOS.BASE,
+        { params: filters }
+      );
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));

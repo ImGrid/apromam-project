@@ -1,9 +1,6 @@
 import { useState } from "react";
-import {
-  comunidadesService,
-  type CreateComunidadInput,
-  type Comunidad,
-} from "../services/comunidades.service";
+import { comunidadesService } from "../services/comunidades.service";
+import type { CreateComunidadInput, Comunidad } from "../types/comunidad.types";
 import { showToast } from "@/shared/components/ui";
 
 export function useCreateComunidad() {

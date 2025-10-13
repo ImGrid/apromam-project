@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import { Skeleton } from "./Skeleton";
+import {
+  SkeletonTable,
+  SkeletonList,
+} from "@/shared/components/ui/Skeleton/SkeletonPresets";
 
 export interface DataTableColumn<T> {
   key: keyof T | string;
   label: string;
   sortable?: boolean;
   render?: (item: T) => React.ReactNode;
-  mobileLabel?: string; // Label específico para vista móvil
-  hiddenOnMobile?: boolean; // Ocultar columna en móvil
+  mobileLabel?: string;
+  hiddenOnMobile?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -20,7 +23,7 @@ interface DataTableProps<T> {
   rowKey: keyof T;
 }
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T = Record<string, any>>({
   columns,
   data,
   onRowClick,
@@ -33,14 +36,21 @@ export function DataTable<T extends Record<string, any>>({
     direction: "asc" | "desc";
   } | null>(null);
 
-  // Ordenamiento
+  // Ordenamiento con type narrowing para unknown
   const sortedData = sortConfig
     ? [...data].sort((a, b) => {
         const aVal = a[sortConfig.key];
         const bVal = b[sortConfig.key];
 
-        if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+        // Type guard: verificar que sean comparables
+        if (aVal == null || bVal == null) return 0;
+
+        // Convertir a string para comparación segura
+        const aStr = String(aVal);
+        const bStr = String(bVal);
+
+        if (aStr < bStr) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aStr > bStr) return sortConfig.direction === "asc" ? 1 : -1;
         return 0;
       })
     : data;
@@ -57,18 +67,18 @@ export function DataTable<T extends Record<string, any>>({
     });
   };
 
-  // Loading state
+  // Loading state - Ahora usando los componentes separados
   if (loading) {
     return (
       <div className="space-y-4">
         {/* Desktop: Skeleton table */}
         <div className="hidden sm:block">
-          <Skeleton.Table rows={5} />
+          <SkeletonTable rows={5} />
         </div>
 
         {/* Mobile: Skeleton cards */}
         <div className="sm:hidden">
-          <Skeleton.List items={5} />
+          <SkeletonList items={5} />
         </div>
       </div>
     );
@@ -138,7 +148,7 @@ export function DataTable<T extends Record<string, any>>({
                     >
                       {column.render
                         ? column.render(item)
-                        : item[column.key as keyof T]}
+                        : String(item[column.key as keyof T] ?? "")}
                     </td>
                   ))}
                 </tr>
@@ -177,7 +187,7 @@ export function DataTable<T extends Record<string, any>>({
                     <span className="text-sm text-right text-text-primary">
                       {column.render
                         ? column.render(item)
-                        : item[column.key as keyof T]}
+                        : String(item[column.key as keyof T] ?? "")}
                     </span>
                   </div>
                 ))}

@@ -17,18 +17,28 @@ import { apiClient, ENDPOINTS } from "@/shared/services/api";
 
 const usuarioSchema = z
   .object({
-    username: z.string().min(3, "Mínimo 3 caracteres"),
+    username: z
+      .string()
+      .min(5, "Mínimo 5 caracteres")
+      .regex(
+        /^[a-zA-Z][a-zA-Z0-9_]*$/,
+        "Debe empezar con letra y contener solo letras, números y guion bajo"
+      ),
     email: z.string().email("Email inválido"),
-    password: z.string().min(6, "Mínimo 6 caracteres"),
+    password: z
+      .string()
+      .min(8, "Mínimo 8 caracteres")
+      .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+      .regex(/[a-z]/, "Debe contener al menos una minúscula")
+      .regex(/[0-9]/, "Debe contener al menos un número"),
     nombre_completo: z.string().min(3, "Mínimo 3 caracteres"),
     id_rol: z.string().min(1, "Selecciona un rol"),
     id_comunidad: z.string().optional(),
   })
   .refine(
     (data) => {
-      // Si el rol es técnico (validar por nombre o por lógica), la comunidad es obligatoria
-      // Aquí asumimos que conocemos los IDs o nombres de roles
-      return true; // La validación de comunidad se hace en el backend
+      // La validacion de comunidad se hace en el backend
+      return true;
     },
     {
       message: "Técnico debe tener comunidad asignada",
@@ -85,20 +95,23 @@ export function CreateUsuarioModal({
 
   const loadRoles = async () => {
     try {
-      // Endpoint ficticio, ajustar según backend real
       const response = await apiClient.get<{
         roles: Array<{ id_rol: string; nombre_rol: string }>;
-      }>("/api/catalogos/roles");
+      }>("/api/usuarios/roles");
 
       const rolesOptions = response.data.roles.map((rol) => ({
         value: rol.id_rol,
         label: rol.nombre_rol,
       }));
 
-      // Si es gerente, filtrar solo técnico
+      // Si es gerente, NO mostrar administrador ni gerente
       if (user?.nombre_rol.toLowerCase() === "gerente") {
         setRoles(
-          rolesOptions.filter((r) => r.label.toLowerCase() === "técnico")
+          rolesOptions.filter(
+            (r) =>
+              r.label.toLowerCase() !== "administrador" &&
+              r.label.toLowerCase() !== "gerente"
+          )
         );
       } else {
         setRoles(rolesOptions);
@@ -109,11 +122,17 @@ export function CreateUsuarioModal({
         { value: "1", label: "Administrador" },
         { value: "2", label: "Gerente" },
         { value: "3", label: "Técnico" },
+        { value: "4", label: "Productor" },
+        { value: "5", label: "Invitado" },
       ];
 
       if (user?.nombre_rol.toLowerCase() === "gerente") {
         setRoles(
-          defaultRoles.filter((r) => r.label.toLowerCase() === "técnico")
+          defaultRoles.filter(
+            (r) =>
+              r.label.toLowerCase() !== "administrador" &&
+              r.label.toLowerCase() !== "gerente"
+          )
         );
       } else {
         setRoles(defaultRoles);
@@ -175,7 +194,10 @@ export function CreateUsuarioModal({
               required
               error={errors.username?.message}
             >
-              <Input {...register("username")} placeholder="juan.perez" />
+              <Input
+                {...register("username")}
+                placeholder="juanperez (min. 5 caracteres)"
+              />
             </FormField>
 
             <FormField label="Email" required error={errors.email?.message}>
@@ -195,7 +217,7 @@ export function CreateUsuarioModal({
             <Input
               {...register("password")}
               inputType="password"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres (1 mayúscula, 1 minúscula, 1 número)"
             />
           </FormField>
         </FormSection>

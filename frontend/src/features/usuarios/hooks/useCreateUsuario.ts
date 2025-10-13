@@ -1,9 +1,6 @@
 import { useState } from "react";
-import {
-  usuariosService,
-  type CreateUsuarioInput,
-  type Usuario,
-} from "../services/usuarios.service";
+import { usuariosService } from "../services/usuarios.service";
+import type { CreateUsuarioInput, Usuario } from "../types/usuario.types";
 import { showToast } from "@/shared/components/ui";
 
 export function useCreateUsuario() {

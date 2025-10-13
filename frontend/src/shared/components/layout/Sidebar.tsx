@@ -99,9 +99,9 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden w-64 h-screen overflow-y-auto bg-white border-r lg:block border-neutral-border">
+    <aside className="fixed top-0 left-0 z-30 flex-col hidden w-64 h-screen bg-white border-r lg:flex border-neutral-border">
       {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-neutral-border">
+      <div className="flex items-center justify-center flex-shrink-0 h-16 border-b border-neutral-border">
         <img
           src="https://apromam.com/wp-content/uploads/2021/01/cropped-LOGO-APROMAM-H-1024x322.png"
           alt="APROMAM"
@@ -110,7 +110,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-1">
           {visibleItems.map((item) => {
             const Icon = item.icon;
@@ -136,7 +136,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer info */}
-      <div className="p-4 mt-auto border-t border-neutral-border">
+      <div className="flex-shrink-0 p-4 border-t border-neutral-border">
         <p className="text-xs text-center text-text-secondary">
           APROMAM © {new Date().getFullYear()}
         </p>

@@ -1,0 +1,11 @@
+export { ComunidadesListPage } from "./pages/ComunidadesListPage";
+export { ComunidadesList } from "./components/ComunidadesList";
+export { ComunidadCard } from "./components/ComunidadCard";
+export { ComunidadForm } from "./components/ComunidadForm";
+export { CreateComunidadModal } from "./components/CreateComunidadModal";
+export { useComunidades } from "./hooks/useComunidades";
+export { useComunidadesSinTecnicos } from "./hooks/useComunidadesSinTecnicos";
+export { useCreateComunidad } from "./hooks/useCreateComunidad";
+export { useUpdateComunidad } from "./hooks/useUpdateComunidad";
+export { comunidadesService } from "./services/comunidades.service";
+export type * from "./types/comunidad.types";

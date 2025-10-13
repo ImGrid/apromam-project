@@ -46,13 +46,27 @@ export class MunicipioRepository {
     const query = {
       name: "find-municipios-by-provincia",
       text: `
-        SELECT 
+        SELECT
           m.id_municipio,
           m.id_provincia,
           m.nombre_municipio,
           m.activo,
           m.created_at,
-          p.nombre_provincia
+          p.nombre_provincia,
+          (
+            SELECT COUNT(*)
+            FROM comunidades c
+            WHERE c.id_municipio = m.id_municipio
+              AND c.activo = true
+          ) as cantidad_comunidades,
+          (
+            SELECT COUNT(*)
+            FROM comunidades c
+            INNER JOIN productores pr ON c.id_comunidad = pr.id_comunidad
+            WHERE c.id_municipio = m.id_municipio
+              AND c.activo = true
+              AND pr.activo = true
+          ) as cantidad_productores
         FROM municipios m
         INNER JOIN provincias p ON m.id_provincia = p.id_provincia
         WHERE m.id_provincia = $1 AND m.activo = true
@@ -71,13 +85,27 @@ export class MunicipioRepository {
     const query = {
       name: "find-all-municipios-activos",
       text: `
-        SELECT 
+        SELECT
           m.id_municipio,
           m.id_provincia,
           m.nombre_municipio,
           m.activo,
           m.created_at,
-          p.nombre_provincia
+          p.nombre_provincia,
+          (
+            SELECT COUNT(*)
+            FROM comunidades c
+            WHERE c.id_municipio = m.id_municipio
+              AND c.activo = true
+          ) as cantidad_comunidades,
+          (
+            SELECT COUNT(*)
+            FROM comunidades c
+            INNER JOIN productores pr ON c.id_comunidad = pr.id_comunidad
+            WHERE c.id_municipio = m.id_municipio
+              AND c.activo = true
+              AND pr.activo = true
+          ) as cantidad_productores
         FROM municipios m
         INNER JOIN provincias p ON m.id_provincia = p.id_provincia
         WHERE m.activo = true

@@ -18,7 +18,7 @@ import {
 import { z } from "zod/v4";
 
 // Plugin de rutas de usuarios
-// Gerente puede crear tecnicos
+// Gerente puede crear tecnicos y productores, NO administradores ni gerentes
 // Admin puede crear cualquier rol
 export default async function usuariosRoutes(
   fastify: FastifyInstance,
@@ -83,14 +83,15 @@ export default async function usuariosRoutes(
 
   // POST /api/usuarios
   // Crea un nuevo usuario
-  // Gerente: solo tecnicos
+  // Gerente: tecnicos y productores, NO administradores ni gerentes
   // Admin: cualquier rol
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/",
     {
       onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
-        description: "Crea un nuevo usuario (gerente: solo técnicos)",
+        description:
+          "Crea un nuevo usuario (gerente: técnicos y productores, no admin/gerente)",
         tags: ["usuarios"],
         headers: z.object({
           authorization: z.string().describe("Bearer token"),
@@ -197,5 +198,36 @@ export default async function usuariosRoutes(
       },
     },
     async (request, reply) => usuariosController.listByComunidad(request, reply)
+  );
+
+  // GET /api/usuarios/roles
+  // Lista todos los roles disponibles del sistema
+  // Acceso: gerente, admin
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    "/roles",
+    {
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      schema: {
+        description: "Lista todos los roles disponibles para asignar a usuarios",
+        tags: ["usuarios"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        response: {
+          200: z.object({
+            roles: z.array(
+              z.object({
+                id_rol: z.string().uuid(),
+                nombre_rol: z.string(),
+              })
+            ),
+          }),
+          401: UsuarioErrorSchema,
+          403: UsuarioErrorSchema,
+          500: UsuarioErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => usuariosController.listRoles(request, reply)
   );
 }

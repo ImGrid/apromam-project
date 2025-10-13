@@ -21,7 +21,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-neutral-bg">
+    <div className="min-h-screen bg-neutral-bg">
       {/* Sidebar desktop */}
       <Sidebar />
 
@@ -32,7 +32,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
       />
 
       {/* Main content */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col min-h-screen lg:ml-64">
         {/* Header */}
         <Header title={title} onMenuClick={handleOpenMobileMenu} />
 

@@ -53,17 +53,35 @@ export class ProvinciaRepository {
     const query = {
       name: "find-all-provincias-activas",
       text: `
-        SELECT 
+        SELECT
           p.id_provincia,
           p.nombre_provincia,
           p.activo,
           p.created_at,
           (
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
             FROM municipios m
-            WHERE m.id_provincia = p.id_provincia 
+            WHERE m.id_provincia = p.id_provincia
               AND m.activo = true
-          ) as cantidad_municipios
+          ) as cantidad_municipios,
+          (
+            SELECT COUNT(*)
+            FROM municipios m
+            INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
+            WHERE m.id_provincia = p.id_provincia
+              AND m.activo = true
+              AND c.activo = true
+          ) as cantidad_comunidades,
+          (
+            SELECT COUNT(*)
+            FROM municipios m
+            INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
+            INNER JOIN productores pr ON c.id_comunidad = pr.id_comunidad
+            WHERE m.id_provincia = p.id_provincia
+              AND m.activo = true
+              AND c.activo = true
+              AND pr.activo = true
+          ) as cantidad_productores
         FROM provincias p
         WHERE p.activo = true
         ORDER BY p.nombre_provincia ASC

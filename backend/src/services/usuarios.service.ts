@@ -30,9 +30,10 @@ export class UsuariosService {
   // Gerente ve todos
   // Tecnico no tiene acceso a este endpoint
   async listUsuarios(
-    rolNombre?: string
+    rolNombre?: string,
+    activo?: boolean
   ): Promise<{ usuarios: UsuarioResponse[]; total: number }> {
-    const usuarios = await this.usuarioRepository.findAll(rolNombre);
+    const usuarios = await this.usuarioRepository.findAll(rolNombre, activo);
 
     return {
       usuarios: usuarios.map((u) => u.toJSON()),
@@ -52,7 +53,7 @@ export class UsuariosService {
   }
 
   // Crea un nuevo usuario
-  // Gerente solo puede crear tecnicos
+  // Gerente puede crear tecnicos y productores, NO administradores ni gerentes
   // Admin puede crear cualquier rol
   async createUsuario(
     input: CreateUsuarioInput,
@@ -73,10 +74,12 @@ export class UsuariosService {
       throw new Error("Rol no encontrado");
     }
 
-    // Si el creador es gerente, validar que solo cree tecnicos
+    // Si el creador es gerente, validar que NO cree administradores ni gerentes
     if (usuarioCreadorRol.toLowerCase() === "gerente") {
-      if (!rol.esTecnico()) {
-        throw new Error("Gerente solo puede crear usuarios con rol técnico");
+      if (rol.esAdministrador() || rol.esGerente()) {
+        throw new Error(
+          "Gerente no puede crear usuarios con rol administrador o gerente"
+        );
       }
     }
 
@@ -202,6 +205,21 @@ export class UsuariosService {
     return {
       usuarios: usuarios.map((u) => u.toJSON()),
       total: usuarios.length,
+    };
+  }
+
+  // Lista todos los roles disponibles del sistema
+  // Solo devuelve id y nombre, no permisos completos
+  async listRoles(): Promise<{
+    roles: Array<{ id_rol: string; nombre_rol: string }>;
+  }> {
+    const roles = await this.rolRepository.findAll();
+
+    return {
+      roles: roles.map((r) => ({
+        id_rol: r.id,
+        nombre_rol: r.nombre,
+      })),
     };
   }
 }

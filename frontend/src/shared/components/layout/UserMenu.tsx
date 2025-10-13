@@ -100,7 +100,7 @@ export function UserMenu() {
           <div className="py-2">
             {/* Mi Perfil */}
             <Link
-              to={ROUTES.DASHBOARD}
+              to={ROUTES.PERFIL}
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-2 text-sm transition-colors text-text-primary hover:bg-neutral-bg"
             >
@@ -110,7 +110,7 @@ export function UserMenu() {
 
             {/* Configuracion */}
             <Link
-              to={ROUTES.DASHBOARD}
+              to={ROUTES.PERFIL}
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-2 text-sm transition-colors text-text-primary hover:bg-neutral-bg"
             >

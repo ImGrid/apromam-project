@@ -8,7 +8,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, title = "Dashboard" }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between h-16 px-4 bg-white border-b shadow-sm border-neutral-border sm:px-6">
+    <header className="sticky top-0 z-40 flex items-center justify-between h-16 px-4 bg-white border-b shadow-sm border-neutral-border sm:px-6 lg:pl-6">
       {/* Left side - Hamburger menu (mobile) */}
       <div className="flex items-center gap-4">
         <button

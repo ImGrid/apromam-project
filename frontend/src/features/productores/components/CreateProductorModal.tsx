@@ -9,9 +9,9 @@ import {
   Select,
   FormField,
   FormSection,
-  Checkbox,
   type SelectOption,
 } from "@/shared/components/ui";
+import { LocationPicker } from "@/shared/components/maps";
 import { useCreateProductor } from "../hooks/useCreateProductor";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
@@ -29,7 +29,6 @@ const productorSchema = z.object({
   categoria_actual: z.enum(["E", "2T", "1T", "0T"]),
   superficie_total_has: z.number().optional(),
   numero_parcelas_total: z.number().optional(),
-  capturar_gps: z.boolean().optional(),
   latitud: z.number().optional(),
   longitud: z.number().optional(),
   altitud: z.number().optional(),
@@ -51,7 +50,7 @@ export function CreateProductorModal({
   const { user } = useAuth();
   const { createProductor, isLoading } = useCreateProductor();
   const [comunidades, setComunidades] = useState<SelectOption[]>([]);
-  const [capturandoGPS, setCapturandoGPS] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const {
     register,
@@ -67,8 +66,6 @@ export function CreateProductorModal({
       categoria_actual: "0T",
     },
   });
-
-  const capturarGpsWatched = watch("capturar_gps");
 
   // Cargar comunidades - memoizado
   const loadComunidades = useCallback(async () => {
@@ -108,34 +105,20 @@ export function CreateProductorModal({
     }
   }, [isOpen, user, setValue, loadComunidades]);
 
-  const capturarCoordenadas = () => {
-    if (!navigator.geolocation) {
-      alert("Tu navegador no soporta geolocalización");
-      return;
-    }
+  // Handler para cuando se selecciona una ubicación en el mapa
+  const handleLocationSelect = useCallback(
+    (position: { lat: number; lng: number }) => {
+      setValue("latitud", position.lat);
+      setValue("longitud", position.lng);
+    },
+    [setValue]
+  );
 
-    setCapturandoGPS(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setValue("latitud", position.coords.latitude);
-        setValue("longitud", position.coords.longitude);
-        if (position.coords.altitude) {
-          setValue("altitud", position.coords.altitude);
-        }
-        setCapturandoGPS(false);
-        alert("Coordenadas capturadas exitosamente");
-      },
-      (error) => {
-        setCapturandoGPS(false);
-        alert("Error al capturar coordenadas: " + error.message);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-  };
+  // Obtener posición inicial si ya hay coordenadas
+  const initialPosition =
+    watch("latitud") && watch("longitud")
+      ? { lat: watch("latitud")!, lng: watch("longitud")! }
+      : null;
 
   const onSubmit = async (data: ProductorFormData) => {
     try {
@@ -296,34 +279,63 @@ export function CreateProductorModal({
           </div>
         </FormSection>
 
-        <FormSection title="Ubicación GPS">
-          <Checkbox
-            {...register("capturar_gps")}
-            label="Capturar coordenadas GPS del domicilio ahora"
-          />
-
-          {capturarGpsWatched && (
-            <div className="space-y-4">
+        <FormSection
+          title="Ubicación GPS del Domicilio"
+          description="Opcional - Puedes capturar la ubicación ahora o después"
+        >
+          {!showLocationPicker ? (
+            <div className="space-y-3">
               <Button
                 type="button"
                 variant="secondary"
-                onClick={capturarCoordenadas}
-                isLoading={capturandoGPS}
+                onClick={() => setShowLocationPicker(true)}
                 fullWidth
               >
-                {capturandoGPS ? "Obteniendo ubicación..." : "Capturar GPS"}
+                {watch("latitud") && watch("longitud")
+                  ? "Cambiar Ubicación GPS"
+                  : "Capturar Ubicación GPS"}
               </Button>
 
               {watch("latitud") && watch("longitud") && (
-                <div className="p-3 rounded-lg bg-success/10 text-success">
-                  <p className="text-sm font-medium">Coordenadas capturadas:</p>
-                  <p className="text-xs">
-                    Lat: {watch("latitud")?.toFixed(6)} | Lon:{" "}
-                    {watch("longitud")?.toFixed(6)}
-                    {watch("altitud") && ` | Alt: ${watch("altitud")}m`}
+                <div className="p-3 rounded-lg bg-success/10 border border-success/20">
+                  <p className="text-sm font-medium text-success">
+                    Coordenadas guardadas:
                   </p>
+                  <p className="mt-1 text-xs font-mono text-text-primary">
+                    Lat: {watch("latitud")?.toFixed(6)} | Lng:{" "}
+                    {watch("longitud")?.toFixed(6)}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="small"
+                    onClick={() => {
+                      setValue("latitud", undefined);
+                      setValue("longitud", undefined);
+                      setValue("altitud", undefined);
+                    }}
+                    className="mt-2"
+                  >
+                    Eliminar coordenadas
+                  </Button>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <LocationPicker
+                initialPosition={initialPosition}
+                onLocationSelect={handleLocationSelect}
+                height="350px"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowLocationPicker(false)}
+                fullWidth
+              >
+                Cerrar Mapa
+              </Button>
             </div>
           )}
         </FormSection>

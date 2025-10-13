@@ -1,50 +1,13 @@
 import { apiClient, ENDPOINTS, getErrorMessage } from "@/shared/services/api";
-
-export interface CreateProductorInput {
-  nombre_productor: string;
-  ci_documento: string;
-  id_comunidad: string;
-  año_ingreso_programa: number;
-  categoria_actual: "E" | "2T" | "1T" | "0T";
-  superficie_total_has?: number;
-  numero_parcelas_total?: number;
-  coordenadas?: {
-    latitud: number;
-    longitud: number;
-    altitud?: number;
-  };
-}
-
-export interface UpdateProductorInput {
-  nombre_productor?: string;
-  categoria_actual?: "E" | "2T" | "1T" | "0T";
-  superficie_total_has?: number;
-  numero_parcelas_total?: number;
-  coordenadas?: {
-    latitud: number;
-    longitud: number;
-    altitud?: number;
-  };
-  activo?: boolean;
-}
-
-export interface Productor {
-  codigo_productor: string;
-  nombre_productor: string;
-  ci_documento: string;
-  id_comunidad: string;
-  nombre_comunidad: string;
-  año_ingreso_programa: number;
-  categoria_actual: string;
-  superficie_total_has: number;
-  numero_parcelas_total: number;
-  latitud_domicilio?: number;
-  longitud_domicilio?: number;
-  altitud_domicilio?: number;
-  activo: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import type {
+  Productor,
+  CreateProductorInput,
+  UpdateProductorInput,
+  ProductorFilters,
+  ProductoresListResponse,
+  ProximitySearchInput,
+  ProductorStats,
+} from "../types/productor.types";
 
 export const productoresService = {
   async createProductor(data: CreateProductorInput): Promise<Productor> {
@@ -59,15 +22,23 @@ export const productoresService = {
     }
   },
 
-  async listProductores(filters?: {
-    comunidad_id?: string;
-    categoria?: string;
-  }): Promise<{ productores: Productor[]; total: number }> {
+  async listProductores(filters?: ProductorFilters): Promise<ProductoresListResponse> {
     try {
-      const response = await apiClient.get<{
-        productores: Productor[];
-        total: number;
-      }>(ENDPOINTS.PRODUCTORES.BASE, { params: filters });
+      const params: Record<string, string> = {};
+
+      if (filters?.comunidad) params.comunidad = filters.comunidad;
+      if (filters?.categoria) params.categoria = filters.categoria;
+      if (filters?.con_coordenadas !== undefined) {
+        params.con_coordenadas = filters.con_coordenadas.toString();
+      }
+      if (filters?.activo !== undefined) {
+        params.activo = filters.activo.toString();
+      }
+
+      const response = await apiClient.get<ProductoresListResponse>(
+        ENDPOINTS.PRODUCTORES.BASE,
+        { params }
+      );
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
@@ -108,16 +79,23 @@ export const productoresService = {
     }
   },
 
-  async searchNearby(params: {
-    latitud: number;
-    longitud: number;
-    radio_metros: number;
-  }): Promise<{ productores: Productor[]; total: number }> {
+  async searchNearby(params: ProximitySearchInput): Promise<ProductoresListResponse> {
     try {
-      const response = await apiClient.post<{
-        productores: Productor[];
-        total: number;
-      }>(ENDPOINTS.PRODUCTORES.NEARBY, params);
+      const response = await apiClient.post<ProductoresListResponse>(
+        ENDPOINTS.PRODUCTORES.NEARBY,
+        params
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async getEstadisticas(): Promise<ProductorStats> {
+    try {
+      const response = await apiClient.get<ProductorStats>(
+        ENDPOINTS.PRODUCTORES.ESTADISTICAS
+      );
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));

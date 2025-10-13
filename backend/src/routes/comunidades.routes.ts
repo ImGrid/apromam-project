@@ -94,12 +94,12 @@ export default async function comunidadesRoutes(
   /**
    * POST /api/comunidades
    * Crea una nueva comunidad
-   * Acceso: solo admin
+   * Acceso: gerente y admin
    */
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Crea una nueva comunidad",
         tags: ["comunidades"],
@@ -123,12 +123,12 @@ export default async function comunidadesRoutes(
   /**
    * PUT /api/comunidades/:id
    * Actualiza una comunidad existente
-   * Acceso: solo admin
+   * Acceso: gerente y admin
    */
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/:id",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Actualiza una comunidad existente",
         tags: ["comunidades"],
@@ -152,12 +152,12 @@ export default async function comunidadesRoutes(
   /**
    * DELETE /api/comunidades/:id
    * Elimina (desactiva) una comunidad
-   * Acceso: solo admin
+   * Acceso: gerente y admin
    */
   fastify.withTypeProvider<ZodTypeProvider>().delete(
     "/:id",
     {
-      onRequest: [authenticate, requireAdmin],
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
         description: "Elimina (desactiva) una comunidad",
         tags: ["comunidades"],

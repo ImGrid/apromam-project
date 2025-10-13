@@ -14,6 +14,8 @@ export type Permission =
   | "report"
   | "createUser"
   | "createTecnico"
+  | "createCatalogo"
+  | "createProductor"
   | "editOwn"
   | "readOwn"
   | "limitedToComunidad";
@@ -32,14 +34,14 @@ export type PermissionsMap = {
 export const PERMISSIONS: PermissionsMap = {
   administrador: {
     all: true,
+    createCatalogo: true,
+    createProductor: true,
   },
 
   gerente: {
-    read: true,
-    approve: true,
-    reject: true,
-    report: true,
-    createTecnico: true,
+    all: true,
+    createCatalogo: true,
+    createProductor: true,
   },
 
   tecnico: {
@@ -47,6 +49,7 @@ export const PERMISSIONS: PermissionsMap = {
     create: true,
     editOwn: true,
     limitedToComunidad: true,
+    createProductor: true,
   },
 
   invitado: {
@@ -77,7 +80,7 @@ export const RESOURCE_PERMISSIONS = {
     read: ["read", "all"],
   },
   productores: {
-    create: ["create", "all"],
+    create: ["create", "createProductor", "all"],
     edit: ["edit", "editOwn", "all"],
     delete: ["all"],
     read: ["read", "readOwn", "all"],
