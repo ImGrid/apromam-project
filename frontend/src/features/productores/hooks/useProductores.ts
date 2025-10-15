@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { productoresService } from '../services/productores.service';
-import type { Productor, ProductorFilters } from '../types/productor.types';
+import type { Productor, ProductorFiltersInput } from '../types/productor.types';
 
-export function useProductores(initialFilters?: ProductorFilters) {
+export function useProductores(initialFilters?: ProductorFiltersInput) {
   const [productores, setProductores] = useState<Productor[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<ProductorFilters | undefined>(initialFilters);
+  const [filters, setFilters] = useState<ProductorFiltersInput | undefined>(initialFilters);
 
-  const fetchProductores = useCallback(async (filterParams?: ProductorFilters) => {
+  const fetchProductores = useCallback(async (filterParams?: ProductorFiltersInput) => {
     setIsLoading(true);
     setError(null);
 
@@ -31,7 +31,7 @@ export function useProductores(initialFilters?: ProductorFilters) {
     fetchProductores(filters);
   }, [filters, fetchProductores]);
 
-  const updateFilters = useCallback((newFilters: ProductorFilters) => {
+  const updateFilters = useCallback((newFilters: ProductorFiltersInput) => {
     setFilters(newFilters);
     fetchProductores(newFilters);
   }, [fetchProductores]);

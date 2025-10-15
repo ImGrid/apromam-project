@@ -7,7 +7,7 @@ import { Search, X } from 'lucide-react';
 import { Button, Select, Input, type SelectOption } from '@/shared/components/ui';
 import { useComunidades } from '@/features/comunidades/hooks/useComunidades';
 import { useAuth } from '@/shared/hooks/useAuth';
-import type { ProductorFilters as Filters, CategoriaProductor } from '../types/productor.types';
+import type { ProductorFiltersInput as Filters, CategoriaProductor } from '../types/productor.types';
 import { CATEGORIA_LABELS } from '../types/productor.types';
 
 interface ProductorFiltersProps {
@@ -53,7 +53,7 @@ export function ProductorFilters({
     if (key === 'categoria') {
       newFilters.categoria = value ? (value as CategoriaProductor) : undefined;
     } else if (key === 'comunidad') {
-      newFilters.comunidad = value || undefined;
+      newFilters.comunidad = (typeof value === 'string' && value) ? value : undefined;
     } else if (key === 'con_coordenadas') {
       newFilters.con_coordenadas = value === 'true' ? true : value === 'false' ? false : undefined;
     } else if (key === 'search') {

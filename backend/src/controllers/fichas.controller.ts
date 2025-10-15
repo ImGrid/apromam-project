@@ -499,28 +499,37 @@ export class FichasController {
 
   // POST /api/fichas/:id/archivos
   // Sube un archivo y lo asocia a una ficha
+  // Usa request.file() para streaming y validación de magic numbers
   async uploadArchivo(
     request: FastifyRequest<{ Params: FichaParams }>,
     reply: FastifyReply
   ) {
     try {
       if (!request.isMultipart()) {
-        return reply
-          .status(400)
-          .send({
-            error: "bad_request",
-            message: "La solicitud debe ser multipart/form-data",
-          });
+        return reply.status(400).send({
+          error: "bad_request",
+          message: "La solicitud debe ser multipart/form-data",
+        });
       }
 
-      const data = await request.file();
-      if (!data) {
-        return reply
-          .status(400)
-          .send({
-            error: "bad_request",
-            message: "No se ha subido ningún archivo",
-          });
+      // Obtener el archivo usando request.file()
+      const fileData = await request.file();
+      if (!fileData) {
+        return reply.status(400).send({
+          error: "bad_request",
+          message: "No se ha subido ningún archivo",
+        });
+      }
+
+      // Extraer tipo_archivo de los fields
+      // Con request.file(), los campos están en data.fields
+      const tipoArchivo = fileData.fields.tipo_archivo as any;
+      if (!tipoArchivo || typeof tipoArchivo.value !== "string") {
+        return reply.status(400).send({
+          error: "bad_request",
+          message:
+            "El campo 'tipo_archivo' es requerido (croquis, foto_parcela, documento_pdf)",
+        });
       }
 
       const { id: fichaId } = request.params;
@@ -535,7 +544,8 @@ export class FichasController {
         usuarioId,
         usuarioComunidadId,
         esAdminOGerente,
-        data
+        fileData,
+        tipoArchivo.value
       );
 
       return reply.status(201).send({
@@ -544,29 +554,100 @@ export class FichasController {
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes("no encontrado")) {
-          return reply
-            .status(404)
-            .send({ error: "not_found", message: error.message });
+        if (error.message.includes("no encontrado" || error.message.includes("no encontrada"))) {
+          return reply.status(404).send({
+            error: "not_found",
+            message: error.message,
+          });
         }
         if (error.message.includes("acceso")) {
-          return reply
-            .status(403)
-            .send({ error: "forbidden", message: error.message });
+          return reply.status(403).send({
+            error: "forbidden",
+            message: error.message,
+          });
         }
-        if (error.message.includes("Tipo de archivo")) {
-          return reply
-            .status(400)
-            .send({ error: "bad_request", message: error.message });
+        if (
+          error.message.includes("Tipo de archivo") ||
+          error.message.includes("Validación")
+        ) {
+          return reply.status(400).send({
+            error: "bad_request",
+            message: error.message,
+          });
         }
       }
       request.log.error(error, "Error uploading archivo for ficha");
-      return reply
-        .status(500)
-        .send({
-          error: "internal_server_error",
-          message: "Error al subir el archivo",
-        });
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al subir el archivo",
+      });
+    }
+  }
+
+  // GET /api/fichas/:id/archivos
+  // Lista todos los archivos de una ficha
+  async listArchivos(
+    request: FastifyRequest<{ Params: FichaParams }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id: fichaId } = request.params;
+      const usuarioComunidadId = request.user?.comunidadId;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
+
+      const archivos = await this.fichasService.listArchivos(
+        fichaId,
+        usuarioComunidadId,
+        esAdminOGerente
+      );
+
+      return reply.status(200).send({
+        archivos,
+        total: archivos.length,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("no encontrada")) {
+          return reply.status(404).send({
+            error: "not_found",
+            message: error.message,
+          });
+        }
+        if (error.message.includes("acceso")) {
+          return reply.status(403).send({
+            error: "forbidden",
+            message: error.message,
+          });
+        }
+      }
+      request.log.error(error, "Error listing archivos");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al listar archivos",
+      });
+    }
+  }
+
+  // GET /api/archivos/:archivoId/download
+  // Descarga un archivo específico
+  async downloadArchivo(
+    request: FastifyRequest<{ Params: { archivoId: string } }>,
+    reply: FastifyReply
+  ) {
+    try {
+      // TODO: Implementar cuando ArchivoFichaRepository tenga findById
+      return reply.status(501).send({
+        error: "not_implemented",
+        message: "Endpoint de descarga pendiente de implementación",
+      });
+    } catch (error) {
+      request.log.error(error, "Error downloading archivo");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al descargar archivo",
+      });
     }
   }
 }

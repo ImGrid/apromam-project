@@ -57,7 +57,8 @@ export class ParcelasService {
       codigoProductor
     );
 
-    const superficieTotal = parcelas.reduce((sum, p) => sum + p.superficie, 0);
+    // NOTA: superficie_total ahora viene del productor, no de la suma de parcelas
+    const superficieTotal = productor.superficieTotal;
 
     return {
       parcelas: parcelas.map((p) => p.toJSON()),
@@ -170,11 +171,10 @@ export class ParcelasService {
       }
     }
 
-    // Crear entity
+    // Crear entity (sin superficie_ha, ya no existe)
     const parcela = Parcela.create({
       codigo_productor: input.codigo_productor,
       numero_parcela: input.numero_parcela,
-      superficie_ha: input.superficie_ha,
       latitud_sud: input.coordenadas?.latitud,
       longitud_oeste: input.coordenadas?.longitud,
       utiliza_riego: input.utiliza_riego,
@@ -229,10 +229,6 @@ export class ParcelasService {
     }
 
     // Aplicar cambios
-    if (input.superficie_ha !== undefined) {
-      parcelaActual.actualizarSuperficie(input.superficie_ha);
-    }
-
     if (input.coordenadas) {
       parcelaActual.actualizarCoordenadas(
         input.coordenadas.latitud,
@@ -309,7 +305,6 @@ export class ParcelasService {
       let total = 0;
       let conCoordenadas = 0;
       let sinCoordenadas = 0;
-      let superficieTotal = 0;
       let conRiego = 0;
 
       for (const productor of productores) {
@@ -320,7 +315,6 @@ export class ParcelasService {
         total += parcelas.length;
         conCoordenadas += parcelas.filter((p) => p.tieneCoordenadas()).length;
         sinCoordenadas += parcelas.filter((p) => !p.tieneCoordenadas()).length;
-        superficieTotal += parcelas.reduce((sum, p) => sum + p.superficie, 0);
         conRiego += parcelas.filter((p) => p.utilizaRiego).length;
       }
 
@@ -328,7 +322,6 @@ export class ParcelasService {
         total,
         con_coordenadas: conCoordenadas,
         sin_coordenadas: sinCoordenadas,
-        superficie_total: superficieTotal,
         con_riego: conRiego,
       };
     } else {

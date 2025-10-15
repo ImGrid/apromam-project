@@ -8,11 +8,16 @@ import { ProvinciasTable } from "../components/ProvinciasTable";
 import { MunicipiosTable } from "../components/MunicipiosTable";
 import { CreateProvinciaModal } from "../components/CreateProvinciaModal";
 import { CreateMunicipioModal } from "../components/CreateMunicipioModal";
+import { EditProvinciaModal } from "../components/EditProvinciaModal";
+import { EditMunicipioModal } from "../components/EditMunicipioModal";
 import { ProvinciasSelect } from "../components/ProvinciasSelect";
 import { useProvincias } from "../hooks/useProvincias";
 import { useMunicipios } from "../hooks/useMunicipios";
+import { useDeleteProvincia } from "../hooks/useDeleteProvincia";
+import { useDeleteMunicipio } from "../hooks/useDeleteMunicipio";
 import { usePermissions } from "@/shared/hooks/usePermissions";
 import { Plus } from "lucide-react";
+import type { Provincia, Municipio } from "../types/geografica.types";
 
 type TabType = "provincias" | "municipios";
 
@@ -21,6 +26,10 @@ export function GeograficasManagePage() {
   const [activeTab, setActiveTab] = useState<TabType>("provincias");
   const [provinciaModalOpen, setProvinciaModalOpen] = useState(false);
   const [municipioModalOpen, setMunicipioModalOpen] = useState(false);
+  const [editProvinciaModalOpen, setEditProvinciaModalOpen] = useState(false);
+  const [editMunicipioModalOpen, setEditMunicipioModalOpen] = useState(false);
+  const [selectedProvincia, setSelectedProvincia] = useState<Provincia | null>(null);
+  const [selectedMunicipio, setSelectedMunicipio] = useState<Municipio | null>(null);
   const [selectedProvinciaFilter, setSelectedProvinciaFilter] = useState<
     string | undefined
   >();
@@ -37,7 +46,12 @@ export function GeograficasManagePage() {
     refetch: refetchMunicipios,
   } = useMunicipios(selectedProvinciaFilter);
 
+  const { deleteProvincia } = useDeleteProvincia();
+  const { deleteMunicipio } = useDeleteMunicipio();
+
   const canCreate = permissions.canAccess("geograficas", "create");
+  const canEdit = permissions.canAccess("geograficas", "edit");
+  const canDelete = permissions.canAccess("geograficas", "delete");
 
   const handleProvinciaSuccess = () => {
     refetchProvincias();
@@ -45,6 +59,46 @@ export function GeograficasManagePage() {
 
   const handleMunicipioSuccess = () => {
     refetchMunicipios();
+  };
+
+  const handleEditProvincia = (provincia: Provincia) => {
+    setSelectedProvincia(provincia);
+    setEditProvinciaModalOpen(true);
+  };
+
+  const handleEditMunicipio = (municipio: Municipio) => {
+    setSelectedMunicipio(municipio);
+    setEditMunicipioModalOpen(true);
+  };
+
+  const handleDeleteProvincia = async (provincia: Provincia) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que deseas ${provincia.activo ? 'desactivar' : 'activar'} la provincia "${provincia.nombre_provincia}"?`
+      )
+    ) {
+      try {
+        await deleteProvincia(provincia.id_provincia);
+        refetchProvincias();
+      } catch (error) {
+        // Error manejado por el hook
+      }
+    }
+  };
+
+  const handleDeleteMunicipio = async (municipio: Municipio) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que deseas ${municipio.activo ? 'desactivar' : 'activar'} el municipio "${municipio.nombre_municipio}"?`
+      )
+    ) {
+      try {
+        await deleteMunicipio(municipio.id_municipio);
+        refetchMunicipios();
+      } catch (error) {
+        // Error manejado por el hook
+      }
+    }
   };
 
   return (
@@ -75,69 +129,89 @@ export function GeograficasManagePage() {
       >
         <div className="space-y-6">
           {/* Tabs */}
-          <div className="bg-white border rounded-lg border-neutral-border">
-            <div className="flex border-b border-neutral-border">
+          <div className="border-b border-neutral-border">
+            <div className="flex gap-4">
               <button
                 onClick={() => setActiveTab("provincias")}
-                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
                   activeTab === "provincias"
-                    ? "text-primary border-b-2 border-primary"
-                    : "text-text-secondary hover:text-text-primary"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
                 }`}
               >
                 Provincias
               </button>
               <button
                 onClick={() => setActiveTab("municipios")}
-                className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
                   activeTab === "municipios"
-                    ? "text-primary border-b-2 border-primary"
-                    : "text-text-secondary hover:text-text-primary"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
                 }`}
               >
                 Municipios
               </button>
             </div>
+          </div>
 
-            <div className="p-6">
-              {activeTab === "provincias" ? (
-                <ProvinciasTable
-                  provincias={provincias}
-                  loading={loadingProvincias}
-                />
-              ) : (
-                <div className="space-y-4">
-                  {/* Filtro por provincia */}
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-text-secondary">
-                      Filtrar por provincia:
-                    </span>
-                    <div className="w-64">
-                      <ProvinciasSelect
-                        value={selectedProvinciaFilter}
-                        onChange={setSelectedProvinciaFilter}
-                        placeholder="Todas las provincias"
-                      />
-                    </div>
-                    {selectedProvinciaFilter && (
-                      <Button
-                        size="small"
-                        variant="ghost"
-                        onClick={() => setSelectedProvinciaFilter(undefined)}
-                      >
-                        Limpiar
-                      </Button>
-                    )}
-                  </div>
-
-                  <MunicipiosTable
-                    municipios={municipios}
-                    loading={loadingMunicipios}
-                  />
+          {/* Provincias Tab */}
+          {activeTab === "provincias" && (
+            <>
+              {!loadingProvincias && (
+                <div className="text-sm text-text-secondary">
+                  Mostrando {provincias.length} provincias
                 </div>
               )}
-            </div>
-          </div>
+
+              <ProvinciasTable
+                provincias={provincias}
+                loading={loadingProvincias}
+                onEdit={canEdit ? handleEditProvincia : undefined}
+                onDelete={canDelete ? handleDeleteProvincia : undefined}
+              />
+            </>
+          )}
+
+          {/* Municipios Tab */}
+          {activeTab === "municipios" && (
+            <>
+              {/* Filtro por provincia */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-text-secondary">
+                  Filtrar por provincia:
+                </span>
+                <div className="w-64">
+                  <ProvinciasSelect
+                    value={selectedProvinciaFilter}
+                    onChange={setSelectedProvinciaFilter}
+                    placeholder="Todas las provincias"
+                  />
+                </div>
+                {selectedProvinciaFilter && (
+                  <Button
+                    size="small"
+                    variant="ghost"
+                    onClick={() => setSelectedProvinciaFilter(undefined)}
+                  >
+                    Limpiar
+                  </Button>
+                )}
+              </div>
+
+              {!loadingMunicipios && (
+                <div className="text-sm text-text-secondary">
+                  Mostrando {municipios.length} municipios
+                </div>
+              )}
+
+              <MunicipiosTable
+                municipios={municipios}
+                loading={loadingMunicipios}
+                onEdit={canEdit ? handleEditMunicipio : undefined}
+                onDelete={canDelete ? handleDeleteMunicipio : undefined}
+              />
+            </>
+          )}
         </div>
       </PageContainer>
 
@@ -151,6 +225,20 @@ export function GeograficasManagePage() {
       <CreateMunicipioModal
         isOpen={municipioModalOpen}
         onClose={() => setMunicipioModalOpen(false)}
+        onSuccess={handleMunicipioSuccess}
+      />
+
+      <EditProvinciaModal
+        isOpen={editProvinciaModalOpen}
+        onClose={() => setEditProvinciaModalOpen(false)}
+        provincia={selectedProvincia}
+        onSuccess={handleProvinciaSuccess}
+      />
+
+      <EditMunicipioModal
+        isOpen={editMunicipioModalOpen}
+        onClose={() => setEditMunicipioModalOpen(false)}
+        municipio={selectedMunicipio}
         onSuccess={handleMunicipioSuccess}
       />
     </AdminLayout>

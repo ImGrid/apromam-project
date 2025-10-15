@@ -3,10 +3,11 @@ import "@fastify/jwt";
 /**
  * Extensión de tipos Fastify para APROMAM
  * Define la estructura del usuario autenticado en request.user
+ * user es opcional porque solo existe en rutas protegidas
  */
 declare module "fastify" {
   interface FastifyRequest {
-    user: {
+    user?: {
       userId: string;
       username: string;
       role: string;

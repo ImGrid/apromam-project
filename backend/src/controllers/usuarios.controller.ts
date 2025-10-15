@@ -15,13 +15,29 @@ export class UsuariosController {
 
   // GET /api/usuarios
   // Lista todos los usuarios con filtros opcionales
+  // Aplica filtros de jerarquia basados en el rol del usuario autenticado
   async list(
     request: FastifyRequest<{ Querystring: UsuarioQuery }>,
     reply: FastifyReply
   ) {
     try {
       const { rol, activo } = request.query;
-      const result = await this.usuariosService.listUsuarios(rol, activo);
+
+      // Extraer informacion del usuario autenticado
+      // Type assertion segura para acceder a request.user
+      const user = (request as any).user;
+      const usuarioActual = user
+        ? {
+            userId: user.userId,
+            role: user.role,
+          }
+        : undefined;
+
+      const result = await this.usuariosService.listUsuarios(
+        rol,
+        activo,
+        usuarioActual
+      );
       return reply.status(200).send(result);
     } catch (error) {
       request.log.error(error, "Error listing usuarios");
@@ -68,7 +84,9 @@ export class UsuariosController {
     reply: FastifyReply
   ) {
     try {
-      const usuarioCreadorRol = request.user?.role || "";
+      // Type assertion segura para acceder a request.user
+      const user = (request as any).user;
+      const usuarioCreadorRol = user?.role || "";
       const usuario = await this.usuariosService.createUsuario(
         request.body,
         usuarioCreadorRol
@@ -86,10 +104,7 @@ export class UsuariosController {
             timestamp: new Date().toISOString(),
           });
         }
-        if (
-          error.message.includes("solo puede crear") ||
-          error.message.includes("debe tener comunidad")
-        ) {
+        if (error.message.includes("solo puede crear")) {
           return reply.status(400).send({
             error: "validation_error",
             message: error.message,
@@ -115,6 +130,7 @@ export class UsuariosController {
 
   // PUT /api/usuarios/:id
   // Actualiza un usuario existente
+  // Valida jerarquia y previene auto-modificacion
   async update(
     request: FastifyRequest<{
       Params: UsuarioParams;
@@ -124,22 +140,50 @@ export class UsuariosController {
   ) {
     try {
       const { id } = request.params;
+
+      // Extraer informacion del usuario autenticado
+      // Type assertion segura para acceder a request.user
+      const user = (request as any).user;
+      const usuarioActual = user
+        ? {
+            userId: user.userId,
+            role: user.role,
+          }
+        : undefined;
+
       const usuario = await this.usuariosService.updateUsuario(
         id,
-        request.body
+        request.body,
+        usuarioActual
       );
       return reply.status(200).send({
         usuario,
         message: "Usuario actualizado exitosamente",
       });
     } catch (error) {
-      if (error instanceof Error && error.message === "Usuario no encontrado") {
-        return reply.status(404).send({
-          error: "not_found",
-          message: "Usuario no encontrado",
-          timestamp: new Date().toISOString(),
-        });
+      if (error instanceof Error) {
+        // Errores de permisos
+        if (
+          error.message.includes("No puedes modificar") ||
+          error.message.includes("No tienes permisos")
+        ) {
+          return reply.status(403).send({
+            error: "forbidden",
+            message: error.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        // Usuario no encontrado
+        if (error.message === "Usuario no encontrado") {
+          return reply.status(404).send({
+            error: "not_found",
+            message: "Usuario no encontrado",
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
+
       request.log.error(error, "Error updating usuario");
       return reply.status(500).send({
         error: "internal_server_error",
@@ -151,22 +195,50 @@ export class UsuariosController {
 
   // DELETE /api/usuarios/:id
   // Elimina (desactiva) un usuario
+  // Valida jerarquia y previene auto-desactivacion
   async delete(
     request: FastifyRequest<{ Params: UsuarioParams }>,
     reply: FastifyReply
   ) {
     try {
       const { id } = request.params;
-      await this.usuariosService.deleteUsuario(id);
+
+      // Extraer informacion del usuario autenticado
+      // Type assertion segura para acceder a request.user
+      const user = (request as any).user;
+      const usuarioActual = user
+        ? {
+            userId: user.userId,
+            role: user.role,
+          }
+        : undefined;
+
+      await this.usuariosService.deleteUsuario(id, usuarioActual);
       return reply.status(204).send();
     } catch (error) {
-      if (error instanceof Error && error.message === "Usuario no encontrado") {
-        return reply.status(404).send({
-          error: "not_found",
-          message: "Usuario no encontrado",
-          timestamp: new Date().toISOString(),
-        });
+      if (error instanceof Error) {
+        // Errores de permisos
+        if (
+          error.message.includes("No puedes desactivar") ||
+          error.message.includes("No tienes permisos")
+        ) {
+          return reply.status(403).send({
+            error: "forbidden",
+            message: error.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        // Usuario no encontrado
+        if (error.message === "Usuario no encontrado") {
+          return reply.status(404).send({
+            error: "not_found",
+            message: "Usuario no encontrado",
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
+
       request.log.error(error, "Error deleting usuario");
       return reply.status(500).send({
         error: "internal_server_error",

@@ -1,16 +1,21 @@
-import { DataTable, Badge } from "@/shared/components/ui";
+import { DataTable, Badge, Button } from "@/shared/components/ui";
+import { Edit, Trash2 } from "lucide-react";
 import type { DataTableColumn } from "@/shared/components/ui";
 import type { Provincia } from "../types/geografica.types";
 
 interface ProvinciasTableProps {
   provincias: Provincia[];
   onRowClick?: (provincia: Provincia) => void;
+  onEdit?: (provincia: Provincia) => void;
+  onDelete?: (provincia: Provincia) => void;
   loading?: boolean;
 }
 
 export function ProvinciasTable({
   provincias,
   onRowClick,
+  onEdit,
+  onDelete,
   loading = false,
 }: ProvinciasTableProps) {
   const columns: DataTableColumn<Provincia>[] = [
@@ -42,6 +47,40 @@ export function ProvinciasTable({
         <Badge variant={provincia.activo ? "success" : "error"}>
           {provincia.activo ? "Activo" : "Inactivo"}
         </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Acciones",
+      render: (provincia) => (
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(provincia);
+              }}
+              title="Editar provincia"
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(provincia);
+              }}
+              title="Eliminar provincia"
+            >
+              <Trash2 className="w-4 h-4 text-error" />
+            </Button>
+          )}
+        </div>
       ),
     },
   ];

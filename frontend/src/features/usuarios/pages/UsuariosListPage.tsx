@@ -4,7 +4,7 @@ import { useState } from "react";
 import { UserPlus, RefreshCw } from "lucide-react";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
-import { Button, Alert } from "@/shared/components/ui";
+import { Button, Alert, Modal } from "@/shared/components/ui";
 import { PermissionGate } from "@/shared/components/layout/PermissionGate";
 import { UsuarioFilters } from "../components/UsuarioFilters";
 import { UsuariosList } from "../components/UsuariosList";
@@ -24,14 +24,26 @@ export function UsuariosListPage() {
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
-  const [detailUsuario, setDetailUsuario] = useState<Usuario | null>(null);
 
   // Permisos
   const canEdit = permissions.canAccess("usuarios", "edit");
   const canDelete = permissions.canAccess("usuarios", "delete");
 
-  // Abrir modal de edicion
+  // Ver detalle de usuario
+  const handleRowClick = (usuario: Usuario) => {
+    setSelectedUsuario(usuario);
+    setDetailModalOpen(true);
+  };
+
+  // Abrir modal de edicion desde detalle
+  const handleEditFromDetail = () => {
+    setDetailModalOpen(false);
+    setEditModalOpen(true);
+  };
+
+  // Abrir modal de edicion directamente
   const handleEdit = (usuario: Usuario) => {
     setSelectedUsuario(usuario);
     setEditModalOpen(true);
@@ -40,24 +52,16 @@ export function UsuariosListPage() {
   // Desactivar usuario
   const handleDelete = async (usuario: Usuario) => {
     try {
-      await deleteUsuario(usuario.id_usuario);
+      await deleteUsuario(usuario);
       refetch();
-      if (detailUsuario?.id_usuario === usuario.id_usuario) {
-        setDetailUsuario(null);
+      // Cerrar modal de detalle si el usuario eliminado es el seleccionado
+      if (selectedUsuario?.id_usuario === usuario.id_usuario) {
+        setDetailModalOpen(false);
+        setSelectedUsuario(null);
       }
     } catch {
       // Error ya manejado
     }
-  };
-
-  // Ver detalle de usuario
-  const handleRowClick = (usuario: Usuario) => {
-    setDetailUsuario(usuario);
-  };
-
-  // Cerrar detalle
-  const handleCloseDetail = () => {
-    setDetailUsuario(null);
   };
 
   // Limpiar filtros
@@ -121,47 +125,48 @@ export function UsuariosListPage() {
             </div>
           )}
 
-          {/* Vista: Detalle o Lista */}
-          {detailUsuario ? (
-            <div>
-              <Button
-                variant="ghost"
-                size="small"
-                onClick={handleCloseDetail}
-                className="mb-4"
-              >
-                ← Volver a la lista
-              </Button>
-
-              <UsuarioCard
-                usuario={detailUsuario}
-                onEdit={() => handleEdit(detailUsuario)}
-                onDeactivate={() => handleDelete(detailUsuario)}
-                canEdit={canEdit}
-                canDelete={canDelete}
-              />
-            </div>
-          ) : (
-            <UsuariosList
-              usuarios={usuarios}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onRowClick={handleRowClick}
-              loading={isLoading}
-              canEdit={canEdit}
-              canDelete={canDelete}
-            />
-          )}
+          {/* Lista de usuarios */}
+          <UsuariosList
+            usuarios={usuarios}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onRowClick={handleRowClick}
+            loading={isLoading}
+            canEdit={canEdit}
+            canDelete={canDelete}
+          />
         </div>
       </PageContainer>
 
-      {/* Modales */}
+      {/* Modal Crear */}
       <CreateUsuarioModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         onSuccess={handleSuccess}
       />
 
+      {/* Modal Detalle */}
+      <Modal
+        isOpen={detailModalOpen}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setSelectedUsuario(null);
+        }}
+        title="Detalle de Usuario"
+        size="medium"
+      >
+        {selectedUsuario && (
+          <UsuarioCard
+            usuario={selectedUsuario}
+            onEdit={canEdit ? handleEditFromDetail : undefined}
+            onDeactivate={() => handleDelete(selectedUsuario)}
+            canEdit={canEdit}
+            canDelete={canDelete}
+          />
+        )}
+      </Modal>
+
+      {/* Modal Editar */}
       {selectedUsuario && (
         <EditUsuarioModal
           isOpen={editModalOpen}

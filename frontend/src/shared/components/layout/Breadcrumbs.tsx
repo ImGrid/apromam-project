@@ -67,7 +67,6 @@ export function Breadcrumbs() {
       aria-label="Breadcrumb"
     >
       {breadcrumbs.map((crumb, index) => {
-        const isLast = index === breadcrumbs.length - 1;
         const isFirst = index === 0;
 
         return (

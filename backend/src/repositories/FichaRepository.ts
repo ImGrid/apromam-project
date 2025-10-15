@@ -332,8 +332,9 @@ export class FichaRepository {
             comentarios_evaluacion,
             firma_productor,
             firma_inspector,
+            descripcion_uso_guano_general,
             created_by
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
           RETURNING id_ficha, created_at, updated_at
         `,
         values: [
@@ -352,6 +353,7 @@ export class FichaRepository {
           fichaData.comentarios_evaluacion,
           fichaData.firma_productor,
           fichaData.firma_inspector,
+          fichaData.descripcion_uso_guano_general,
           fichaData.created_by,
         ],
       };
@@ -403,20 +405,14 @@ export class FichaRepository {
                 id_ficha,
                 numero_accion,
                 descripcion_accion,
-                implementacion_descripcion,
-                fecha_limite,
-                estado_implementacion,
-                es_gestion_anterior
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                implementacion_descripcion
+              ) VALUES ($1, $2, $3, $4)
             `,
             values: [
               idFicha,
               acData.numero_accion,
               acData.descripcion_accion,
               acData.implementacion_descripcion,
-              acData.fecha_limite,
-              acData.estado_implementacion,
-              acData.es_gestion_anterior,
             ],
           });
         }
@@ -463,8 +459,8 @@ export class FichaRepository {
               deposito_herramientas,
               deposito_insumos_organicos,
               evita_quema_residuos,
-              comentarios_mitigacion,
-              practicas_implementadas
+              practica_mitigacion_riesgos_descripcion,
+              mitigacion_contaminacion_descripcion
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           `,
           values: [
@@ -474,8 +470,8 @@ export class FichaRepository {
             evalMitData.deposito_herramientas,
             evalMitData.deposito_insumos_organicos,
             evalMitData.evita_quema_residuos,
-            evalMitData.comentarios_mitigacion,
-            evalMitData.practicas_implementadas,
+            evalMitData.practica_mitigacion_riesgos_descripcion,
+            evalMitData.mitigacion_contaminacion_descripcion,
           ],
         });
       }
@@ -543,9 +539,8 @@ export class FichaRepository {
                 animal_especifico,
                 cantidad,
                 sistema_manejo,
-                uso_guano,
-                descripcion_uso_guano
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                uso_guano
+              ) VALUES ($1, $2, $3, $4, $5, $6)
             `,
             values: [
               idFicha,
@@ -554,7 +549,6 @@ export class FichaRepository {
               actData.cantidad,
               actData.sistema_manejo,
               actData.uso_guano,
-              actData.descripcion_uso_guano,
             ],
           });
         }
@@ -903,7 +897,7 @@ export class FichaRepository {
     const query = {
       text: `
         UPDATE ficha_inspeccion
-        SET 
+        SET
           fecha_inspeccion = $2,
           inspector_interno = $3,
           persona_entrevistada = $4,
@@ -917,7 +911,8 @@ export class FichaRepository {
           comentarios_evaluacion = $12,
           firma_productor = $13,
           firma_inspector = $14,
-          updated_at = $15
+          descripcion_uso_guano_general = $15,
+          updated_at = $16
         WHERE id_ficha = $1
         RETURNING id_ficha
       `,
@@ -936,6 +931,7 @@ export class FichaRepository {
         updateData.comentarios_evaluacion,
         updateData.firma_productor,
         updateData.firma_inspector,
+        updateData.descripcion_uso_guano_general,
         updateData.updated_at,
       ],
     };

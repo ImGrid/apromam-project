@@ -61,7 +61,7 @@ export interface UpdateProductorInput {
 }
 
 // Filtros para listar productores
-export interface ProductorFilters {
+export interface ProductorFiltersInput {
   comunidad?: string;
   categoria?: CategoriaProductor;
   con_coordenadas?: boolean;

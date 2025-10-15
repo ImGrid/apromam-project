@@ -22,7 +22,7 @@ export type {
   Productor,
   CreateProductorInput,
   UpdateProductorInput,
-  ProductorFilters,
+  ProductorFiltersInput,
   CategoriaProductor,
   ProductorStats,
 } from './types/productor.types';

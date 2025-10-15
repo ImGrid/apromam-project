@@ -9,11 +9,13 @@ import {
 export type TipoBarrera = "ninguna" | "viva" | "muerta";
 
 // Interfaz para datos de Parcela desde BD
+// IMPORTANTE: Las parcelas NO tienen superficie fija.
+// La superficie se calcula dinámicamente como la suma de los cultivos
+// en cada ficha (tabla detalles_cultivo_parcelas).
 export interface ParcelaData {
   id_parcela: string;
   codigo_productor: string;
   numero_parcela: number;
-  superficie_ha: number;
 
   // Coordenadas decimales
   latitud_sud?: number;
@@ -38,7 +40,6 @@ export interface ParcelaPublicData {
   codigo_productor: string;
   nombre_productor?: string;
   numero_parcela: number;
-  superficie_ha: number;
   coordenadas?: Coordinates;
   utiliza_riego: boolean;
   situacion_cumple: boolean;
@@ -67,10 +68,6 @@ export class Parcela {
 
   get numeroParcela(): number {
     return this.data.numero_parcela;
-  }
-
-  get superficie(): number {
-    return this.data.superficie_ha;
   }
 
   get latitudSud(): number | undefined {
@@ -125,7 +122,6 @@ export class Parcela {
   static create(data: {
     codigo_productor: string;
     numero_parcela: number;
-    superficie_ha: number;
     latitud_sud?: number;
     longitud_oeste?: number;
     utiliza_riego?: boolean;
@@ -136,7 +132,6 @@ export class Parcela {
       id_parcela: "",
       codigo_productor: data.codigo_productor,
       numero_parcela: data.numero_parcela,
-      superficie_ha: data.superficie_ha,
       latitud_sud: data.latitud_sud,
       longitud_oeste: data.longitud_oeste,
       utiliza_riego: data.utiliza_riego || false,
@@ -167,15 +162,6 @@ export class Parcela {
     // Validar numero de parcela
     if (this.data.numero_parcela < 1 || this.data.numero_parcela > 100) {
       errors.push("Numero de parcela debe estar entre 1 y 100");
-    }
-
-    // Validar superficie
-    if (this.data.superficie_ha <= 0) {
-      errors.push("Superficie debe ser mayor a 0");
-    }
-
-    if (this.data.superficie_ha > 10000) {
-      errors.push("Superficie no puede exceder 10,000 hectareas");
     }
 
     // Validar coordenadas si existen
@@ -226,7 +212,6 @@ export class Parcela {
   toDatabaseInsert(): {
     codigo_productor: string;
     numero_parcela: number;
-    superficie_ha: number;
     latitud_sud?: number;
     longitud_oeste?: number;
     utiliza_riego: boolean;
@@ -237,7 +222,6 @@ export class Parcela {
     return {
       codigo_productor: this.data.codigo_productor.trim().toUpperCase(),
       numero_parcela: this.data.numero_parcela,
-      superficie_ha: this.data.superficie_ha,
       latitud_sud: this.data.latitud_sud,
       longitud_oeste: this.data.longitud_oeste,
       utiliza_riego: this.data.utiliza_riego,
@@ -249,7 +233,6 @@ export class Parcela {
 
   // Convierte a formato para actualizar en BD
   toDatabaseUpdate(): {
-    superficie_ha?: number;
     latitud_sud?: number;
     longitud_oeste?: number;
     utiliza_riego?: boolean;
@@ -258,7 +241,6 @@ export class Parcela {
     activo?: boolean;
   } {
     return {
-      superficie_ha: this.data.superficie_ha,
       latitud_sud: this.data.latitud_sud,
       longitud_oeste: this.data.longitud_oeste,
       utiliza_riego: this.data.utiliza_riego,
@@ -275,7 +257,6 @@ export class Parcela {
       codigo_productor: this.data.codigo_productor,
       nombre_productor: this.data.nombre_productor,
       numero_parcela: this.data.numero_parcela,
-      superficie_ha: this.data.superficie_ha,
       coordenadas: this.coordenadas || undefined,
       utiliza_riego: this.data.utiliza_riego,
       situacion_cumple: this.data.situacion_cumple,
@@ -340,19 +321,6 @@ export class Parcela {
     this.data.longitud_oeste = longitud;
   }
 
-  // Actualiza superficie
-  actualizarSuperficie(nuevaSuperficie: number): void {
-    if (nuevaSuperficie <= 0) {
-      throw new Error("Superficie debe ser mayor a 0");
-    }
-
-    if (nuevaSuperficie > 10000) {
-      throw new Error("Superficie no puede exceder 10,000 hectareas");
-    }
-
-    this.data.superficie_ha = nuevaSuperficie;
-  }
-
   // Actualiza uso de riego
   actualizarRiego(utilizaRiego: boolean): void {
     this.data.utiliza_riego = utilizaRiego;
@@ -385,16 +353,11 @@ export class Parcela {
 
   // Obtiene informacion resumida
   getResumen(): string {
-    return `Parcela ${this.data.numero_parcela} - ${this.data.superficie_ha} ha (${this.data.codigo_productor})`;
+    return `Parcela ${this.data.numero_parcela} (${this.data.codigo_productor})`;
   }
 
   // Compara dos parcelas por numero
   static compararPorNumero(a: Parcela, b: Parcela): number {
     return a.numeroParcela - b.numeroParcela;
-  }
-
-  // Compara dos parcelas por superficie
-  static compararPorSuperficie(a: Parcela, b: Parcela): number {
-    return b.superficie - a.superficie;
   }
 }

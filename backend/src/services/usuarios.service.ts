@@ -3,6 +3,10 @@ import { RolRepository } from "../repositories/RolRepository.js";
 import { Usuario } from "../entities/Usuario.js";
 import { hashPassword } from "../utils/hash.utils.js";
 import { createAuthLogger } from "../utils/logger.js";
+import {
+  canManageUser,
+  getRolesManageableBy,
+} from "../utils/roleHierarchy.js";
 import type {
   CreateUsuarioInput,
   UpdateUsuarioInput,
@@ -27,13 +31,47 @@ export class UsuariosService {
   }
 
   // Lista usuarios con filtros opcionales
-  // Gerente ve todos
+  // Aplica jerarquia de roles: solo muestra usuarios gestionables
+  // Excluye al propio usuario para evitar auto-modificacion
+  // Admin ve gerentes, tecnicos, productores, invitados (no se ve a si mismo)
+  // Gerente ve solo tecnicos, productores, invitados (no ve admins ni otros gerentes)
   // Tecnico no tiene acceso a este endpoint
   async listUsuarios(
     rolNombre?: string,
-    activo?: boolean
+    activo?: boolean,
+    usuarioActual?: { userId: string; role: string }
   ): Promise<{ usuarios: UsuarioResponse[]; total: number }> {
-    const usuarios = await this.usuarioRepository.findAll(rolNombre, activo);
+    let usuarios: Usuario[];
+
+    // Usar metodo optimizado si hay usuario autenticado
+    if (usuarioActual) {
+      const rolesPermitidos = getRolesManageableBy(usuarioActual.role);
+
+      // Usar query optimizada que filtra directamente en SQL
+      usuarios = await this.usuarioRepository.findAllManageableBy(
+        usuarioActual.userId,
+        rolesPermitidos,
+        rolNombre,
+        activo
+      );
+
+      logger.debug(
+        {
+          usuario_actual_id: usuarioActual.userId,
+          usuario_actual_rol: usuarioActual.role,
+          roles_permitidos: rolesPermitidos,
+          usuarios_filtrados: usuarios.length,
+        },
+        "Usuarios filtrados por jerarquia de roles (SQL optimizado)"
+      );
+    } else {
+      // Sin usuario autenticado, retornar todos (caso edge)
+      usuarios = await this.usuarioRepository.findAll(rolNombre, activo);
+
+      logger.warn(
+        "Lista de usuarios solicitada sin usuario autenticado - retornando todos"
+      );
+    }
 
     return {
       usuarios: usuarios.map((u) => u.toJSON()),
@@ -83,10 +121,8 @@ export class UsuariosService {
       }
     }
 
-    // Los tecnicos deben tener comunidad asignada
-    if (rol.esTecnico() && !input.id_comunidad) {
-      throw new Error("Técnico debe tener comunidad asignada");
-    }
+    // Nota: Los tecnicos pueden ser creados sin comunidad
+    // El gerente puede asignarles la comunidad posteriormente
 
     // Hashear password
     const passwordHash = await hashPassword(input.password);
@@ -121,41 +157,79 @@ export class UsuariosService {
 
   // Actualiza un usuario existente
   // Solo campos modificables: email, nombre, comunidad, activo
+  // Valida jerarquia: solo puedes modificar usuarios de menor jerarquia
+  // Previene auto-modificacion: no puedes modificar tu propia cuenta
   async updateUsuario(
     id: string,
-    input: UpdateUsuarioInput
+    input: UpdateUsuarioInput,
+    usuarioActual?: { userId: string; role: string }
   ): Promise<UsuarioResponse> {
     logger.info(
       {
         usuario_id: id,
         updates: input,
+        usuario_actual: usuarioActual,
       },
       "Updating usuario"
     );
 
-    const usuarioActual = await this.usuarioRepository.findById(id);
-    if (!usuarioActual) {
+    const usuarioObjetivo = await this.usuarioRepository.findById(id);
+    if (!usuarioObjetivo) {
       throw new Error("Usuario no encontrado");
+    }
+
+    // Validar permisos si hay usuario autenticado
+    if (usuarioActual) {
+      // Prevenir auto-modificacion
+      if (id === usuarioActual.userId) {
+        logger.warn(
+          {
+            usuario_id: id,
+            usuario_actual_id: usuarioActual.userId,
+          },
+          "Intento de auto-modificacion bloqueado"
+        );
+        throw new Error(
+          "No puedes modificar tu propia cuenta. Contacta a un administrador"
+        );
+      }
+
+      // Validar jerarquia de roles
+      if (!canManageUser(usuarioActual.role, usuarioObjetivo.nombreRol)) {
+        logger.warn(
+          {
+            usuario_id: id,
+            usuario_objetivo_rol: usuarioObjetivo.nombreRol,
+            usuario_actual_rol: usuarioActual.role,
+          },
+          "Intento de modificacion sin permisos jerarquicos"
+        );
+        throw new Error(
+          "No tienes permisos para modificar este usuario. Solo puedes gestionar usuarios de menor jerarquia"
+        );
+      }
     }
 
     // Crear nueva instancia con datos actualizados
     const usuarioData = {
-      id_usuario: usuarioActual.id,
-      username: usuarioActual.username,
-      email: input.email || usuarioActual.email,
-      password_hash: usuarioActual.passwordHash,
-      nombre_completo: input.nombre_completo || usuarioActual.nombreCompleto,
-      id_rol: usuarioActual.idRol,
+      id_usuario: usuarioObjetivo.id,
+      username: usuarioObjetivo.username,
+      email: input.email || usuarioObjetivo.email,
+      password_hash: usuarioObjetivo.passwordHash,
+      nombre_completo:
+        input.nombre_completo || usuarioObjetivo.nombreCompleto,
+      id_rol: usuarioObjetivo.idRol,
       id_comunidad:
         input.id_comunidad !== undefined
           ? input.id_comunidad
-          : usuarioActual.idComunidad,
-      activo: input.activo !== undefined ? input.activo : usuarioActual.activo,
-      last_login: usuarioActual.lastLogin || null,
+          : usuarioObjetivo.idComunidad,
+      activo:
+        input.activo !== undefined ? input.activo : usuarioObjetivo.activo,
+      last_login: usuarioObjetivo.lastLogin || null,
       created_at: new Date(),
       updated_at: new Date(),
-      nombre_rol: usuarioActual.nombreRol,
-      nombre_comunidad: usuarioActual.nombreComunidad,
+      nombre_rol: usuarioObjetivo.nombreRol,
+      nombre_comunidad: usuarioObjetivo.nombreComunidad,
     };
 
     const usuarioActualizado = Usuario.fromDatabase(usuarioData);
@@ -178,13 +252,57 @@ export class UsuariosService {
 
   // Elimina (desactiva) un usuario
   // Solo admin y gerente pueden eliminar
-  async deleteUsuario(id: string): Promise<void> {
+  // Valida jerarquia: solo puedes desactivar usuarios de menor jerarquia
+  // Previene auto-desactivacion: no puedes desactivar tu propia cuenta
+  async deleteUsuario(
+    id: string,
+    usuarioActual?: { userId: string; role: string }
+  ): Promise<void> {
     logger.info(
       {
         usuario_id: id,
+        usuario_actual: usuarioActual,
       },
       "Deleting usuario"
     );
+
+    // Validar permisos si hay usuario autenticado
+    if (usuarioActual) {
+      // Prevenir auto-desactivacion
+      if (id === usuarioActual.userId) {
+        logger.warn(
+          {
+            usuario_id: id,
+            usuario_actual_id: usuarioActual.userId,
+          },
+          "Intento de auto-desactivacion bloqueado"
+        );
+        throw new Error(
+          "No puedes desactivar tu propia cuenta. Contacta a un administrador"
+        );
+      }
+
+      // Obtener usuario objetivo para validar jerarquia
+      const usuarioObjetivo = await this.usuarioRepository.findById(id);
+      if (!usuarioObjetivo) {
+        throw new Error("Usuario no encontrado");
+      }
+
+      // Validar jerarquia de roles
+      if (!canManageUser(usuarioActual.role, usuarioObjetivo.nombreRol)) {
+        logger.warn(
+          {
+            usuario_id: id,
+            usuario_objetivo_rol: usuarioObjetivo.nombreRol,
+            usuario_actual_rol: usuarioActual.role,
+          },
+          "Intento de desactivacion sin permisos jerarquicos"
+        );
+        throw new Error(
+          "No tienes permisos para desactivar este usuario. Solo puedes gestionar usuarios de menor jerarquia"
+        );
+      }
+    }
 
     await this.usuarioRepository.softDelete(id);
 

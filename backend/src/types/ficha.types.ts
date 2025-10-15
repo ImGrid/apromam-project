@@ -21,7 +21,25 @@ export type ProcedenciaSemilla =
   | "otro_productor"
   | "no_sembro";
 
-export type CategoriaSemilla = "organica" | "transicion" | "convencional";
+export type CategoriaSemilla =
+  | "organica"
+  | "transicion"
+  | "convencional"
+  | "ninguna";
+
+export type TratamientoSemillas =
+  | "sin_tratamiento"
+  | "agroquimico"
+  | "insumos_organicos"
+  | "otro";
+
+export type TipoAbonamiento = "rastrojo" | "guano" | "otro";
+
+export type MetodoAporque = "con_yunta" | "manual" | "otro";
+
+export type ControlHierbas = "con_bueyes" | "carpida_manual" | "otro";
+
+export type MetodoCosecha = "con_yunta" | "manual" | "otro";
 
 export type TipoGanado = "mayor" | "menor" | "aves";
 
@@ -52,9 +70,6 @@ export interface AccionCorrectivaData {
   numero_accion: number;
   descripcion_accion: string;
   implementacion_descripcion?: string;
-  fecha_limite?: Date;
-  estado_implementacion: string;
-  es_gestion_anterior: boolean;
   created_at: Date;
 }
 
@@ -78,8 +93,8 @@ export interface EvaluacionMitigacionData {
   deposito_herramientas: ComplianceStatus;
   deposito_insumos_organicos: ComplianceStatus;
   evita_quema_residuos: ComplianceStatus;
-  comentarios_mitigacion?: string;
-  practicas_implementadas?: string;
+  practica_mitigacion_riesgos_descripcion?: string;
+  mitigacion_contaminacion_descripcion?: string;
 }
 
 // Sección 9: Evaluación de poscosecha
@@ -111,7 +126,6 @@ export interface ActividadPecuariaData {
   cantidad: number;
   sistema_manejo?: string;
   uso_guano?: string;
-  descripcion_uso_guano?: string;
   created_at: Date;
 }
 
@@ -121,13 +135,19 @@ export interface DetalleCultivoParcelaData {
   id_ficha: string;
   id_parcela: string;
   id_tipo_cultivo: string;
+  superficie_ha: number;
   procedencia_semilla: ProcedenciaSemilla;
   categoria_semilla: CategoriaSemilla;
-  tratamiento_semillas?: string;
-  tipo_abonamiento?: string;
-  metodo_aporque?: string;
-  control_hierbas?: string;
-  metodo_cosecha?: string;
+  tratamiento_semillas?: TratamientoSemillas;
+  tratamiento_semillas_otro?: string;
+  tipo_abonamiento?: TipoAbonamiento;
+  tipo_abonamiento_otro?: string;
+  metodo_aporque?: MetodoAporque;
+  metodo_aporque_otro?: string;
+  control_hierbas?: ControlHierbas;
+  control_hierbas_otro?: string;
+  metodo_cosecha?: MetodoCosecha;
+  metodo_cosecha_otro?: string;
   rotacion: boolean;
   insumos_organicos_usados?: string;
   created_at: Date;
@@ -192,6 +212,7 @@ export interface FichaData {
   comentarios_evaluacion?: string;
   firma_productor?: string;
   firma_inspector?: string;
+  descripcion_uso_guano_general?: string;
 
   // Auditoría
   created_by: string;

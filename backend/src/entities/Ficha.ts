@@ -29,6 +29,7 @@ export interface FichaData {
   comentarios_evaluacion?: string | null;
   firma_productor?: string | null;
   firma_inspector?: string | null;
+  descripcion_uso_guano_general?: string | null;
 
   // Auditoria
   created_by: string;
@@ -60,6 +61,7 @@ export interface FichaPublicData {
   comentarios_evaluacion?: string;
   firma_productor?: string;
   firma_inspector?: string;
+  descripcion_uso_guano_general?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -140,6 +142,10 @@ export class Ficha {
 
   get firmaInspector(): string | null {
     return this.data.firma_inspector ?? null;
+  }
+
+  get descripcionUsoGuanoGeneral(): string | null {
+    return this.data.descripcion_uso_guano_general ?? null;
   }
 
   // Getters Auditoria
@@ -294,6 +300,15 @@ export class Ficha {
       errors.push("Firma inspector no puede exceder 100 caracteres");
     }
 
+    if (
+      this.data.descripcion_uso_guano_general &&
+      this.data.descripcion_uso_guano_general.length > 1000
+    ) {
+      errors.push(
+        "Descripcion uso guano general no puede exceder 1000 caracteres"
+      );
+    }
+
     if (!this.data.created_by) {
       errors.push("Usuario creador es requerido");
     }
@@ -329,6 +344,8 @@ export class Ficha {
       comentarios_evaluacion: this.data.comentarios_evaluacion?.trim() || null,
       firma_productor: this.data.firma_productor?.trim() || null,
       firma_inspector: this.data.firma_inspector?.trim() || null,
+      descripcion_uso_guano_general:
+        this.data.descripcion_uso_guano_general?.trim() || null,
       created_by: this.data.created_by,
     };
   }
@@ -360,6 +377,8 @@ export class Ficha {
       comentarios_evaluacion: this.data.comentarios_evaluacion?.trim() || null,
       firma_productor: this.data.firma_productor?.trim() || null,
       firma_inspector: this.data.firma_inspector?.trim() || null,
+      descripcion_uso_guano_general:
+        this.data.descripcion_uso_guano_general?.trim() || null,
       updated_at: new Date(),
     };
   }
@@ -386,6 +405,8 @@ export class Ficha {
       comentarios_evaluacion: this.data.comentarios_evaluacion ?? undefined,
       firma_productor: this.data.firma_productor ?? undefined,
       firma_inspector: this.data.firma_inspector ?? undefined,
+      descripcion_uso_guano_general:
+        this.data.descripcion_uso_guano_general ?? undefined,
       created_by: this.data.created_by,
       created_at: this.data.created_at.toISOString(),
       updated_at: this.data.updated_at.toISOString(),

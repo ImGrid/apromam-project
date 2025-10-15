@@ -3,7 +3,7 @@
  * Muestra lista de productores con íconos GPS y acciones
  */
 
-import { MapPin, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { DataTable, Badge, type DataTableColumn } from '@/shared/components/ui';
 import { CATEGORIA_LABELS } from '../types/productor.types';
 import type { Productor } from '../types/productor.types';
@@ -11,18 +11,12 @@ import type { Productor } from '../types/productor.types';
 interface ProductoresListProps {
   productores: Productor[];
   loading?: boolean;
-  onEdit?: (productor: Productor) => void;
-  onDelete?: (productor: Productor) => void;
-  onToggleActivo?: (productor: Productor) => void;
   onRowClick?: (productor: Productor) => void;
 }
 
 export function ProductoresList({
   productores,
   loading = false,
-  onEdit,
-  onDelete,
-  onToggleActivo,
   onRowClick,
 }: ProductoresListProps) {
   const columns: DataTableColumn<Productor>[] = [
@@ -117,43 +111,10 @@ export function ProductoresList({
     },
   ];
 
-  const actions = [
-    ...(onEdit
-      ? [
-          {
-            label: 'Editar',
-            icon: Edit,
-            onClick: onEdit,
-          },
-        ]
-      : []),
-    ...(onToggleActivo
-      ? [
-          {
-            label: (productor: Productor) => (productor.activo ? 'Desactivar' : 'Activar'),
-            icon: (productor: Productor) => (productor.activo ? XCircle : CheckCircle),
-            onClick: onToggleActivo,
-            variant: (productor: Productor) => (productor.activo ? 'error' : 'success'),
-          },
-        ]
-      : []),
-    ...(onDelete
-      ? [
-          {
-            label: 'Eliminar',
-            icon: Trash2,
-            onClick: onDelete,
-            variant: 'error' as const,
-          },
-        ]
-      : []),
-  ];
-
   return (
     <DataTable
       columns={columns}
       data={productores}
-      actions={actions.length > 0 ? actions : undefined}
       onRowClick={onRowClick}
       loading={loading}
       emptyMessage="No hay productores registrados"

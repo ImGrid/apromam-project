@@ -91,7 +91,7 @@ export type RevisionDocumentacionInput = z.infer<
   typeof RevisionDocumentacionSchema
 >;
 
-// Seccion 3: Acciones correctivas
+// Seccion 3: Acciones correctivas (gestión anterior)
 export const AccionCorrectivaSchema = z.object({
   numero_accion: z.number().int().min(1, "Numero de accion debe ser mayor a 0"),
   descripcion_accion: z
@@ -102,9 +102,6 @@ export const AccionCorrectivaSchema = z.object({
     .string()
     .max(500, "Implementacion no puede exceder 500 caracteres")
     .optional(),
-  fecha_limite: z.string().datetime().optional(),
-  estado_implementacion: z.string().default("pendiente"),
-  es_gestion_anterior: z.boolean().default(false),
 });
 
 export type AccionCorrectivaInput = z.infer<typeof AccionCorrectivaSchema>;
@@ -132,13 +129,13 @@ export const EvaluacionMitigacionSchema = z.object({
   deposito_herramientas: ComplianceStatusSchema,
   deposito_insumos_organicos: ComplianceStatusSchema,
   evita_quema_residuos: ComplianceStatusSchema,
-  comentarios_mitigacion: z
+  practica_mitigacion_riesgos_descripcion: z
     .string()
-    .max(1000, "Comentarios no pueden exceder 1000 caracteres")
+    .max(1000, "Descripcion no puede exceder 1000 caracteres")
     .optional(),
-  practicas_implementadas: z
+  mitigacion_contaminacion_descripcion: z
     .string()
-    .max(1000, "Practicas no pueden exceder 1000 caracteres")
+    .max(1000, "Descripcion no puede exceder 1000 caracteres")
     .optional(),
 });
 
@@ -194,11 +191,7 @@ export const ActividadPecuariaSchema = z.object({
     .optional(),
   uso_guano: z
     .string()
-    .max(200, "Uso de guano no puede exceder 200 caracteres")
-    .optional(),
-  descripcion_uso_guano: z
-    .string()
-    .max(500, "Descripcion no puede exceder 500 caracteres")
+    .max(500, "Uso de guano no puede exceder 500 caracteres")
     .optional(),
 });
 
@@ -208,6 +201,10 @@ export type ActividadPecuariaInput = z.infer<typeof ActividadPecuariaSchema>;
 export const DetalleCultivoParcelaSchema = z.object({
   id_parcela: UUIDSchema,
   id_tipo_cultivo: UUIDSchema,
+  superficie_ha: z
+    .number()
+    .positive("Superficie debe ser mayor a 0")
+    .max(10000, "Superficie no puede exceder 10,000 hectareas"),
   procedencia_semilla: ProcedenciaSemillaSchema,
   categoria_semilla: CategoriaSemillaSchema,
   tratamiento_semillas: z
@@ -359,6 +356,10 @@ export const CreateFichaSchema = z.object({
     .string()
     .max(100, "Firma no puede exceder 100 caracteres")
     .optional(),
+  descripcion_uso_guano_general: z
+    .string()
+    .max(1000, "Descripcion uso guano general no puede exceder 1000 caracteres")
+    .optional(),
 });
 
 export type CreateFichaInput = z.infer<typeof CreateFichaSchema>;
@@ -400,6 +401,10 @@ export const UpdateFichaSchema = z.object({
   firma_inspector: z
     .string()
     .max(100, "Firma no puede exceder 100 caracteres")
+    .optional(),
+  descripcion_uso_guano_general: z
+    .string()
+    .max(1000, "Descripcion uso guano general no puede exceder 1000 caracteres")
     .optional(),
 });
 

@@ -23,7 +23,7 @@ interface DataTableProps<T> {
   rowKey: keyof T;
 }
 
-export function DataTable<T = Record<string, any>>({
+export function DataTable<T = Record<string, unknown>>({
   columns,
   data,
   onRowClick,
@@ -39,8 +39,8 @@ export function DataTable<T = Record<string, any>>({
   // Ordenamiento con type narrowing para unknown
   const sortedData = sortConfig
     ? [...data].sort((a, b) => {
-        const aVal = a[sortConfig.key];
-        const bVal = b[sortConfig.key];
+        const aVal = a[sortConfig.key as keyof T];
+        const bVal = b[sortConfig.key as keyof T];
 
         // Type guard: verificar que sean comparables
         if (aVal == null || bVal == null) return 0;

@@ -41,6 +41,7 @@ const CoordenadasParcelaSchema = z.object({
 });
 
 // Schema para crear parcela
+// NOTA: Las parcelas NO tienen superficie fija (se calcula dinámicamente por cultivos)
 export const CreateParcelaSchema = z.object({
   codigo_productor: z
     .string()
@@ -51,10 +52,6 @@ export const CreateParcelaSchema = z.object({
     .int()
     .min(1, "Numero de parcela debe ser mayor a 0")
     .max(100, "Numero de parcela no puede exceder 100"),
-  superficie_ha: z
-    .number()
-    .positive("Superficie debe ser mayor a 0")
-    .max(10000, "Superficie no puede exceder 10,000 hectareas"),
   coordenadas: CoordenadasParcelaSchema.optional(),
   utiliza_riego: z.boolean().optional(),
   situacion_cumple: z.boolean().optional(),
@@ -65,11 +62,6 @@ export type CreateParcelaInput = z.infer<typeof CreateParcelaSchema>;
 
 // Schema para actualizar parcela
 export const UpdateParcelaSchema = z.object({
-  superficie_ha: z
-    .number()
-    .positive("Superficie debe ser mayor a 0")
-    .max(10000, "Superficie no puede exceder 10,000 hectareas")
-    .optional(),
   coordenadas: CoordenadasParcelaSchema.optional(),
   utiliza_riego: z.boolean().optional(),
   situacion_cumple: z.boolean().optional(),
@@ -112,7 +104,6 @@ export const ParcelaResponseSchema = z.object({
   codigo_productor: z.string(),
   nombre_productor: z.string().optional(),
   numero_parcela: z.number().int(),
-  superficie_ha: z.number(),
   coordenadas: z
     .object({
       latitude: z.number(),
@@ -132,7 +123,6 @@ export type ParcelaResponse = z.infer<typeof ParcelaResponseSchema>;
 export const ParcelasListResponseSchema = z.object({
   parcelas: z.array(ParcelaResponseSchema),
   total: z.number().int(),
-  superficie_total: z.number().optional(),
 });
 
 export type ParcelasListResponse = z.infer<typeof ParcelasListResponseSchema>;
@@ -142,7 +132,6 @@ export const ParcelasEstadisticasSchema = z.object({
   total: z.number().int(),
   con_coordenadas: z.number().int(),
   sin_coordenadas: z.number().int(),
-  superficie_total: z.number(),
   con_riego: z.number().int(),
 });
 

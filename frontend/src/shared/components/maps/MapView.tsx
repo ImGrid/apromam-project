@@ -32,8 +32,8 @@ export interface MapViewProps {
   dragging?: boolean;
 }
 
-// Centro por defecto: Bolivia (aproximadamente)
-const DEFAULT_CENTER: LatLngExpression = [-16.5, -68.15];
+// Centro por defecto: Sucre, Chuquisaca, Bolivia
+const DEFAULT_CENTER: LatLngExpression = [-19.04, -65.26];
 const DEFAULT_ZOOM = 6;
 
 /**

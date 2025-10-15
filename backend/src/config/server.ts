@@ -124,6 +124,7 @@ export const createServer = async (): Promise<FastifyInstance> => {
   });
 
   // Multipart para upload archivos PDF/imagenes
+  // Usa request.file() / request.files() para mejor control y streaming
   await server.register(import("@fastify/multipart"), {
     limits: {
       fileSize: config.upload.maxFileSize,
@@ -132,25 +133,8 @@ export const createServer = async (): Promise<FastifyInstance> => {
       parts: config.upload.maxFiles + 10, // Files + campos
     },
 
-    // Configuracion especifica tipos archivo APROMAM
-    attachFieldsToBody: true,
-
-    // Handler para tipos archivo no permitidos
-    onFile: async (part) => {
-      const allowedTypes = config.upload.allowedTypes;
-      const filename = part.filename;
-
-      if (!filename) {
-        throw new Error("Filename is required");
-      }
-
-      const extension = filename.split(".").pop()?.toLowerCase();
-      if (!extension || !allowedTypes.includes(extension)) {
-        throw new Error(
-          `File type not allowed. Allowed: ${allowedTypes.join(", ")}`
-        );
-      }
-    },
+    // NO usar attachFieldsToBody para mantener compatibilidad con streaming
+    // Los archivos se procesaran manualmente con request.file()
   });
 
   // Static files para servir uploads

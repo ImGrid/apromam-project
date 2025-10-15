@@ -23,6 +23,9 @@ export const ROUTES = {
   USUARIOS_EDIT: (id: string) => `/usuarios/${id}/editar`,
   USUARIOS_DETAIL: (id: string) => `/usuarios/${id}`,
 
+  // Técnicos
+  TECNICOS: "/tecnicos",
+
   // Comunidades
   COMUNIDADES: "/comunidades",
   COMUNIDADES_CREATE: "/comunidades/crear",

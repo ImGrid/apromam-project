@@ -23,9 +23,11 @@ export function AuthLayout({
             {/* Logo APROMAM */}
             <div className="mb-6">
               <img
-                src="https://apromam.com/wp-content/uploads/2021/01/cropped-LOGO-APROMAM-H-1024x322.png"
+                src="/apromam_logo.webp"
                 alt="APROMAM"
                 className="h-16 mx-auto sm:h-20"
+                width="256"
+                height="80"
               />
             </div>
 

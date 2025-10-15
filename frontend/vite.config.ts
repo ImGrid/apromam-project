@@ -1,10 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    visualizer({
+      filename: "./dist/stats.html",
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
+  ],
 
   // Path aliases para imports limpios
   resolve: {
@@ -45,6 +54,8 @@ export default defineConfig({
           "react-vendor": ["react", "react-dom", "react-router-dom"],
           "form-vendor": ["react-hook-form", "@hookform/resolvers", "zod"],
           "utils-vendor": ["axios", "zustand", "date-fns"],
+          // Separar Leaflet (mapas) - ~150KB, solo se usa en ciertos módulos
+          "map-vendor": ["leaflet", "react-leaflet"],
         },
       },
     },

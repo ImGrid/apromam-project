@@ -15,7 +15,7 @@ import { LocationPicker } from "@/shared/components/maps";
 import { useCreateProductor } from "../hooks/useCreateProductor";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
-import type { Productor } from "../services/productores.service";
+import type { Productor } from "../types/productor.types";
 
 // Schema de validacion
 const productorSchema = z.object({

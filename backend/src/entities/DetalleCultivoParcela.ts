@@ -4,7 +4,20 @@ export type ProcedenciaSemilla =
   | "propia"
   | "otro_productor"
   | "no_sembro";
-export type CategoriaSemilla = "organica" | "transicion" | "convencional";
+export type CategoriaSemilla =
+  | "organica"
+  | "transicion"
+  | "convencional"
+  | "ninguna";
+export type TratamientoSemillas =
+  | "sin_tratamiento"
+  | "agroquimico"
+  | "insumos_organicos"
+  | "otro";
+export type TipoAbonamiento = "rastrojo" | "guano" | "otro";
+export type MetodoAporque = "con_yunta" | "manual" | "otro";
+export type ControlHierbas = "con_bueyes" | "carpida_manual" | "otro";
+export type MetodoCosecha = "con_yunta" | "manual" | "otro";
 
 // Interfaz para datos de DetalleCultivoParcela desde BD
 export interface DetalleCultivoParcelaData {
@@ -12,13 +25,19 @@ export interface DetalleCultivoParcelaData {
   id_ficha: string;
   id_parcela: string;
   id_tipo_cultivo: string;
+  superficie_ha: number;
   procedencia_semilla: ProcedenciaSemilla;
   categoria_semilla: CategoriaSemilla;
-  tratamiento_semillas?: string | null;
-  tipo_abonamiento?: string | null;
-  metodo_aporque?: string | null;
-  control_hierbas?: string | null;
-  metodo_cosecha?: string | null;
+  tratamiento_semillas?: TratamientoSemillas | null;
+  tratamiento_semillas_otro?: string | null;
+  tipo_abonamiento?: TipoAbonamiento | null;
+  tipo_abonamiento_otro?: string | null;
+  metodo_aporque?: MetodoAporque | null;
+  metodo_aporque_otro?: string | null;
+  control_hierbas?: ControlHierbas | null;
+  control_hierbas_otro?: string | null;
+  metodo_cosecha?: MetodoCosecha | null;
+  metodo_cosecha_otro?: string | null;
   rotacion: boolean;
   insumos_organicos_usados?: string | null;
   created_at: Date;
@@ -30,13 +49,19 @@ export interface DetalleCultivoParcelaPublicData {
   id_ficha: string;
   id_parcela: string;
   id_tipo_cultivo: string;
+  superficie_ha: number;
   procedencia_semilla: ProcedenciaSemilla;
   categoria_semilla: CategoriaSemilla;
-  tratamiento_semillas?: string | null;
-  tipo_abonamiento?: string | null;
-  metodo_aporque?: string | null;
-  control_hierbas?: string | null;
-  metodo_cosecha?: string | null;
+  tratamiento_semillas?: TratamientoSemillas | null;
+  tratamiento_semillas_otro?: string | null;
+  tipo_abonamiento?: TipoAbonamiento | null;
+  tipo_abonamiento_otro?: string | null;
+  metodo_aporque?: MetodoAporque | null;
+  metodo_aporque_otro?: string | null;
+  control_hierbas?: ControlHierbas | null;
+  control_hierbas_otro?: string | null;
+  metodo_cosecha?: MetodoCosecha | null;
+  metodo_cosecha_otro?: string | null;
   rotacion: boolean;
   insumos_organicos_usados?: string | null;
   created_at: string;
@@ -68,6 +93,10 @@ export class DetalleCultivoParcela {
     return this.data.id_tipo_cultivo;
   }
 
+  get superficieHa(): number {
+    return this.data.superficie_ha;
+  }
+
   get procedenciaSemilla(): ProcedenciaSemilla {
     return this.data.procedencia_semilla;
   }
@@ -76,24 +105,44 @@ export class DetalleCultivoParcela {
     return this.data.categoria_semilla;
   }
 
-  get tratamientoSemillas(): string | null {
+  get tratamientoSemillas(): TratamientoSemillas | null {
     return this.data.tratamiento_semillas ?? null;
   }
 
-  get tipoAbonamiento(): string | null {
+  get tratamientoSemillasOtro(): string | null {
+    return this.data.tratamiento_semillas_otro ?? null;
+  }
+
+  get tipoAbonamiento(): TipoAbonamiento | null {
     return this.data.tipo_abonamiento ?? null;
   }
 
-  get metodoAporque(): string | null {
+  get tipoAbonamientoOtro(): string | null {
+    return this.data.tipo_abonamiento_otro ?? null;
+  }
+
+  get metodoAporque(): MetodoAporque | null {
     return this.data.metodo_aporque ?? null;
   }
 
-  get controlHierbas(): string | null {
+  get metodoAporqueOtro(): string | null {
+    return this.data.metodo_aporque_otro ?? null;
+  }
+
+  get controlHierbas(): ControlHierbas | null {
     return this.data.control_hierbas ?? null;
   }
 
-  get metodoCosecha(): string | null {
+  get controlHierbasOtro(): string | null {
+    return this.data.control_hierbas_otro ?? null;
+  }
+
+  get metodoCosecha(): MetodoCosecha | null {
     return this.data.metodo_cosecha ?? null;
+  }
+
+  get metodoCosechaOtro(): string | null {
+    return this.data.metodo_cosecha_otro ?? null;
   }
 
   get rotacion(): boolean {
@@ -113,13 +162,19 @@ export class DetalleCultivoParcela {
     id_ficha: string;
     id_parcela: string;
     id_tipo_cultivo: string;
+    superficie_ha: number;
     procedencia_semilla?: ProcedenciaSemilla;
     categoria_semilla?: CategoriaSemilla;
-    tratamiento_semillas?: string;
-    tipo_abonamiento?: string;
-    metodo_aporque?: string;
-    control_hierbas?: string;
-    metodo_cosecha?: string;
+    tratamiento_semillas?: TratamientoSemillas;
+    tratamiento_semillas_otro?: string;
+    tipo_abonamiento?: TipoAbonamiento;
+    tipo_abonamiento_otro?: string;
+    metodo_aporque?: MetodoAporque;
+    metodo_aporque_otro?: string;
+    control_hierbas?: ControlHierbas;
+    control_hierbas_otro?: string;
+    metodo_cosecha?: MetodoCosecha;
+    metodo_cosecha_otro?: string;
     rotacion?: boolean;
     insumos_organicos_usados?: string;
   }): DetalleCultivoParcela {
@@ -128,13 +183,19 @@ export class DetalleCultivoParcela {
       id_ficha: data.id_ficha,
       id_parcela: data.id_parcela,
       id_tipo_cultivo: data.id_tipo_cultivo,
+      superficie_ha: data.superficie_ha,
       procedencia_semilla: data.procedencia_semilla ?? "propia",
       categoria_semilla: data.categoria_semilla ?? "organica",
       tratamiento_semillas: data.tratamiento_semillas,
+      tratamiento_semillas_otro: data.tratamiento_semillas_otro,
       tipo_abonamiento: data.tipo_abonamiento,
+      tipo_abonamiento_otro: data.tipo_abonamiento_otro,
       metodo_aporque: data.metodo_aporque,
+      metodo_aporque_otro: data.metodo_aporque_otro,
       control_hierbas: data.control_hierbas,
+      control_hierbas_otro: data.control_hierbas_otro,
       metodo_cosecha: data.metodo_cosecha,
+      metodo_cosecha_otro: data.metodo_cosecha_otro,
       rotacion: data.rotacion ?? false,
       insumos_organicos_usados: data.insumos_organicos_usados,
       created_at: new Date(),
@@ -162,6 +223,14 @@ export class DetalleCultivoParcela {
       errors.push("ID de tipo cultivo es requerido");
     }
 
+    if (!this.data.superficie_ha || this.data.superficie_ha <= 0) {
+      errors.push("Superficie debe ser mayor a 0");
+    }
+
+    if (this.data.superficie_ha > 10000) {
+      errors.push("Superficie no puede exceder 10,000 hectareas");
+    }
+
     const procedenciasValidas: ProcedenciaSemilla[] = [
       "asociacion",
       "propia",
@@ -176,32 +245,100 @@ export class DetalleCultivoParcela {
       "organica",
       "transicion",
       "convencional",
+      "ninguna",
     ];
     if (!categoriasValidas.includes(this.data.categoria_semilla)) {
       errors.push("Categoria de semilla invalida");
     }
 
+    // Validar campos _otro: solo si el campo principal es 'otro'
     if (
-      this.data.tratamiento_semillas &&
-      this.data.tratamiento_semillas.length > 100
+      this.data.tratamiento_semillas === "otro" &&
+      (!this.data.tratamiento_semillas_otro ||
+        this.data.tratamiento_semillas_otro.trim().length === 0)
     ) {
-      errors.push("Tratamiento semillas no puede exceder 100 caracteres");
+      errors.push(
+        "Debe especificar el tratamiento cuando selecciona 'otro'"
+      );
     }
 
-    if (this.data.tipo_abonamiento && this.data.tipo_abonamiento.length > 100) {
-      errors.push("Tipo abonamiento no puede exceder 100 caracteres");
+    if (
+      this.data.tratamiento_semillas_otro &&
+      this.data.tratamiento_semillas_otro.length > 200
+    ) {
+      errors.push(
+        "Descripcion de tratamiento otro no puede exceder 200 caracteres"
+      );
     }
 
-    if (this.data.metodo_aporque && this.data.metodo_aporque.length > 100) {
-      errors.push("Metodo aporque no puede exceder 100 caracteres");
+    if (
+      this.data.tipo_abonamiento === "otro" &&
+      (!this.data.tipo_abonamiento_otro ||
+        this.data.tipo_abonamiento_otro.trim().length === 0)
+    ) {
+      errors.push("Debe especificar el abonamiento cuando selecciona 'otro'");
     }
 
-    if (this.data.control_hierbas && this.data.control_hierbas.length > 100) {
-      errors.push("Control hierbas no puede exceder 100 caracteres");
+    if (
+      this.data.tipo_abonamiento_otro &&
+      this.data.tipo_abonamiento_otro.length > 200
+    ) {
+      errors.push(
+        "Descripcion de abonamiento otro no puede exceder 200 caracteres"
+      );
     }
 
-    if (this.data.metodo_cosecha && this.data.metodo_cosecha.length > 100) {
-      errors.push("Metodo cosecha no puede exceder 100 caracteres");
+    if (
+      this.data.metodo_aporque === "otro" &&
+      (!this.data.metodo_aporque_otro ||
+        this.data.metodo_aporque_otro.trim().length === 0)
+    ) {
+      errors.push("Debe especificar el aporque cuando selecciona 'otro'");
+    }
+
+    if (
+      this.data.metodo_aporque_otro &&
+      this.data.metodo_aporque_otro.length > 200
+    ) {
+      errors.push(
+        "Descripcion de aporque otro no puede exceder 200 caracteres"
+      );
+    }
+
+    if (
+      this.data.control_hierbas === "otro" &&
+      (!this.data.control_hierbas_otro ||
+        this.data.control_hierbas_otro.trim().length === 0)
+    ) {
+      errors.push(
+        "Debe especificar el control de hierbas cuando selecciona 'otro'"
+      );
+    }
+
+    if (
+      this.data.control_hierbas_otro &&
+      this.data.control_hierbas_otro.length > 200
+    ) {
+      errors.push(
+        "Descripcion de control de hierbas otro no puede exceder 200 caracteres"
+      );
+    }
+
+    if (
+      this.data.metodo_cosecha === "otro" &&
+      (!this.data.metodo_cosecha_otro ||
+        this.data.metodo_cosecha_otro.trim().length === 0)
+    ) {
+      errors.push("Debe especificar la cosecha cuando selecciona 'otro'");
+    }
+
+    if (
+      this.data.metodo_cosecha_otro &&
+      this.data.metodo_cosecha_otro.length > 200
+    ) {
+      errors.push(
+        "Descripcion de cosecha otro no puede exceder 200 caracteres"
+      );
     }
 
     if (
@@ -226,13 +363,20 @@ export class DetalleCultivoParcela {
       id_ficha: this.data.id_ficha,
       id_parcela: this.data.id_parcela,
       id_tipo_cultivo: this.data.id_tipo_cultivo,
+      superficie_ha: this.data.superficie_ha,
       procedencia_semilla: this.data.procedencia_semilla,
       categoria_semilla: this.data.categoria_semilla,
-      tratamiento_semillas: this.data.tratamiento_semillas?.trim() || null,
-      tipo_abonamiento: this.data.tipo_abonamiento?.trim() || null,
-      metodo_aporque: this.data.metodo_aporque?.trim() || null,
-      control_hierbas: this.data.control_hierbas?.trim() || null,
-      metodo_cosecha: this.data.metodo_cosecha?.trim() || null,
+      tratamiento_semillas: this.data.tratamiento_semillas || null,
+      tratamiento_semillas_otro:
+        this.data.tratamiento_semillas_otro?.trim() || null,
+      tipo_abonamiento: this.data.tipo_abonamiento || null,
+      tipo_abonamiento_otro: this.data.tipo_abonamiento_otro?.trim() || null,
+      metodo_aporque: this.data.metodo_aporque || null,
+      metodo_aporque_otro: this.data.metodo_aporque_otro?.trim() || null,
+      control_hierbas: this.data.control_hierbas || null,
+      control_hierbas_otro: this.data.control_hierbas_otro?.trim() || null,
+      metodo_cosecha: this.data.metodo_cosecha || null,
+      metodo_cosecha_otro: this.data.metodo_cosecha_otro?.trim() || null,
       rotacion: this.data.rotacion,
       insumos_organicos_usados:
         this.data.insumos_organicos_usados?.trim() || null,
@@ -246,13 +390,20 @@ export class DetalleCultivoParcela {
     return {
       id_parcela: this.data.id_parcela,
       id_tipo_cultivo: this.data.id_tipo_cultivo,
+      superficie_ha: this.data.superficie_ha,
       procedencia_semilla: this.data.procedencia_semilla,
       categoria_semilla: this.data.categoria_semilla,
-      tratamiento_semillas: this.data.tratamiento_semillas?.trim() || null,
-      tipo_abonamiento: this.data.tipo_abonamiento?.trim() || null,
-      metodo_aporque: this.data.metodo_aporque?.trim() || null,
-      control_hierbas: this.data.control_hierbas?.trim() || null,
-      metodo_cosecha: this.data.metodo_cosecha?.trim() || null,
+      tratamiento_semillas: this.data.tratamiento_semillas || null,
+      tratamiento_semillas_otro:
+        this.data.tratamiento_semillas_otro?.trim() || null,
+      tipo_abonamiento: this.data.tipo_abonamiento || null,
+      tipo_abonamiento_otro: this.data.tipo_abonamiento_otro?.trim() || null,
+      metodo_aporque: this.data.metodo_aporque || null,
+      metodo_aporque_otro: this.data.metodo_aporque_otro?.trim() || null,
+      control_hierbas: this.data.control_hierbas || null,
+      control_hierbas_otro: this.data.control_hierbas_otro?.trim() || null,
+      metodo_cosecha: this.data.metodo_cosecha || null,
+      metodo_cosecha_otro: this.data.metodo_cosecha_otro?.trim() || null,
       rotacion: this.data.rotacion,
       insumos_organicos_usados:
         this.data.insumos_organicos_usados?.trim() || null,
@@ -266,13 +417,19 @@ export class DetalleCultivoParcela {
       id_ficha: this.data.id_ficha,
       id_parcela: this.data.id_parcela,
       id_tipo_cultivo: this.data.id_tipo_cultivo,
+      superficie_ha: this.data.superficie_ha,
       procedencia_semilla: this.data.procedencia_semilla,
       categoria_semilla: this.data.categoria_semilla,
       tratamiento_semillas: this.data.tratamiento_semillas ?? null,
+      tratamiento_semillas_otro: this.data.tratamiento_semillas_otro ?? null,
       tipo_abonamiento: this.data.tipo_abonamiento ?? null,
+      tipo_abonamiento_otro: this.data.tipo_abonamiento_otro ?? null,
       metodo_aporque: this.data.metodo_aporque ?? null,
+      metodo_aporque_otro: this.data.metodo_aporque_otro ?? null,
       control_hierbas: this.data.control_hierbas ?? null,
+      control_hierbas_otro: this.data.control_hierbas_otro ?? null,
       metodo_cosecha: this.data.metodo_cosecha ?? null,
+      metodo_cosecha_otro: this.data.metodo_cosecha_otro ?? null,
       rotacion: this.data.rotacion,
       insumos_organicos_usados: this.data.insumos_organicos_usados ?? null,
       created_at: this.data.created_at.toISOString(),
@@ -355,5 +512,23 @@ export class DetalleCultivoParcela {
     }
 
     this.data.insumos_organicos_usados = insumos.trim();
+  }
+
+  // Actualiza superficie
+  actualizarSuperficie(nuevaSuperficie: number): void {
+    if (nuevaSuperficie <= 0) {
+      throw new Error("Superficie debe ser mayor a 0");
+    }
+
+    if (nuevaSuperficie > 10000) {
+      throw new Error("Superficie no puede exceder 10,000 hectareas");
+    }
+
+    this.data.superficie_ha = nuevaSuperficie;
+  }
+
+  // Obtiene la superficie en formato legible
+  getSuperficieFormateada(): string {
+    return `${this.data.superficie_ha.toFixed(4)} ha`;
   }
 }

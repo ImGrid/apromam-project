@@ -7,11 +7,10 @@ export class ParcelaRepository {
     const query = {
       name: "find-parcela-by-id",
       text: `
-        SELECT 
+        SELECT
           pa.id_parcela,
           pa.codigo_productor,
           pa.numero_parcela,
-          pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
           pa.utiliza_riego,
@@ -38,11 +37,10 @@ export class ParcelaRepository {
     const query = {
       name: "find-parcelas-by-productor",
       text: `
-        SELECT 
+        SELECT
           pa.id_parcela,
           pa.codigo_productor,
           pa.numero_parcela,
-          pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
           pa.utiliza_riego,
@@ -68,11 +66,10 @@ export class ParcelaRepository {
     const query = {
       name: "find-all-parcelas",
       text: `
-        SELECT 
+        SELECT
           pa.id_parcela,
           pa.codigo_productor,
           pa.numero_parcela,
-          pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
           pa.utiliza_riego,
@@ -105,11 +102,10 @@ export class ParcelaRepository {
     const query = {
       name: "find-parcelas-nearby",
       text: `
-        SELECT 
+        SELECT
           pa.id_parcela,
           pa.codigo_productor,
           pa.numero_parcela,
-          pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
           pa.utiliza_riego,
@@ -192,7 +188,6 @@ export class ParcelaRepository {
         INSERT INTO parcelas (
           codigo_productor,
           numero_parcela,
-          superficie_ha,
           coordenadas,
           latitud_sud,
           longitud_oeste,
@@ -200,13 +195,12 @@ export class ParcelaRepository {
           situacion_cumple,
           tipo_barrera,
           activo
-        ) VALUES ($1, $2, $3, ST_GeomFromText($4, 4326), $5, $6, $7, $8, $9, $10)
+        ) VALUES ($1, $2, ST_GeomFromText($3, 4326), $4, $5, $6, $7, $8, $9)
         RETURNING id_parcela
       `,
       values: [
         insertData.codigo_productor,
         insertData.numero_parcela,
-        insertData.superficie_ha,
         coordenadasWKT,
         insertData.latitud_sud || null,
         insertData.longitud_oeste || null,
@@ -242,11 +236,10 @@ export class ParcelaRepository {
   ): Promise<Parcela | null> {
     const query = {
       text: `
-        SELECT 
+        SELECT
           pa.id_parcela,
           pa.codigo_productor,
           pa.numero_parcela,
-          pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
           pa.utiliza_riego,
@@ -257,7 +250,7 @@ export class ParcelaRepository {
           p.nombre_productor
         FROM parcelas pa
         INNER JOIN productores p ON pa.codigo_productor = p.codigo_productor
-        WHERE pa.codigo_productor = $1 
+        WHERE pa.codigo_productor = $1
           AND pa.numero_parcela = $2
           AND pa.activo = true
       `,
@@ -281,21 +274,19 @@ export class ParcelaRepository {
     const query = {
       text: `
         UPDATE parcelas
-        SET 
-          superficie_ha = $2,
-          coordenadas = ST_GeomFromText($3, 4326),
-          latitud_sud = $4,
-          longitud_oeste = $5,
-          utiliza_riego = $6,
-          situacion_cumple = $7,
-          tipo_barrera = $8,
-          activo = $9
+        SET
+          coordenadas = ST_GeomFromText($2, 4326),
+          latitud_sud = $3,
+          longitud_oeste = $4,
+          utiliza_riego = $5,
+          situacion_cumple = $6,
+          tipo_barrera = $7,
+          activo = $8
         WHERE id_parcela = $1 AND activo = true
         RETURNING id_parcela
       `,
       values: [
         id,
-        updateData.superficie_ha,
         coordenadasWKT,
         updateData.latitud_sud || null,
         updateData.longitud_oeste || null,
@@ -365,23 +356,6 @@ export class ParcelaRepository {
     return parseInt(result?.count || "0", 10);
   }
 
-  // Calcula superficie total por productor
-  async calcularSuperficieTotalProductor(
-    codigoProductor: string
-  ): Promise<number> {
-    const query = {
-      text: `
-        SELECT COALESCE(SUM(superficie_ha), 0) as total
-        FROM parcelas
-        WHERE codigo_productor = $1 AND activo = true
-      `,
-      values: [codigoProductor],
-    };
-
-    const result = await ReadQuery.findOne<{ total: string }>(query);
-    return parseFloat(result?.total || "0");
-  }
-
   // Cuenta parcelas con coordenadas GPS
   async countWithCoordinates(): Promise<number> {
     const query = {
@@ -401,11 +375,10 @@ export class ParcelaRepository {
   async findWithoutCoordinates(): Promise<Parcela[]> {
     const query = {
       text: `
-        SELECT 
+        SELECT
           pa.id_parcela,
           pa.codigo_productor,
           pa.numero_parcela,
-          pa.superficie_ha,
           pa.latitud_sud,
           pa.longitud_oeste,
           pa.utiliza_riego,
@@ -433,16 +406,14 @@ export class ParcelaRepository {
     total: number;
     con_coordenadas: number;
     sin_coordenadas: number;
-    superficie_total: number;
     con_riego: number;
   }> {
     const query = {
       text: `
-        SELECT 
+        SELECT
           COUNT(*) as total,
           COUNT(*) FILTER (WHERE coordenadas IS NOT NULL) as con_coordenadas,
           COUNT(*) FILTER (WHERE coordenadas IS NULL) as sin_coordenadas,
-          COALESCE(SUM(superficie_ha), 0) as superficie_total,
           COUNT(*) FILTER (WHERE utiliza_riego = true) as con_riego
         FROM parcelas
         WHERE activo = true
@@ -454,7 +425,6 @@ export class ParcelaRepository {
       total: string;
       con_coordenadas: string;
       sin_coordenadas: string;
-      superficie_total: string;
       con_riego: string;
     }>(query);
 
@@ -462,7 +432,6 @@ export class ParcelaRepository {
       total: parseInt(result?.total || "0", 10),
       con_coordenadas: parseInt(result?.con_coordenadas || "0", 10),
       sin_coordenadas: parseInt(result?.sin_coordenadas || "0", 10),
-      superficie_total: parseFloat(result?.superficie_total || "0"),
       con_riego: parseInt(result?.con_riego || "0", 10),
     };
   }

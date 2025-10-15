@@ -7,7 +7,7 @@ interface RadioProps
 }
 
 export const Radio = forwardRef<HTMLInputElement, RadioProps>(
-  ({ label, error, className = "", disabled, ...props }, ref) => {
+  ({ label, error, className = "", disabled, checked, ...props }, ref) => {
     return (
       <div className={className}>
         <label
@@ -23,6 +23,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
               ref={ref}
               type="radio"
               disabled={disabled}
+              checked={checked}
               className="sr-only peer"
               {...props}
             />
@@ -33,27 +34,21 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
                 w-5 h-5 border-2 rounded-full
                 flex items-center justify-center
                 transition-all duration-150
-                peer-checked:border-primary
                 peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-1
-                border-neutral-border
-                ${disabled ? "bg-neutral-bg" : "bg-white"}
+                ${checked ? "border-primary bg-primary" : "border-neutral-border bg-white"}
+                ${disabled ? "opacity-60" : ""}
               `}
             >
-              {/* Inner dot */}
-              <div
-                className="
-                  w-2.5 h-2.5 rounded-full bg-primary
-                  opacity-0 peer-checked:opacity-100
-                  transition-opacity duration-150
-                  scale-0 peer-checked:scale-100
-                "
-              />
+              {/* Inner dot - only show when checked */}
+              {checked && (
+                <div className="w-2.5 h-2.5 rounded-full bg-white transition-all duration-150" />
+              )}
             </div>
           </div>
 
           {/* Label text */}
           {label && (
-            <span className="text-sm select-none text-text-primary">
+            <span className={`text-sm select-none ${checked ? "font-medium text-primary" : "text-text-primary"}`}>
               {label}
             </span>
           )}

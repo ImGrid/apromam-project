@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,35 +15,25 @@ import { useCreateUsuario } from "../hooks/useCreateUsuario";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
 
-const usuarioSchema = z
-  .object({
-    username: z
-      .string()
-      .min(5, "Mínimo 5 caracteres")
-      .regex(
-        /^[a-zA-Z][a-zA-Z0-9_]*$/,
-        "Debe empezar con letra y contener solo letras, números y guion bajo"
-      ),
-    email: z.string().email("Email inválido"),
-    password: z
-      .string()
-      .min(8, "Mínimo 8 caracteres")
-      .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
-      .regex(/[a-z]/, "Debe contener al menos una minúscula")
-      .regex(/[0-9]/, "Debe contener al menos un número"),
-    nombre_completo: z.string().min(3, "Mínimo 3 caracteres"),
-    id_rol: z.string().min(1, "Selecciona un rol"),
-    id_comunidad: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      // La validacion de comunidad se hace en el backend
-      return true;
-    },
-    {
-      message: "Técnico debe tener comunidad asignada",
-    }
-  );
+const usuarioSchema = z.object({
+  username: z
+    .string()
+    .min(5, "Mínimo 5 caracteres")
+    .regex(
+      /^[a-zA-Z][a-zA-Z0-9_]*$/,
+      "Debe empezar con letra y contener solo letras, números y guion bajo"
+    ),
+  email: z.string().email("Email inválido"),
+  password: z
+    .string()
+    .min(8, "Mínimo 8 caracteres")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula")
+    .regex(/[0-9]/, "Debe contener al menos un número"),
+  nombre_completo: z.string().min(3, "Mínimo 3 caracteres"),
+  id_rol: z.string().min(1, "Selecciona un rol"),
+  id_comunidad: z.string().optional(),
+});
 
 type UsuarioFormData = z.infer<typeof usuarioSchema>;
 
@@ -77,23 +67,8 @@ export function CreateUsuarioModal({
 
   const idRolWatched = watch("id_rol");
 
-  // Cargar roles al abrir modal
-  useEffect(() => {
-    if (isOpen) {
-      loadRoles();
-      loadComunidades();
-    }
-  }, [isOpen]);
-
-  // Detectar si rol seleccionado es técnico
-  useEffect(() => {
-    if (idRolWatched) {
-      const rol = roles.find((r) => r.value === idRolWatched);
-      setSelectedRolNombre(rol?.label.toLowerCase() || "");
-    }
-  }, [idRolWatched, roles]);
-
-  const loadRoles = async () => {
+  // Cargar roles con filtrado basado en el rol del usuario
+  const loadRoles = useCallback(async () => {
     try {
       const response = await apiClient.get<{
         roles: Array<{ id_rol: string; nombre_rol: string }>;
@@ -138,9 +113,9 @@ export function CreateUsuarioModal({
         setRoles(defaultRoles);
       }
     }
-  };
+  }, [user]);
 
-  const loadComunidades = async () => {
+  const loadComunidades = useCallback(async () => {
     try {
       const response = await apiClient.get<{
         comunidades: Array<{ id_comunidad: string; nombre_comunidad: string }>;
@@ -155,7 +130,23 @@ export function CreateUsuarioModal({
     } catch (error) {
       console.error("Error cargando comunidades:", error);
     }
-  };
+  }, []);
+
+  // Cargar datos cuando se abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      loadRoles();
+      loadComunidades();
+    }
+  }, [isOpen, loadRoles, loadComunidades]);
+
+  // Detectar si rol seleccionado es técnico
+  useEffect(() => {
+    if (idRolWatched) {
+      const rol = roles.find((r) => r.value === idRolWatched);
+      setSelectedRolNombre(rol?.label.toLowerCase() || "");
+    }
+  }, [idRolWatched, roles]);
 
   const onSubmit = async (data: UsuarioFormData) => {
     try {
@@ -246,15 +237,14 @@ export function CreateUsuarioModal({
           {isTecnico && (
             <FormField
               label="Comunidad"
-              required
               error={errors.id_comunidad?.message}
-              helperText="Los técnicos deben tener una comunidad asignada"
+              helperText="Opcional: La comunidad puede ser asignada después por el gerente"
             >
               <Select
                 options={comunidades}
                 value={watch("id_comunidad") || ""}
                 onChange={(value) => setValue("id_comunidad", value)}
-                placeholder="Selecciona una comunidad"
+                placeholder="Selecciona una comunidad (opcional)"
                 searchable
               />
             </FormField>

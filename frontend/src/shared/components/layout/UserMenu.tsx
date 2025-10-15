@@ -65,9 +65,11 @@ export function UserMenu() {
           <p className="text-sm font-medium text-text-primary">
             {user.nombre_completo}
           </p>
-          <p className="text-xs text-text-secondary">
-            {user.nombre_comunidad || "Sin comunidad"}
-          </p>
+          {user.nombre_comunidad && (
+            <p className="text-xs text-text-secondary">
+              {user.nombre_comunidad}
+            </p>
+          )}
         </div>
 
         {/* Icono chevron */}

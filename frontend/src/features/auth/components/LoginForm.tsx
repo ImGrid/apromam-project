@@ -178,7 +178,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         <button
           type="button"
           onClick={togglePasswordVisibility}
-          className="absolute right-3 top-[42px] flex items-center justify-center w-10 h-10 text-text-secondary hover:text-primary transition-colors touch-target"
+          className="absolute right-3 top-8 flex items-center justify-center w-10 h-10 text-text-secondary hover:text-primary transition-colors touch-target"
           disabled={isLoading}
           aria-label={
             showPassword ? "Ocultar contraseña" : "Mostrar contraseña"

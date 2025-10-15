@@ -5,9 +5,6 @@ export interface AccionCorrectivaData {
   numero_accion: number;
   descripcion_accion: string;
   implementacion_descripcion?: string | null;
-  fecha_limite?: Date | null;
-  estado_implementacion: string;
-  es_gestion_anterior: boolean;
   created_at: Date;
 }
 
@@ -18,9 +15,6 @@ export interface AccionCorrectivaPublicData {
   numero_accion: number;
   descripcion_accion: string;
   implementacion_descripcion?: string | null;
-  fecha_limite?: string | null;
-  estado_implementacion: string;
-  es_gestion_anterior: boolean;
   created_at: string;
 }
 
@@ -54,18 +48,6 @@ export class AccionCorrectiva {
     return this.data.implementacion_descripcion ?? null;
   }
 
-  get fechaLimite(): Date | null {
-    return this.data.fecha_limite ?? null;
-  }
-
-  get estado(): string {
-    return this.data.estado_implementacion;
-  }
-
-  get esGestionAnterior(): boolean {
-    return this.data.es_gestion_anterior;
-  }
-
   get createdAt(): Date {
     return this.data.created_at;
   }
@@ -76,9 +58,6 @@ export class AccionCorrectiva {
     numero_accion: number;
     descripcion_accion: string;
     implementacion_descripcion?: string;
-    fecha_limite?: Date;
-    estado_implementacion?: string;
-    es_gestion_anterior?: boolean;
   }): AccionCorrectiva {
     return new AccionCorrectiva({
       id_accion: "",
@@ -86,9 +65,6 @@ export class AccionCorrectiva {
       numero_accion: data.numero_accion,
       descripcion_accion: data.descripcion_accion,
       implementacion_descripcion: data.implementacion_descripcion,
-      fecha_limite: data.fecha_limite,
-      estado_implementacion: data.estado_implementacion ?? "pendiente",
-      es_gestion_anterior: data.es_gestion_anterior ?? false,
       created_at: new Date(),
     });
   }
@@ -142,9 +118,6 @@ export class AccionCorrectiva {
       descripcion_accion: this.data.descripcion_accion.trim(),
       implementacion_descripcion:
         this.data.implementacion_descripcion?.trim() || null,
-      fecha_limite: this.data.fecha_limite,
-      estado_implementacion: this.data.estado_implementacion,
-      es_gestion_anterior: this.data.es_gestion_anterior,
     };
   }
 
@@ -157,9 +130,6 @@ export class AccionCorrectiva {
       descripcion_accion: this.data.descripcion_accion.trim(),
       implementacion_descripcion:
         this.data.implementacion_descripcion?.trim() || null,
-      fecha_limite: this.data.fecha_limite,
-      estado_implementacion: this.data.estado_implementacion,
-      es_gestion_anterior: this.data.es_gestion_anterior,
     };
   }
 
@@ -171,21 +141,8 @@ export class AccionCorrectiva {
       numero_accion: this.data.numero_accion,
       descripcion_accion: this.data.descripcion_accion,
       implementacion_descripcion: this.data.implementacion_descripcion ?? null,
-      fecha_limite: this.data.fecha_limite?.toISOString() ?? null,
-      estado_implementacion: this.data.estado_implementacion,
-      es_gestion_anterior: this.data.es_gestion_anterior,
       created_at: this.data.created_at.toISOString(),
     };
-  }
-
-  // Verifica si esta pendiente
-  estaPendiente(): boolean {
-    return this.data.estado_implementacion === "pendiente";
-  }
-
-  // Verifica si esta completada
-  estaCompletada(): boolean {
-    return this.data.estado_implementacion === "completado";
   }
 
   // Actualiza descripcion
@@ -208,33 +165,5 @@ export class AccionCorrectiva {
     }
 
     this.data.implementacion_descripcion = implementacion.trim();
-  }
-
-  // Actualiza fecha limite
-  actualizarFechaLimite(fecha: Date): void {
-    this.data.fecha_limite = fecha;
-  }
-
-  // Actualiza estado
-  actualizarEstado(estado: string): void {
-    this.data.estado_implementacion = estado;
-  }
-
-  // Marca como completada
-  marcarCompletada(descripcionImplementacion: string): void {
-    if (
-      !descripcionImplementacion ||
-      descripcionImplementacion.trim().length < 5
-    ) {
-      throw new Error("Debe proporcionar una descripcion de la implementacion");
-    }
-
-    this.data.implementacion_descripcion = descripcionImplementacion.trim();
-    this.data.estado_implementacion = "completado";
-  }
-
-  // Marca como pendiente
-  marcarPendiente(): void {
-    this.data.estado_implementacion = "pendiente";
   }
 }

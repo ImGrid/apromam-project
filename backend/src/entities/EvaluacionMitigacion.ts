@@ -10,8 +10,8 @@ export interface EvaluacionMitigacionData {
   deposito_herramientas: ComplianceStatus;
   deposito_insumos_organicos: ComplianceStatus;
   evita_quema_residuos: ComplianceStatus;
-  comentarios_mitigacion?: string | null;
-  practicas_implementadas?: string | null;
+  practica_mitigacion_riesgos_descripcion?: string | null;
+  mitigacion_contaminacion_descripcion?: string | null;
 }
 
 // Interfaz para datos publicos (response)
@@ -23,8 +23,8 @@ export interface EvaluacionMitigacionPublicData {
   deposito_herramientas: ComplianceStatus;
   deposito_insumos_organicos: ComplianceStatus;
   evita_quema_residuos: ComplianceStatus;
-  comentarios_mitigacion?: string | null;
-  practicas_implementadas?: string | null;
+  practica_mitigacion_riesgos_descripcion?: string | null;
+  mitigacion_contaminacion_descripcion?: string | null;
 }
 
 // Entity EvaluacionMitigacion
@@ -65,12 +65,12 @@ export class EvaluacionMitigacion {
     return this.data.evita_quema_residuos;
   }
 
-  get comentarios(): string | null {
-    return this.data.comentarios_mitigacion ?? null;
+  get practicaMitigacionRiesgosDescripcion(): string | null {
+    return this.data.practica_mitigacion_riesgos_descripcion ?? null;
   }
 
-  get practicasImplementadas(): string | null {
-    return this.data.practicas_implementadas ?? null;
+  get mitigacionContaminacionDescripcion(): string | null {
+    return this.data.mitigacion_contaminacion_descripcion ?? null;
   }
 
   // Crea una nueva instancia de EvaluacionMitigacion
@@ -81,8 +81,8 @@ export class EvaluacionMitigacion {
     deposito_herramientas?: ComplianceStatus;
     deposito_insumos_organicos?: ComplianceStatus;
     evita_quema_residuos?: ComplianceStatus;
-    comentarios_mitigacion?: string;
-    practicas_implementadas?: string;
+    practica_mitigacion_riesgos_descripcion?: string;
+    mitigacion_contaminacion_descripcion?: string;
   }): EvaluacionMitigacion {
     return new EvaluacionMitigacion({
       id_evaluacion: "",
@@ -94,8 +94,8 @@ export class EvaluacionMitigacion {
       deposito_insumos_organicos:
         data.deposito_insumos_organicos ?? "no_cumple",
       evita_quema_residuos: data.evita_quema_residuos ?? "no_cumple",
-      comentarios_mitigacion: data.comentarios_mitigacion,
-      practicas_implementadas: data.practicas_implementadas,
+      practica_mitigacion_riesgos_descripcion: data.practica_mitigacion_riesgos_descripcion,
+      mitigacion_contaminacion_descripcion: data.mitigacion_contaminacion_descripcion,
     });
   }
 
@@ -148,19 +148,19 @@ export class EvaluacionMitigacion {
       }
     }
 
-    // Validar comentarios si existen
+    // Validar descripciones si existen
     if (
-      this.data.comentarios_mitigacion &&
-      this.data.comentarios_mitigacion.length > 1000
+      this.data.practica_mitigacion_riesgos_descripcion &&
+      this.data.practica_mitigacion_riesgos_descripcion.length > 1000
     ) {
-      errors.push("Comentarios no pueden exceder 1000 caracteres");
+      errors.push("Descripcion de practica mitigacion riesgos no puede exceder 1000 caracteres");
     }
 
     if (
-      this.data.practicas_implementadas &&
-      this.data.practicas_implementadas.length > 1000
+      this.data.mitigacion_contaminacion_descripcion &&
+      this.data.mitigacion_contaminacion_descripcion.length > 1000
     ) {
-      errors.push("Practicas implementadas no pueden exceder 1000 caracteres");
+      errors.push("Descripcion de mitigacion contaminacion no puede exceder 1000 caracteres");
     }
 
     return {
@@ -178,9 +178,8 @@ export class EvaluacionMitigacion {
       deposito_herramientas: this.data.deposito_herramientas,
       deposito_insumos_organicos: this.data.deposito_insumos_organicos,
       evita_quema_residuos: this.data.evita_quema_residuos,
-      comentarios_mitigacion: this.data.comentarios_mitigacion?.trim() || null,
-      practicas_implementadas:
-        this.data.practicas_implementadas?.trim() || null,
+      practica_mitigacion_riesgos_descripcion: this.data.practica_mitigacion_riesgos_descripcion?.trim() || null,
+      mitigacion_contaminacion_descripcion: this.data.mitigacion_contaminacion_descripcion?.trim() || null,
     };
   }
 
@@ -194,9 +193,8 @@ export class EvaluacionMitigacion {
       deposito_herramientas: this.data.deposito_herramientas,
       deposito_insumos_organicos: this.data.deposito_insumos_organicos,
       evita_quema_residuos: this.data.evita_quema_residuos,
-      comentarios_mitigacion: this.data.comentarios_mitigacion?.trim() || null,
-      practicas_implementadas:
-        this.data.practicas_implementadas?.trim() || null,
+      practica_mitigacion_riesgos_descripcion: this.data.practica_mitigacion_riesgos_descripcion?.trim() || null,
+      mitigacion_contaminacion_descripcion: this.data.mitigacion_contaminacion_descripcion?.trim() || null,
     };
   }
 
@@ -210,8 +208,8 @@ export class EvaluacionMitigacion {
       deposito_herramientas: this.data.deposito_herramientas,
       deposito_insumos_organicos: this.data.deposito_insumos_organicos,
       evita_quema_residuos: this.data.evita_quema_residuos,
-      comentarios_mitigacion: this.data.comentarios_mitigacion ?? null,
-      practicas_implementadas: this.data.practicas_implementadas ?? null,
+      practica_mitigacion_riesgos_descripcion: this.data.practica_mitigacion_riesgos_descripcion ?? null,
+      mitigacion_contaminacion_descripcion: this.data.mitigacion_contaminacion_descripcion ?? null,
     };
   }
 
@@ -272,23 +270,21 @@ export class EvaluacionMitigacion {
     this.data[practica] = estado;
   }
 
-  // Actualiza comentarios
-  actualizarComentarios(comentarios: string): void {
-    if (comentarios.length > 1000) {
-      throw new Error("Comentarios no pueden exceder 1000 caracteres");
+  // Actualiza descripcion de practica mitigacion riesgos
+  actualizarPracticaMitigacionRiesgosDescripcion(descripcion: string): void {
+    if (descripcion.length > 1000) {
+      throw new Error("Descripcion no puede exceder 1000 caracteres");
     }
 
-    this.data.comentarios_mitigacion = comentarios.trim();
+    this.data.practica_mitigacion_riesgos_descripcion = descripcion.trim();
   }
 
-  // Actualiza practicas implementadas
-  actualizarPracticasImplementadas(practicas: string): void {
-    if (practicas.length > 1000) {
-      throw new Error(
-        "Practicas implementadas no pueden exceder 1000 caracteres"
-      );
+  // Actualiza descripcion de mitigacion contaminacion
+  actualizarMitigacionContaminacionDescripcion(descripcion: string): void {
+    if (descripcion.length > 1000) {
+      throw new Error("Descripcion no puede exceder 1000 caracteres");
     }
 
-    this.data.practicas_implementadas = practicas.trim();
+    this.data.mitigacion_contaminacion_descripcion = descripcion.trim();
   }
 }

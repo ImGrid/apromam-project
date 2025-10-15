@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Select, type SelectOption } from "@/shared/components/ui";
 import { catalogosService } from "../services/catalogos.service";
 
@@ -20,11 +20,7 @@ export function TiposCultivoSelect({
   const [tiposCultivo, setTiposCultivo] = useState<SelectOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadTiposCultivo();
-  }, [onlyCertificables]);
-
-  const loadTiposCultivo = async () => {
+  const loadTiposCultivo = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await catalogosService.listTiposCultivo({ activo: true });
@@ -54,7 +50,11 @@ export function TiposCultivoSelect({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onlyCertificables]);
+
+  useEffect(() => {
+    loadTiposCultivo();
+  }, [loadTiposCultivo]);
 
   return (
     <Select

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { catalogosService } from "../services/catalogos.service";
 import type { Gestion, CatalogoFilters } from "../types/catalogo.types";
 
@@ -25,7 +25,7 @@ export function useGestiones(
     initialFilters || {}
   );
 
-  const fetchGestiones = async () => {
+  const fetchGestiones = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -46,11 +46,11 @@ export function useGestiones(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     fetchGestiones();
-  }, [filters]);
+  }, [fetchGestiones]);
 
   return {
     gestiones,

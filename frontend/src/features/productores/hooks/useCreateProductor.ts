@@ -1,9 +1,6 @@
 import { useState } from "react";
-import {
-  productoresService,
-  type CreateProductorInput,
-  type Productor,
-} from "../services/productores.service";
+import { productoresService } from "../services/productores.service";
+import type { CreateProductorInput, Productor } from "../types/productor.types";
 import { showToast } from "@/shared/components/ui";
 
 export function useCreateProductor() {

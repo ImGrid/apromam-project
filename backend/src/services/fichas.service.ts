@@ -13,6 +13,7 @@ import { DetalleCultivoParcela } from "../entities/DetalleCultivoParcela.js";
 import { CosechaVentas } from "../entities/CosechaVentas.js";
 import { ArchivoFicha } from "../entities/ArchivoFicha.js";
 import { createAuthLogger } from "../utils/logger.js";
+import { validarSuperficiesFicha } from "../utils/superficieValidation.js";
 import type {
   CreateFichaInput,
   UpdateFichaInput,
@@ -26,6 +27,7 @@ import type { FichaCompleta } from "../repositories/FichaRepository.js";
 import type { MultipartFile } from "@fastify/multipart";
 import path from "path";
 import fs from "fs/promises";
+import { createWriteStream } from "fs";
 import { pipeline } from "stream/promises";
 import { randomUUID } from "crypto";
 
@@ -223,16 +225,13 @@ export class FichasService {
         });
     }
 
-    // Seccion 3: Acciones correctivas
+    // Seccion 3: Acciones correctivas (gestión anterior)
     if (input.acciones_correctivas && input.acciones_correctivas.length > 0) {
       fichaCompleta.acciones_correctivas = input.acciones_correctivas.map(
         (ac) =>
           AccionCorrectiva.create({
             id_ficha: "",
             ...ac,
-            fecha_limite: ac.fecha_limite
-              ? new Date(ac.fecha_limite)
-              : undefined,
           })
       );
     }
@@ -406,18 +405,21 @@ export class FichasService {
   }
 
   // Añade un archivo a una ficha existente
+  // Usa streaming y validación de magic numbers para mayor seguridad
   async addArchivoToFicha(
     fichaId: string,
     usuarioId: string,
     usuarioComunidadId: string | undefined,
     esAdminOGerente: boolean,
-    data: MultipartFile
+    fileData: MultipartFile,
+    tipoArchivo: string
   ): Promise<ArchivoFichaResponse> {
     logger.info(
       {
         id_ficha: fichaId,
-        filename: data.filename,
-        mimetype: data.mimetype,
+        filename: fileData.filename,
+        mimetype: fileData.mimetype,
+        tipo_archivo: tipoArchivo,
       },
       "Adding archivo to ficha"
     );
@@ -437,65 +439,145 @@ export class FichasService {
       }
     }
 
-    // 2. Procesar y guardar el archivo
-    const tipoArchivo = (data.fields.tipo_archivo as any).value as string;
+    // 2. Validar tipo de archivo
     if (
       !tipoArchivo ||
       !["croquis", "foto_parcela", "documento_pdf"].includes(tipoArchivo)
     ) {
-      throw new Error("Tipo de archivo no válido");
+      throw new Error(
+        "Tipo de archivo no válido. Debe ser: croquis, foto_parcela o documento_pdf"
+      );
     }
 
-    const uploadDir = this.getUploadDirectory(tipoArchivo);
-    await fs.mkdir(uploadDir, { recursive: true });
+    // 3. Importar utilidades de uploads y validación
+    const { generateUniqueFilename, buildFilePath, buildRelativePath } =
+      await import("../utils/uploads.js");
+    const { validateFile } = await import("../utils/fileValidation.js");
 
-    const uniqueFilename = `${randomUUID()}-${fichaId}${path.extname(
-      data.filename
-    )}`;
-    const relativePath = path.join(tipoArchivo, uniqueFilename);
-    const fullPath = path.join(uploadDir, uniqueFilename);
+    // 4. Generar nombre único y paths
+    const uniqueFilename = generateUniqueFilename(fileData.filename, fichaId);
+    const fullPath = buildFilePath(tipoArchivo, uniqueFilename);
+    const relativePath = buildRelativePath(tipoArchivo, uniqueFilename);
 
-    await pipeline(data.file, fs.createWriteStream(fullPath));
+    let tempPath: string | null = null;
 
-    const stats = await fs.stat(fullPath);
+    try {
+      // 5. Guardar archivo temporalmente para validación
+      // Usamos pipeline para streaming eficiente
+      tempPath = `${fullPath}.tmp`;
+      await pipeline(fileData.file, createWriteStream(tempPath));
 
-    // 3. Crear y guardar la entidad ArchivoFicha
-    const archivo = ArchivoFicha.create({
-      id_ficha: fichaId,
-      tipo_archivo: tipoArchivo as any,
-      nombre_original: data.filename,
-      ruta_almacenamiento: relativePath,
-      tamaño_bytes: stats.size,
-      mime_type: data.mimetype,
-    });
+      // 6. Leer archivo para validación de magic numbers
+      const fileBuffer = await fs.readFile(tempPath);
 
-    const nuevoArchivo = await this.archivoFichaRepository.create(archivo);
+      // 7. Validar archivo (tipo y tamaño) con magic numbers
+      const validation = await validateFile(fileBuffer, tipoArchivo as any);
+      if (!validation.valid) {
+        const errorMessages = validation.errors.map((e) => e.message).join(", ");
+        throw new Error(`Validación de archivo falló: ${errorMessages}`);
+      }
 
-    logger.info(
-      {
-        id_archivo: nuevoArchivo.id,
+      // 8. Renombrar de temporal a definitivo
+      await fs.rename(tempPath, fullPath);
+      tempPath = null; // Ya no es temporal
+
+      // 9. Obtener tamaño del archivo
+      const stats = await fs.stat(fullPath);
+
+      logger.info(
+        {
+          id_ficha: fichaId,
+          filename: uniqueFilename,
+          detectedMime: validation.detectedMimeType,
+          size: stats.size,
+        },
+        "File validated and saved successfully"
+      );
+
+      // 10. Crear y guardar la entidad ArchivoFicha
+      const archivo = ArchivoFicha.create({
         id_ficha: fichaId,
-        path: relativePath,
-      },
-      "Archivo added to ficha successfully"
-    );
+        tipo_archivo: tipoArchivo as any,
+        nombre_original: fileData.filename,
+        ruta_almacenamiento: relativePath,
+        tamaño_bytes: stats.size,
+        mime_type: validation.detectedMimeType || fileData.mimetype,
+      });
 
-    return nuevoArchivo.toJSON();
+      // Marcar como subido ANTES de crear en BD
+      archivo.marcarSubido();
+
+      const nuevoArchivo = await this.archivoFichaRepository.create(archivo);
+
+      logger.info(
+        {
+          id_archivo: nuevoArchivo.id,
+          id_ficha: fichaId,
+          path: relativePath,
+        },
+        "Archivo added to ficha successfully"
+      );
+
+      return nuevoArchivo.toJSON();
+    } catch (error) {
+      // Cleanup: eliminar archivo temporal o definitivo en caso de error
+      const pathToClean = tempPath || fullPath;
+      try {
+        await fs.unlink(pathToClean);
+        logger.debug({ path: pathToClean }, "Cleaned up file after error");
+      } catch (cleanupError) {
+        logger.warn(
+          { path: pathToClean, error: cleanupError },
+          "Failed to cleanup file"
+        );
+      }
+
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          id_ficha: fichaId,
+        },
+        "Error adding archivo to ficha"
+      );
+
+      throw error;
+    }
   }
 
-  private getUploadDirectory(tipo: string): string {
-    // Asegúrate que esta ruta base sea correcta para tu entorno
-    const baseDir = path.resolve(process.cwd(), "src", "uploads");
-    switch (tipo) {
-      case "croquis":
-        return path.join(baseDir, "croquis");
-      case "foto_parcela":
-        return path.join(baseDir, "fotos-parcelas");
-      case "documento_pdf":
-        return path.join(baseDir, "documentos"); // Asumiendo una carpeta para PDFs
-      default:
-        throw new Error("Tipo de archivo no soportado para almacenamiento");
+  // Lista archivos de una ficha
+  async listArchivos(
+    fichaId: string,
+    usuarioComunidadId?: string,
+    esAdminOGerente: boolean = false
+  ): Promise<ArchivoFichaResponse[]> {
+    // Validar acceso a la ficha
+    const ficha = await this.fichaRepository.findById(fichaId);
+    if (!ficha) {
+      throw new Error("Ficha no encontrada");
     }
+
+    if (!esAdminOGerente && usuarioComunidadId) {
+      const productor = await this.productorRepository.findByCodigo(
+        ficha.codigoProductor
+      );
+      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+        throw new Error("No tiene acceso a esta ficha");
+      }
+    }
+
+    const archivos = await this.archivoFichaRepository.findByFichaId(fichaId);
+    return archivos.map((a) => a.toJSON());
+  }
+
+  // Elimina un archivo de una ficha
+  async deleteArchivo(
+    archivoId: string,
+    usuarioComunidadId?: string,
+    esAdminOGerente: boolean = false
+  ): Promise<void> {
+    // TODO: Implementar método findById en ArchivoFichaRepository
+    // Por ahora, buscar en la lista de archivos de la ficha
+    throw new Error("Método deleteArchivo pendiente de implementación");
   }
 
   // METODOS DE WORKFLOW
@@ -535,6 +617,75 @@ export class FichasService {
     if (!ficha.puedeEnviarRevision()) {
       throw new Error("La ficha no puede enviarse a revision");
     }
+
+    // ===== VALIDACIÓN DE SUPERFICIES =====
+    // Obtener productor y detalles de cultivo para validar
+    const productor = await this.productorRepository.findByCodigo(
+      ficha.codigoProductor
+    );
+    if (!productor) {
+      throw new Error("Productor no encontrado para validar superficies");
+    }
+
+    // Obtener ficha completa con detalles de cultivo
+    const fichaCompleta = await this.fichaRepository.loadFichaCompleta(id);
+    const detallesCultivo = fichaCompleta.detalles_cultivo || [];
+
+    // Validar superficies SOLO si hay cultivos registrados
+    if (detallesCultivo.length > 0) {
+      const validacion = validarSuperficiesFicha(
+        productor.toDatabaseInsert(),
+        detallesCultivo.map((dc) => ({
+          id_detalle_cultivo: dc.id,
+          id_ficha: dc.idFicha,
+          id_parcela: dc.idParcela,
+          id_tipo_cultivo: dc.idTipoCultivo,
+          superficie_ha: dc.superficieHa,
+          procedencia_semilla: dc.procedenciaSemilla,
+          categoria_semilla: dc.categoriaSemilla,
+          tratamiento_semillas: dc.tratamientoSemillas,
+          tipo_abonamiento: dc.tipoAbonamiento,
+          metodo_aporque: dc.metodoAporque,
+          control_hierbas: dc.controlHierbas,
+          metodo_cosecha: dc.metodoCosecha,
+          rotacion: dc.rotacion,
+          insumos_organicos_usados: dc.insumosOrganicosUsados,
+          nombre_cultivo: undefined, // No lo tenemos aquí, se enriquece en la query
+        }))
+      );
+
+      // Si hay ERRORES, no permitir enviar
+      if (!validacion.valid) {
+        throw new Error(
+          `Validación de superficies falló:\n${validacion.errors.join("\n")}`
+        );
+      }
+
+      // Si hay WARNINGS, logearlos pero permitir continuar
+      if (validacion.warnings.length > 0) {
+        logger.warn(
+          {
+            id_ficha: id,
+            warnings: validacion.warnings,
+          },
+          "Advertencias en validación de superficies"
+        );
+      }
+
+      // Loggear detalles de la validación
+      if (validacion.detalles) {
+        logger.info(
+          {
+            id_ficha: id,
+            superficie_total: validacion.detalles.superficie_total_productor,
+            superficie_usada: validacion.detalles.superficie_usada_en_ficha,
+            porcentaje_uso: validacion.detalles.porcentaje_uso.toFixed(1) + "%",
+          },
+          "Validación de superficies exitosa"
+        );
+      }
+    }
+    // ===== FIN VALIDACIÓN DE SUPERFICIES =====
 
     // Enviar a revision
     ficha.enviarRevision(input.recomendaciones, input.firma_inspector);

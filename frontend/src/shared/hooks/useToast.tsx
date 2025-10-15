@@ -1,6 +1,5 @@
 import toast from "react-hot-toast";
 import { CheckCircle, XCircle, Info, AlertTriangle } from "lucide-react";
-import React from 'react';
 
 /**
  * Helpers para mostrar toasts con estilos APROMAM

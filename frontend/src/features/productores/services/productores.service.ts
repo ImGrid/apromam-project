@@ -3,7 +3,7 @@ import type {
   Productor,
   CreateProductorInput,
   UpdateProductorInput,
-  ProductorFilters,
+  ProductorFiltersInput,
   ProductoresListResponse,
   ProximitySearchInput,
   ProductorStats,
@@ -22,7 +22,7 @@ export const productoresService = {
     }
   },
 
-  async listProductores(filters?: ProductorFilters): Promise<ProductoresListResponse> {
+  async listProductores(filters?: ProductorFiltersInput): Promise<ProductoresListResponse> {
     try {
       const params: Record<string, string> = {};
 

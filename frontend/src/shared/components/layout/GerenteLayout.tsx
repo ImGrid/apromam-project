@@ -66,11 +66,13 @@ function GerenteSidebar() {
     <aside className="hidden w-64 h-screen overflow-y-auto bg-white border-r lg:block border-neutral-border">
       {/* Logo */}
       <div className="flex items-center justify-center h-16 border-b border-neutral-border">
-        <img
-          src="https://apromam.com/wp-content/uploads/2021/01/cropped-LOGO-APROMAM-H-1024x322.png"
-          alt="APROMAM"
-          className="h-10"
-        />
+        <Link to={ROUTES.DASHBOARD} className="flex items-center">
+          <img
+            src="/apromam_logo.webp"
+            alt="APROMAM"
+            className="h-10 w-auto object-contain"
+          />
+        </Link>
       </div>
 
       {/* Navigation */}
@@ -137,11 +139,13 @@ function GerenteMobileSidebar({
 
       <aside className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-white lg:hidden">
         <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-border">
-          <img
-            src="https://apromam.com/wp-content/uploads/2021/01/cropped-LOGO-APROMAM-H-1024x322.png"
-            alt="APROMAM"
-            className="h-10"
-          />
+          <Link to={ROUTES.DASHBOARD} className="flex items-center" onClick={onClose}>
+            <img
+              src="/apromam_logo.webp"
+              alt="APROMAM"
+              className="h-10 w-auto object-contain"
+            />
+          </Link>
           <button
             onClick={onClose}
             className="p-2 rounded-md text-text-secondary hover:bg-neutral-bg"

@@ -166,8 +166,9 @@ const environmentSchema = Joi.object({
     .description("Máximo archivos por upload"),
 
   // Ruta donde se guardan los archivos subidos
+  // Se usa la raíz del proyecto, no dentro de backend/
   UPLOADS_PATH: Joi.string()
-    .default("./src/uploads")
+    .default("../uploads")
     .description("Ruta almacenamiento archivos"),
 
   // Tipos de archivo permitidos (separados por coma)
@@ -252,7 +253,7 @@ const environmentSchema = Joi.object({
 
   // Configuracion para generar reportes Excel
   EXCEL_TEMP_PATH: Joi.string()
-    .default("./src/uploads/reportes-temp")
+    .default("../uploads/reportes-temp")
     .description("Ruta temporal reportes Excel"),
 
   EXCEL_MAX_ROWS: Joi.number()

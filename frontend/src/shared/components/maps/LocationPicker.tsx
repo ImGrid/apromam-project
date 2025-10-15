@@ -46,8 +46,8 @@ function LocationSelector({
   return null;
 }
 
-// Centro por defecto: Santa Cruz, Bolivia
-const DEFAULT_CENTER: LatLngExpression = [-17.78, -63.18];
+// Centro por defecto: Sucre, Chuquisaca, Bolivia
+const DEFAULT_CENTER: LatLngExpression = [-19.04, -65.26];
 const DEFAULT_ZOOM = 13;
 
 /**

@@ -3,7 +3,7 @@
  * Filtra automaticamente por comunidad
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
 import { useAuth } from "@/shared/hooks/useAuth";
 
@@ -34,7 +34,7 @@ export function useMisFichas(): UseMisFichasReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchFichas = async () => {
+  const fetchFichas = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -54,11 +54,11 @@ export function useMisFichas(): UseMisFichasReturn {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchFichas();
-  }, [user]);
+  }, [fetchFichas]);
 
   return {
     borradores,

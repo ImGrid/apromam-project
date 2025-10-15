@@ -53,6 +53,12 @@ const startServer = async () => {
     await initializePostGIS();
     logger.info("PostGIS initialized successfully");
 
+    // Inicializar estructura de directorios para uploads
+    logger.info("Initializing uploads directory structure...");
+    const { initializeUploadsDirectory } = await import("./utils/uploads.js");
+    await initializeUploadsDirectory();
+    logger.info("Uploads directory initialized successfully");
+
     // Registrar rutas
     await server.register(authRoutes, { prefix: "/api/auth" });
     await server.register(comunidadesRoutes, { prefix: "/api/comunidades" });

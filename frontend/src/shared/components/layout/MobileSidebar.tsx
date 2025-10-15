@@ -135,11 +135,13 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       <aside className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-white lg:hidden">
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-border">
-          <img
-            src="https://apromam.com/wp-content/uploads/2021/01/cropped-LOGO-APROMAM-H-1024x322.png"
-            alt="APROMAM"
-            className="h-10"
-          />
+          <Link to={ROUTES.DASHBOARD} className="flex items-center" onClick={onClose}>
+            <img
+              src="/apromam_logo.webp"
+              alt="APROMAM"
+              className="h-10 w-auto object-contain"
+            />
+          </Link>
           <button
             onClick={onClose}
             className="p-2 rounded-md text-text-secondary hover:bg-neutral-bg focus:outline-none focus:ring-2 focus:ring-primary"

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Select, type SelectOption } from "@/shared/components/ui";
 import { catalogosService } from "../services/catalogos.service";
 
@@ -18,11 +18,7 @@ export function GestionesSelect({
   const [gestiones, setGestiones] = useState<SelectOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadGestiones();
-  }, []);
-
-  const loadGestiones = async () => {
+  const loadGestiones = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await catalogosService.listGestiones({ activo: true });
@@ -51,7 +47,11 @@ export function GestionesSelect({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [value, onChange]);
+
+  useEffect(() => {
+    loadGestiones();
+  }, [loadGestiones]);
 
   return (
     <Select

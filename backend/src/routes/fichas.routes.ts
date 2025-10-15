@@ -213,6 +213,37 @@ export default async function fichasRoutes(
     async (request, reply) => fichasController.delete(request, reply)
   );
 
+  // GET /api/fichas/:id/archivos
+  // Lista todos los archivos asociados a una ficha
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    "/:id/archivos",
+    {
+      onRequest: [
+        authenticate,
+        requireRoles("tecnico", "gerente", "administrador"),
+      ],
+      schema: {
+        description: "Lista todos los archivos de una ficha.",
+        tags: ["fichas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: FichaParamsSchema,
+        response: {
+          200: z.object({
+            archivos: z.array(ArchivoFichaResponseSchema),
+            total: z.number().int(),
+          }),
+          401: FichaErrorSchema,
+          403: FichaErrorSchema,
+          404: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.listArchivos(request, reply)
+  );
+
   // POST /api/fichas/:id/archivos
   // Sube un archivo (croquis, foto) y lo asocia a la ficha.
   fastify.withTypeProvider<ZodTypeProvider>().post(

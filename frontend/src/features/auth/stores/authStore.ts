@@ -10,7 +10,6 @@ import { authService } from "../services/auth.service";
 import {
   saveTokens,
   clearTokens,
-  getAccessToken,
   getRefreshToken,
   hasValidToken,
 } from "@/shared/services/storage/tokenStorage";
@@ -20,7 +19,6 @@ import type {
   RegisterInput,
   User,
   TokenPair,
-  UserPermissions,
 } from "../types/auth.types";
 
 /**

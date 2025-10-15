@@ -10,7 +10,6 @@ export interface ActividadPecuariaData {
   cantidad: number;
   sistema_manejo?: string | null;
   uso_guano?: string | null;
-  descripcion_uso_guano?: string | null;
   created_at: Date;
 }
 
@@ -23,7 +22,6 @@ export interface ActividadPecuariaPublicData {
   cantidad: number;
   sistema_manejo?: string | null;
   uso_guano?: string | null;
-  descripcion_uso_guano?: string | null;
   created_at: string;
 }
 
@@ -65,10 +63,6 @@ export class ActividadPecuaria {
     return this.data.uso_guano ?? null;
   }
 
-  get descripcionUsoGuano(): string | null {
-    return this.data.descripcion_uso_guano ?? null;
-  }
-
   get createdAt(): Date {
     return this.data.created_at;
   }
@@ -81,7 +75,6 @@ export class ActividadPecuaria {
     cantidad: number;
     sistema_manejo?: string;
     uso_guano?: string;
-    descripcion_uso_guano?: string;
   }): ActividadPecuaria {
     return new ActividadPecuaria({
       id_actividad: "",
@@ -91,7 +84,6 @@ export class ActividadPecuaria {
       cantidad: data.cantidad,
       sistema_manejo: data.sistema_manejo,
       uso_guano: data.uso_guano,
-      descripcion_uso_guano: data.descripcion_uso_guano,
       created_at: new Date(),
     });
   }
@@ -133,15 +125,8 @@ export class ActividadPecuaria {
       errors.push("Sistema de manejo no puede exceder 200 caracteres");
     }
 
-    if (this.data.uso_guano && this.data.uso_guano.length > 200) {
-      errors.push("Uso de guano no puede exceder 200 caracteres");
-    }
-
-    if (
-      this.data.descripcion_uso_guano &&
-      this.data.descripcion_uso_guano.length > 500
-    ) {
-      errors.push("Descripcion uso guano no puede exceder 500 caracteres");
+    if (this.data.uso_guano && this.data.uso_guano.length > 500) {
+      errors.push("Uso de guano no puede exceder 500 caracteres");
     }
 
     return {
@@ -162,7 +147,6 @@ export class ActividadPecuaria {
       cantidad: this.data.cantidad,
       sistema_manejo: this.data.sistema_manejo?.trim() || null,
       uso_guano: this.data.uso_guano?.trim() || null,
-      descripcion_uso_guano: this.data.descripcion_uso_guano?.trim() || null,
     };
   }
 
@@ -176,7 +160,6 @@ export class ActividadPecuaria {
       cantidad: this.data.cantidad,
       sistema_manejo: this.data.sistema_manejo?.trim() || null,
       uso_guano: this.data.uso_guano?.trim() || null,
-      descripcion_uso_guano: this.data.descripcion_uso_guano?.trim() || null,
     };
   }
 
@@ -190,7 +173,6 @@ export class ActividadPecuaria {
       cantidad: this.data.cantidad,
       sistema_manejo: this.data.sistema_manejo ?? null,
       uso_guano: this.data.uso_guano ?? null,
-      descripcion_uso_guano: this.data.descripcion_uso_guano ?? null,
       created_at: this.data.created_at.toISOString(),
     };
   }
@@ -198,7 +180,9 @@ export class ActividadPecuaria {
   // Verifica si usa el guano
   usaGuano(): boolean {
     return (
-      this.data.uso_guano !== null && this.data.uso_guano.trim().length > 0
+      this.data.uso_guano !== null &&
+      this.data.uso_guano !== undefined &&
+      this.data.uso_guano.trim().length > 0
     );
   }
 
@@ -234,19 +218,11 @@ export class ActividadPecuaria {
   }
 
   // Actualiza uso de guano
-  actualizarUsoGuano(uso: string, descripcion?: string): void {
-    if (uso.length > 200) {
-      throw new Error("Uso de guano no puede exceder 200 caracteres");
-    }
-
-    if (descripcion && descripcion.length > 500) {
-      throw new Error("Descripcion uso guano no puede exceder 500 caracteres");
+  actualizarUsoGuano(uso: string): void {
+    if (uso.length > 500) {
+      throw new Error("Uso de guano no puede exceder 500 caracteres");
     }
 
     this.data.uso_guano = uso.trim();
-
-    if (descripcion) {
-      this.data.descripcion_uso_guano = descripcion.trim();
-    }
   }
 }

@@ -1,52 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { PlusCircle, Leaf, Map } from "lucide-react";
+import { PlusCircle, Leaf, Map, FileText, Clock, CheckCircle, FileEdit } from "lucide-react";
 import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
 import { StatCard } from "../components/StatCard";
 import { MisFichasTabs } from "../components/MisFichasTabs";
-import { AlertCard } from "../components/AlertCard";
 import { CreateProductorModal } from "@/features/productores/components/CreateProductorModal";
 import { useMisFichas } from "../hooks/useMisFichas";
 import { ROUTES } from "@/shared/config/routes.config";
 import { useAuth } from "@/shared/hooks/useAuth";
-import { apiClient, ENDPOINTS } from "@/shared/services/api";
-import type { Productor } from "@/features/productores/services/productores.service";
+import type { Productor } from "@/features/productores/types/productor.types";
 
 export function TecnicoDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { borradores, enRevision, aprobadas, isLoading, refetch } =
     useMisFichas();
-  const [totalProductores, setTotalProductores] = useState(0);
-  const [productoresSinGPS, setProductoresSinGPS] = useState(0);
-  const [loadingStats, setLoadingStats] = useState(true);
   const [productorModalOpen, setProductorModalOpen] = useState(false);
 
-  // Fetch stats - memoizado
-  const fetchStats = useCallback(async () => {
-    try {
-      const [productores] = await Promise.all([
-        apiClient.get(ENDPOINTS.PRODUCTORES.BASE),
-      ]);
-
-      setTotalProductores(productores.data.total || 0);
-      // TODO: Implementar endpoint para productores sin GPS
-      setProductoresSinGPS(0);
-    } catch {
-      console.error("Error fetching stats");
-    } finally {
-      setLoadingStats(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
   const handleProductorCreated = (productor: Productor) => {
-    // Refrescar estadisticas
-    fetchStats();
+    // Refrescar fichas
     refetch();
 
     // Preguntar si quiere agregar parcelas
@@ -93,35 +66,43 @@ export function TecnicoDashboard() {
             </button>
           </div>
 
-          {/* Estadisticas */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <StatCard
-              title="Mis Productores"
-              value={totalProductores}
-              icon={Leaf}
-              color="info"
-              loading={loadingStats}
-            />
-            <StatCard
-              title="Total Fichas"
-              value={borradores.length + enRevision.length + aprobadas.length}
-              icon={PlusCircle}
-              color="primary"
-              loading={isLoading}
-            />
+          {/* Estadisticas de Fichas */}
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-text-primary">
+              Mis Fichas - Resumen
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title="Total Fichas"
+                value={borradores.length + enRevision.length + aprobadas.length}
+                icon={FileText}
+                color="primary"
+                loading={isLoading}
+              />
+              <StatCard
+                title="Borradores"
+                value={borradores.length}
+                icon={FileEdit}
+                color="warning"
+                loading={isLoading}
+              />
+              <StatCard
+                title="En Revisión"
+                value={enRevision.length}
+                icon={Clock}
+                color="info"
+                loading={isLoading}
+              />
+              <StatCard
+                title="Aprobadas"
+                value={aprobadas.length}
+                icon={CheckCircle}
+                color="success"
+                loading={isLoading}
+              />
+            </div>
           </div>
 
-          {/* Alerta productores sin GPS */}
-          {productoresSinGPS > 0 && (
-            <AlertCard
-              type="warning"
-              message={`Tienes ${productoresSinGPS} productores sin coordenadas GPS`}
-              action={{
-                label: "Ver productores",
-                onClick: () => navigate(ROUTES.PRODUCTORES),
-              }}
-            />
-          )}
 
           {/* Mis fichas */}
           <div>

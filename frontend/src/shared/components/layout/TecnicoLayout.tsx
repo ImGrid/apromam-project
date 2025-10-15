@@ -58,19 +58,21 @@ function TecnicoSidebar() {
   };
 
   return (
-    <aside className="hidden w-64 h-screen overflow-y-auto bg-white border-r lg:block border-neutral-border">
+    <aside className="fixed top-0 left-0 z-30 flex-col hidden w-64 h-screen bg-white border-r lg:flex border-neutral-border">
       {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-neutral-border">
-        <img
-          src="https://apromam.com/wp-content/uploads/2021/01/cropped-LOGO-APROMAM-H-1024x322.png"
-          alt="APROMAM"
-          className="h-10"
-        />
+      <div className="flex items-center justify-center flex-shrink-0 h-16 border-b border-neutral-border">
+        <Link to={ROUTES.DASHBOARD} className="flex items-center">
+          <img
+            src="/apromam_logo.webp"
+            alt="APROMAM"
+            className="h-10 w-auto object-contain"
+          />
+        </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="p-4">
-        <ul className="space-y-2">
+      <nav className="flex-1 p-4 overflow-y-auto">
+        <ul className="space-y-1">
           {tecnicoNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -97,7 +99,7 @@ function TecnicoSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 mt-auto border-t border-neutral-border">
+      <div className="flex-shrink-0 p-4 border-t border-neutral-border">
         <p className="text-xs text-center text-text-secondary">
           APROMAM © {new Date().getFullYear()}
         </p>
@@ -134,11 +136,13 @@ function TecnicoMobileSidebar({
 
       <aside className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-white lg:hidden">
         <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-border">
-          <img
-            src="https://apromam.com/wp-content/uploads/2021/01/cropped-LOGO-APROMAM-H-1024x322.png"
-            alt="APROMAM"
-            className="h-10"
-          />
+          <Link to={ROUTES.DASHBOARD} className="flex items-center" onClick={onClose}>
+            <img
+              src="/apromam_logo.webp"
+              alt="APROMAM"
+              className="h-10 w-auto object-contain"
+            />
+          </Link>
           <button
             onClick={onClose}
             className="p-2 rounded-md text-text-secondary hover:bg-neutral-bg"
@@ -192,14 +196,14 @@ export function TecnicoLayout({ children, title }: TecnicoLayoutProps) {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-neutral-bg">
+    <div className="min-h-screen bg-neutral-bg">
       <TecnicoSidebar />
       <TecnicoMobileSidebar
         isOpen={isMobileMenuOpen}
         onClose={handleCloseMobileMenu}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col min-h-screen lg:ml-64">
         <Header title={title} onMenuClick={handleOpenMobileMenu} />
 
         <div className="px-4 py-3 bg-white border-b sm:px-6 lg:px-8 border-neutral-border">

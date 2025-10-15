@@ -5,12 +5,13 @@ export class UsuarioRepository {
   /**
    * Encuentra usuario por ID
    * JOIN con roles y comunidades para info completa
+   * Permite encontrar usuarios activos e inactivos (para poder editarlos/reactivarlos)
    */
   async findById(id: string): Promise<Usuario | null> {
     const query = {
       name: "find-usuario-by-id",
       text: `
-        SELECT 
+        SELECT
           u.id_usuario,
           u.username,
           u.email,
@@ -31,7 +32,7 @@ export class UsuarioRepository {
         LEFT JOIN comunidades c ON u.id_comunidad = c.id_comunidad
         LEFT JOIN municipios m ON c.id_municipio = m.id_municipio
         LEFT JOIN provincias p ON m.id_provincia = p.id_provincia
-        WHERE u.id_usuario = $1 AND u.activo = true
+        WHERE u.id_usuario = $1
       `,
       values: [id],
     };
@@ -313,7 +314,8 @@ export class UsuarioRepository {
 
   /**
    * Actualiza un usuario existente
-   * Solo campos modificables
+   * Solo campos modificables: email, nombre_completo, id_comunidad, activo
+   * Permite actualizar usuarios activos e inactivos (para poder reactivarlos)
    */
   async update(id: string, usuario: Usuario): Promise<Usuario> {
     const validation = usuario.validate();
@@ -326,13 +328,13 @@ export class UsuarioRepository {
     const query = {
       text: `
         UPDATE usuarios
-        SET 
+        SET
           email = $2,
           nombre_completo = $3,
           id_comunidad = $4,
           activo = $5,
           updated_at = CURRENT_TIMESTAMP
-        WHERE id_usuario = $1 AND activo = true
+        WHERE id_usuario = $1
         RETURNING id_usuario
       `,
       values: [
@@ -346,7 +348,7 @@ export class UsuarioRepository {
 
     const result = await WriteQuery.execute(query);
     if (!result.success || result.affectedRows === 0) {
-      throw new Error(result.error || "Usuario no encontrado o ya inactivo");
+      throw new Error(result.error || "Usuario no encontrado");
     }
 
     // Retornar usuario actualizado con JOINs
@@ -435,7 +437,7 @@ export class UsuarioRepository {
         SELECT COUNT(*) as count
         FROM usuarios u
         INNER JOIN roles r ON u.id_rol = r.id_rol
-        WHERE u.id_comunidad = $1 
+        WHERE u.id_comunidad = $1
           AND LOWER(r.nombre_rol) = 'tecnico'
           AND u.activo = true
       `,
@@ -444,5 +446,76 @@ export class UsuarioRepository {
 
     const result = await ReadQuery.findOne<{ count: string }>(query);
     return parseInt(result?.count || "0", 10);
+  }
+
+  /**
+   * Lista usuarios gestionables por un usuario especifico
+   * Optimizacion: filtra directamente en SQL por roles permitidos y excluye self
+   * Mas eficiente que filtrar en memoria en el servicio
+   *
+   * @param managerUserId - ID del usuario gestor (para excluir)
+   * @param rolesPermitidos - Array de nombres de roles que puede gestionar
+   * @param rolNombre - Filtro opcional por nombre de rol especifico
+   * @param activo - Filtro opcional por estado activo
+   */
+  async findAllManageableBy(
+    managerUserId: string,
+    rolesPermitidos: string[],
+    rolNombre?: string,
+    activo?: boolean
+  ): Promise<Usuario[]> {
+    // Si no hay roles permitidos, retornar array vacio
+    if (rolesPermitidos.length === 0) {
+      return [];
+    }
+
+    let queryText = `
+      SELECT
+        u.id_usuario,
+        u.username,
+        u.email,
+        u.password_hash,
+        u.nombre_completo,
+        u.id_rol,
+        u.id_comunidad,
+        u.activo,
+        u.last_login,
+        u.created_at,
+        u.updated_at,
+        r.nombre_rol,
+        c.nombre_comunidad
+      FROM usuarios u
+      INNER JOIN roles r ON u.id_rol = r.id_rol
+      LEFT JOIN comunidades c ON u.id_comunidad = c.id_comunidad
+      WHERE u.id_usuario != $1
+        AND LOWER(r.nombre_rol) = ANY($2)
+    `;
+
+    const values: any[] = [managerUserId, rolesPermitidos];
+    let paramCount = 2;
+
+    // Filtrar por estado activo si se especifica
+    if (activo !== undefined) {
+      paramCount++;
+      queryText += ` AND u.activo = $${paramCount}`;
+      values.push(activo);
+    }
+
+    // Filtrar por rol especifico si se especifica
+    if (rolNombre) {
+      paramCount++;
+      queryText += ` AND LOWER(r.nombre_rol) = LOWER($${paramCount})`;
+      values.push(rolNombre);
+    }
+
+    queryText += ` ORDER BY u.created_at DESC`;
+
+    const query = {
+      text: queryText,
+      values,
+    };
+
+    const results = await ReadQuery.execute<UsuarioData>(query);
+    return results.map((data) => Usuario.fromDatabase(data));
   }
 }

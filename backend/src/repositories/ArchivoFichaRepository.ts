@@ -11,10 +11,11 @@ export class ArchivoFichaRepository {
     const query = {
       name: "create-archivo-ficha",
       text: `
-        INSERT INTO archivos_fichas (
-          id_ficha, tipo_archivo, nombre_original, ruta_almacenamiento, 
+        INSERT INTO archivos_ficha (
+          id_ficha, tipo_archivo, nombre_original, ruta_almacenamiento,
           tamaño_bytes, mime_type, estado_upload, hash_archivo, fecha_captura
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
       `,
       values: [
         insertData.id_ficha,
@@ -42,7 +43,7 @@ export class ArchivoFichaRepository {
   async findByFichaId(id_ficha: string): Promise<ArchivoFicha[]> {
     const query = {
       name: "find-archivos-by-ficha-id",
-      text: "SELECT * FROM archivos_fichas WHERE id_ficha = $1 ORDER BY created_at DESC",
+      text: "SELECT * FROM archivos_ficha WHERE id_ficha = $1 ORDER BY created_at DESC",
       values: [id_ficha],
     };
 

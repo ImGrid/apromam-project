@@ -53,7 +53,10 @@ export const CreateUsuarioSchema = z.object({
     .max(200, "Nombre completo no puede exceder 200 caracteres")
     .trim(),
   id_rol: UUIDSchema,
-  id_comunidad: UUIDSchema.optional(),
+  id_comunidad: z
+    .union([UUIDSchema, z.null(), z.literal("")])
+    .transform((val) => (val === "" || val === null ? undefined : val))
+    .optional(),
 });
 
 export type CreateUsuarioInput = z.infer<typeof CreateUsuarioSchema>;
@@ -67,7 +70,10 @@ export const UpdateUsuarioSchema = z.object({
     .max(200, "Nombre completo no puede exceder 200 caracteres")
     .trim()
     .optional(),
-  id_comunidad: UUIDSchema.optional(),
+  id_comunidad: z
+    .union([UUIDSchema, z.null(), z.literal("")])
+    .transform((val) => (val === "" || val === null ? null : val))
+    .optional(),
   activo: z.boolean().optional(),
 });
 

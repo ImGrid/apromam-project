@@ -7,6 +7,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
+  UserCog,
   MapPin,
   Building2,
   Leaf,
@@ -40,6 +41,12 @@ export function Sidebar() {
       path: ROUTES.USUARIOS,
       icon: Users,
       permission: () => permissions.canAccess("usuarios", "read"),
+    },
+    {
+      label: "Técnicos",
+      path: ROUTES.TECNICOS,
+      icon: UserCog,
+      permission: () => permissions.isAdmin() || permissions.isGerente(),
     },
     {
       label: "Comunidades",
@@ -102,11 +109,13 @@ export function Sidebar() {
     <aside className="fixed top-0 left-0 z-30 flex-col hidden w-64 h-screen bg-white border-r lg:flex border-neutral-border">
       {/* Logo */}
       <div className="flex items-center justify-center flex-shrink-0 h-16 border-b border-neutral-border">
-        <img
-          src="https://apromam.com/wp-content/uploads/2021/01/cropped-LOGO-APROMAM-H-1024x322.png"
-          alt="APROMAM"
-          className="h-10"
-        />
+        <Link to={ROUTES.DASHBOARD} className="flex items-center">
+          <img
+            src="/apromam_logo.webp"
+            alt="APROMAM"
+            className="h-10 w-auto object-contain"
+          />
+        </Link>
       </div>
 
       {/* Navigation */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { catalogosService } from "../services/catalogos.service";
 import type { TipoCultivo, CatalogoFilters } from "../types/catalogo.types";
 
@@ -23,7 +23,7 @@ export function useTiposCultivo(
     initialFilters || {}
   );
 
-  const fetchTiposCultivo = async () => {
+  const fetchTiposCultivo = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -39,11 +39,11 @@ export function useTiposCultivo(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     fetchTiposCultivo();
-  }, [filters]);
+  }, [fetchTiposCultivo]);
 
   return {
     tiposCultivo,
