@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { productoresService } from '../services/productores.service';
-import { showToast } from '@/shared/components/ui';
+import { showToast } from '@/shared/hooks/useToast';
 
 export function useDeleteProductor() {
   const [isLoading, setIsLoading] = useState(false);

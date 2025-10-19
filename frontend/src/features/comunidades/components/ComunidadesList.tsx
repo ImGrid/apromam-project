@@ -1,4 +1,5 @@
-import { DataTable, Badge } from "@/shared/components/ui";
+import { DataTable, Badge, IconButton } from "@/shared/components/ui";
+import { Edit, Trash2 } from "lucide-react";
 import type { DataTableColumn } from "@/shared/components/ui";
 import type { Comunidad } from "../types/comunidad.types";
 import { AlertTriangle } from "lucide-react";
@@ -6,12 +7,16 @@ import { AlertTriangle } from "lucide-react";
 interface ComunidadesListProps {
   comunidades: Comunidad[];
   onRowClick?: (comunidad: Comunidad) => void;
+  onEdit?: (comunidad: Comunidad) => void;
+  onDelete?: (comunidad: Comunidad) => void;
   loading?: boolean;
 }
 
 export function ComunidadesList({
   comunidades,
   onRowClick,
+  onEdit,
+  onDelete,
   loading = false,
 }: ComunidadesListProps) {
   const columns: DataTableColumn<Comunidad>[] = [
@@ -63,6 +68,36 @@ export function ComunidadesList({
         <Badge variant={comunidad.activo ? "success" : "error"}>
           {comunidad.activo ? "Activo" : "Inactivo"}
         </Badge>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Acciones",
+      render: (comunidad) => (
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <IconButton
+              icon={<Edit className="w-4 h-4" />}
+              tooltip="Editar comunidad"
+              variant="primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(comunidad);
+              }}
+            />
+          )}
+          {onDelete && (
+            <IconButton
+              icon={<Trash2 className="w-4 h-4" />}
+              tooltip="Eliminar comunidad"
+              variant="danger"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(comunidad);
+              }}
+            />
+          )}
+        </div>
       ),
     },
   ];

@@ -15,7 +15,7 @@ import {
   UsuarioResponseSchema,
   UsuarioErrorSchema,
 } from "../schemas/usuarios.schema.js";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 // Plugin de rutas de usuarios
 // Gerente puede crear tecnicos y productores, NO administradores ni gerentes
@@ -208,7 +208,8 @@ export default async function usuariosRoutes(
     {
       onRequest: [authenticate, requireRoles("gerente", "administrador")],
       schema: {
-        description: "Lista todos los roles disponibles para asignar a usuarios",
+        description:
+          "Lista todos los roles disponibles para asignar a usuarios",
         tags: ["usuarios"],
         headers: z.object({
           authorization: z.string().describe("Bearer token"),

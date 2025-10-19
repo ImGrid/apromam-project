@@ -59,10 +59,10 @@ export function Tooltip({
   };
 
   const arrowClasses = {
-    top: "top-full left-1/2 -translate-x-1/2 border-t-gray-900",
-    bottom: "bottom-full left-1/2 -translate-x-1/2 border-b-gray-900",
-    left: "left-full top-1/2 -translate-y-1/2 border-l-gray-900",
-    right: "right-full top-1/2 -translate-y-1/2 border-r-gray-900",
+    top: "top-full left-1/2 -translate-x-1/2 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900",
+    bottom: "bottom-full left-1/2 -translate-x-1/2 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-gray-900",
+    left: "left-full top-1/2 -translate-y-1/2 border-t-[6px] border-b-[6px] border-l-[6px] border-t-transparent border-b-transparent border-l-gray-900",
+    right: "right-full top-1/2 -translate-y-1/2 border-t-[6px] border-b-[6px] border-r-[6px] border-t-transparent border-b-transparent border-r-gray-900",
   };
 
   return (
@@ -92,13 +92,12 @@ export function Tooltip({
         >
           {content}
 
-          {/* Arrow */}
+          {/* Arrow - Triángulo CSS limpio */}
           <div
             className={`
-              absolute w-2 h-2 bg-gray-900 rotate-45
+              absolute w-0 h-0
               ${arrowClasses[position]}
             `}
-            style={{ borderWidth: "1px 1px 0 0" }}
           />
         </div>
       )}

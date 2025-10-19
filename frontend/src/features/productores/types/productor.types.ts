@@ -10,6 +10,9 @@ export interface Productor {
   codigo_productor: string;
   nombre_productor: string;
   ci_documento?: string;
+  id_organizacion?: string;
+  nombre_organizacion?: string;
+  abreviatura_organizacion?: string;
   nombre_comunidad?: string;
   nombre_municipio?: string;
   nombre_provincia?: string;
@@ -99,10 +102,10 @@ export interface ProductorStats {
 
 // Labels para categorías
 export const CATEGORIA_LABELS: Record<CategoriaProductor, string> = {
-  "E": "En conversión",
+  "E": "En transición",
   "2T": "Segundo año de transición",
   "1T": "Primer año de transición",
-  "0T": "Orgánico certificado",
+  "0T": "Inicio transición",
 };
 
 // Colores para categorías

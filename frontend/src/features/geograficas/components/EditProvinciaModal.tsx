@@ -85,6 +85,11 @@ export function EditProvinciaModal({
           <p className="mt-1 text-base font-semibold text-text-primary">
             {provincia.nombre_provincia}
           </p>
+          {provincia.nombre_departamento && (
+            <p className="mt-1 text-sm text-text-secondary">
+              Departamento: {provincia.nombre_departamento}
+            </p>
+          )}
         </div>
 
         {/* Campo de nombre */}

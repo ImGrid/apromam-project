@@ -1,4 +1,4 @@
-import { Badge, DataTable } from "@/shared/components/ui";
+import { Badge, DataTable, IconButton } from "@/shared/components/ui";
 import { Edit, Trash2, CheckCircle } from "lucide-react";
 import type { DataTableColumn } from "@/shared/components/ui";
 import type { TipoCultivo } from "../types/catalogo.types";
@@ -22,6 +22,9 @@ export function TiposCultivoList({
   canEdit,
   canToggleActivo,
 }: TiposCultivoListProps) {
+  // Verificar si hay algún permiso de acción
+  const hasActionPermissions = canEdit || canToggleActivo;
+
   const columns: DataTableColumn<TipoCultivo>[] = [
     {
       key: "nombre_cultivo",
@@ -68,52 +71,52 @@ export function TiposCultivoList({
         </Badge>
       ),
     },
-    {
-      key: "acciones",
-      label: "Acciones",
-      render: (tipoCultivo) => (
-        <div className="flex items-center gap-2">
-          {canEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(tipoCultivo);
-              }}
-              className="p-2 transition-colors rounded text-primary hover:bg-primary/10 touch-target"
-              aria-label="Editar tipo de cultivo"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-          )}
+    // Solo agregar columna de acciones si hay permisos
+    ...(hasActionPermissions
+      ? [
+          {
+            key: "acciones" as const,
+            label: "Acciones",
+            render: (tipoCultivo: TipoCultivo) => (
+              <div className="flex items-center gap-1">
+                {canEdit && (
+                  <IconButton
+                    icon={<Edit className="w-4 h-4" />}
+                    tooltip="Editar tipo de cultivo"
+                    variant="primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(tipoCultivo);
+                    }}
+                  />
+                )}
 
-          {canToggleActivo && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleActivo(tipoCultivo);
-              }}
-              className={`p-2 transition-colors rounded touch-target ${
-                tipoCultivo.activo
-                  ? "text-error hover:bg-error/10"
-                  : "text-success hover:bg-success/10"
-              }`}
-              aria-label={
-                tipoCultivo.activo
-                  ? "Desactivar tipo de cultivo"
-                  : "Activar tipo de cultivo"
-              }
-              title={tipoCultivo.activo ? "Desactivar" : "Activar"}
-            >
-              {tipoCultivo.activo ? (
-                <Trash2 className="w-4 h-4" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
-              )}
-            </button>
-          )}
-        </div>
-      ),
-    },
+                {canToggleActivo && (
+                  <IconButton
+                    icon={
+                      tipoCultivo.activo ? (
+                        <Trash2 className="w-4 h-4" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )
+                    }
+                    tooltip={
+                      tipoCultivo.activo
+                        ? "Desactivar tipo de cultivo"
+                        : "Activar tipo de cultivo"
+                    }
+                    variant={tipoCultivo.activo ? "danger" : "success"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleActivo(tipoCultivo);
+                    }}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

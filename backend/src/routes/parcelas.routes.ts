@@ -17,7 +17,7 @@ import {
   ParcelasEstadisticasSchema,
   ParcelaErrorSchema,
 } from "../schemas/parcelas.schema.js";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 /**
  * Plugin de rutas de parcelas

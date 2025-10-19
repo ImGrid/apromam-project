@@ -9,11 +9,12 @@ export class ProductorRepository {
     const query = {
       name: "find-productor-by-codigo",
       text: `
-        SELECT 
+        SELECT
           p.codigo_productor,
           p.nombre_productor,
           p.ci_documento,
           p.id_comunidad,
+          p.id_organizacion,
           p.año_ingreso_programa,
           p.latitud_domicilio,
           p.longitud_domicilio,
@@ -28,11 +29,14 @@ export class ProductorRepository {
           c.nombre_comunidad,
           c.abreviatura_comunidad,
           m.nombre_municipio,
-          pr.nombre_provincia
+          pr.nombre_provincia,
+          o.nombre_organizacion,
+          o.abreviatura_organizacion
         FROM productores p
         INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
         INNER JOIN municipios m ON c.id_municipio = m.id_municipio
         INNER JOIN provincias pr ON m.id_provincia = pr.id_provincia
+        LEFT JOIN organizaciones o ON p.id_organizacion = o.id_organizacion
         WHERE p.codigo_productor = $1 AND p.activo = true
       `,
       values: [codigo],
@@ -99,11 +103,12 @@ export class ProductorRepository {
     const query = {
       name: "find-productores-by-comunidad",
       text: `
-        SELECT 
+        SELECT
           p.codigo_productor,
           p.nombre_productor,
           p.ci_documento,
           p.id_comunidad,
+          p.id_organizacion,
           p.año_ingreso_programa,
           p.latitud_domicilio,
           p.longitud_domicilio,
@@ -116,9 +121,12 @@ export class ProductorRepository {
           p.created_at,
           p.updated_at,
           c.nombre_comunidad,
-          c.abreviatura_comunidad
+          c.abreviatura_comunidad,
+          o.nombre_organizacion,
+          o.abreviatura_organizacion
         FROM productores p
         INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
+        LEFT JOIN organizaciones o ON p.id_organizacion = o.id_organizacion
         WHERE p.id_comunidad = $1 AND p.activo = true
         ORDER BY p.codigo_productor
       `,
@@ -133,11 +141,12 @@ export class ProductorRepository {
   // Con filtros opcionales por categoria
   async findAll(categoria?: string): Promise<Productor[]> {
     let queryText = `
-      SELECT 
+      SELECT
         p.codigo_productor,
         p.nombre_productor,
         p.ci_documento,
         p.id_comunidad,
+        p.id_organizacion,
         p.año_ingreso_programa,
         p.latitud_domicilio,
         p.longitud_domicilio,
@@ -152,11 +161,14 @@ export class ProductorRepository {
         c.nombre_comunidad,
         c.abreviatura_comunidad,
         m.nombre_municipio,
-        pr.nombre_provincia
+        pr.nombre_provincia,
+        o.nombre_organizacion,
+        o.abreviatura_organizacion
       FROM productores p
       INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
       INNER JOIN municipios m ON c.id_municipio = m.id_municipio
       INNER JOIN provincias pr ON m.id_provincia = pr.id_provincia
+      LEFT JOIN organizaciones o ON p.id_organizacion = o.id_organizacion
       WHERE p.activo = true
     `;
 

@@ -1,9 +1,14 @@
+import { DepartamentoRepository } from "../repositories/DepartamentoRepository.js";
 import { ProvinciaRepository } from "../repositories/ProvinciaRepository.js";
 import { MunicipioRepository } from "../repositories/MunicipioRepository.js";
+import { Departamento } from "../entities/Departamento.js";
 import { Provincia } from "../entities/Provincia.js";
 import { Municipio } from "../entities/Municipio.js";
 import { createAuthLogger } from "../utils/logger.js";
 import type {
+  CreateDepartamentoInput,
+  UpdateDepartamentoInput,
+  DepartamentoResponse,
   CreateProvinciaInput,
   UpdateProvinciaInput,
   ProvinciaResponse,
@@ -15,17 +20,140 @@ import type {
 const logger = createAuthLogger();
 
 // Service para gestion de la jerarquia geografica
-// Provincias y Municipios
+// Departamentos, Provincias y Municipios
 export class GeograficasService {
+  private departamentoRepository: DepartamentoRepository;
   private provinciaRepository: ProvinciaRepository;
   private municipioRepository: MunicipioRepository;
 
   constructor(
+    departamentoRepository: DepartamentoRepository,
     provinciaRepository: ProvinciaRepository,
     municipioRepository: MunicipioRepository
   ) {
+    this.departamentoRepository = departamentoRepository;
     this.provinciaRepository = provinciaRepository;
     this.municipioRepository = municipioRepository;
+  }
+
+  // DEPARTAMENTOS
+
+  // Lista todos los departamentos
+  async listDepartamentos(): Promise<{
+    departamentos: DepartamentoResponse[];
+    total: number;
+  }> {
+    const departamentos = await this.departamentoRepository.findAll();
+
+    return {
+      departamentos: departamentos.map((d) => d.toJSON()),
+      total: departamentos.length,
+    };
+  }
+
+  // Obtiene un departamento por ID
+  async getDepartamentoById(id: string): Promise<DepartamentoResponse> {
+    const departamento = await this.departamentoRepository.findById(id);
+
+    if (!departamento) {
+      throw new Error("Departamento no encontrado");
+    }
+
+    return departamento.toJSON();
+  }
+
+  // Crea un nuevo departamento
+  // Solo admin y gerente pueden crear
+  async createDepartamento(
+    input: CreateDepartamentoInput
+  ): Promise<DepartamentoResponse> {
+    logger.info(
+      {
+        nombre: input.nombre_departamento,
+      },
+      "Creating departamento"
+    );
+
+    const departamento = Departamento.create({
+      nombre_departamento: input.nombre_departamento,
+    });
+
+    const departamentoCreado = await this.departamentoRepository.create(
+      departamento
+    );
+
+    logger.info(
+      {
+        departamento_id: departamentoCreado.id,
+        nombre: departamentoCreado.nombre,
+      },
+      "Departamento created successfully"
+    );
+
+    return departamentoCreado.toJSON();
+  }
+
+  // Actualiza un departamento existente
+  // Solo admin y gerente pueden actualizar
+  async updateDepartamento(
+    id: string,
+    input: UpdateDepartamentoInput
+  ): Promise<DepartamentoResponse> {
+    logger.info(
+      {
+        departamento_id: id,
+        updates: input,
+      },
+      "Updating departamento"
+    );
+
+    const departamentoActual = await this.departamentoRepository.findById(id);
+    if (!departamentoActual) {
+      throw new Error("Departamento no encontrado");
+    }
+
+    // Aplicar cambios
+    if (input.nombre_departamento) {
+      departamentoActual.actualizarNombre(input.nombre_departamento);
+    }
+
+    if (input.activo !== undefined) {
+      departamentoActual.actualizarEstado(input.activo);
+    }
+
+    const departamentoActualizado = await this.departamentoRepository.update(
+      id,
+      departamentoActual
+    );
+
+    logger.info(
+      {
+        departamento_id: id,
+      },
+      "Departamento updated successfully"
+    );
+
+    return departamentoActualizado.toJSON();
+  }
+
+  // Elimina (desactiva) un departamento
+  // Solo admin y gerente pueden eliminar
+  async deleteDepartamento(id: string): Promise<void> {
+    logger.info(
+      {
+        departamento_id: id,
+      },
+      "Deleting departamento"
+    );
+
+    await this.departamentoRepository.delete(id);
+
+    logger.info(
+      {
+        departamento_id: id,
+      },
+      "Departamento deleted successfully"
+    );
   }
 
   // PROVINCIAS
@@ -62,12 +190,22 @@ export class GeograficasService {
     logger.info(
       {
         nombre: input.nombre_provincia,
+        departamento_id: input.id_departamento,
       },
       "Creating provincia"
     );
 
+    // Verificar que el departamento existe
+    const departamento = await this.departamentoRepository.findById(
+      input.id_departamento
+    );
+    if (!departamento) {
+      throw new Error("Departamento no encontrado");
+    }
+
     const provincia = Provincia.create({
       nombre_provincia: input.nombre_provincia,
+      id_departamento: input.id_departamento,
     });
 
     const provinciaCreada = await this.provinciaRepository.create(provincia);

@@ -22,11 +22,6 @@ const TecnicosListPage = lazy(() =>
     default: m.default,
   }))
 );
-const ComunidadesListPage = lazy(() =>
-  import("@/features/comunidades/pages/ComunidadesListPage").then((m) => ({
-    default: m.ComunidadesListPage,
-  }))
-);
 const GeograficasManagePage = lazy(() =>
   import("@/features/geograficas/pages/GeograficasManagePage").then((m) => ({
     default: m.GeograficasManagePage,
@@ -86,7 +81,7 @@ export const router = createBrowserRouter([
   {
     path: ROUTES.USUARIOS,
     element: (
-      <ProtectedRoute requiredRole={["administrador", "gerente"]}>
+      <ProtectedRoute requiredRole={["administrador"]}>
         <UsuariosListPage />
       </ProtectedRoute>
     ),
@@ -96,14 +91,6 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute requiredRole={["administrador", "gerente"]}>
         <TecnicosListPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: ROUTES.COMUNIDADES,
-    element: (
-      <ProtectedRoute>
-        <ComunidadesListPage />
       </ProtectedRoute>
     ),
   },
@@ -142,7 +129,7 @@ export const router = createBrowserRouter([
   {
     path: ROUTES.FICHAS_CREATE,
     element: (
-      <ProtectedRoute requiredRole={["gerente", "tecnico"]}>
+      <ProtectedRoute requiredRole={["tecnico", "administrador"]}>
         <FichaCreatePage />
       </ProtectedRoute>
     ),
@@ -150,7 +137,7 @@ export const router = createBrowserRouter([
   {
     path: ROUTES.FICHAS_EDIT(":id"),
     element: (
-      <ProtectedRoute requiredRole={["gerente", "tecnico"]}>
+      <ProtectedRoute requiredRole={["tecnico", "administrador"]}>
         <FichaEditPage />
       </ProtectedRoute>
     ),

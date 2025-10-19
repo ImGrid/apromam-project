@@ -1,6 +1,8 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { GeograficasService } from "../services/geograficas.service.js";
 import type {
+  CreateDepartamentoInput,
+  UpdateDepartamentoInput,
   CreateProvinciaInput,
   UpdateProvinciaInput,
   CreateMunicipioInput,
@@ -10,10 +12,166 @@ import type {
 } from "../schemas/geograficas.schema.js";
 
 // Controlador para endpoints de la jerarquia geografica
-// Gestiona provincias y municipios
-// Solo admin puede crear, actualizar o eliminar
+// Gestiona departamentos, provincias y municipios
+// Solo admin y gerente pueden crear, actualizar o eliminar
 export class GeograficasController {
   constructor(private geograficasService: GeograficasService) {}
+
+  // DEPARTAMENTOS
+
+  // GET /api/geograficas/departamentos
+  // Lista todos los departamentos
+  // Acceso: todos los roles autenticados
+  async listDepartamentos(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const result = await this.geograficasService.listDepartamentos();
+      return reply.status(200).send(result);
+    } catch (error) {
+      request.log.error(error, "Error listing departamentos");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al listar departamentos",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // GET /api/geograficas/departamentos/:id
+  // Obtiene un departamento por ID
+  // Acceso: todos los roles autenticados
+  async getDepartamentoById(
+    request: FastifyRequest<{ Params: GeograficaParams }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      const departamento = await this.geograficasService.getDepartamentoById(
+        id
+      );
+      return reply.status(200).send({ departamento });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Departamento no encontrado"
+      ) {
+        return reply.status(404).send({
+          error: "not_found",
+          message: "Departamento no encontrado",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      request.log.error(error, "Error getting departamento");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al obtener departamento",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // POST /api/geograficas/departamentos
+  // Crea un nuevo departamento
+  // Acceso: solo admin y gerente
+  async createDepartamento(
+    request: FastifyRequest<{ Body: CreateDepartamentoInput }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const departamento = await this.geograficasService.createDepartamento(
+        request.body
+      );
+      return reply.status(201).send({
+        departamento,
+        message: "Departamento creado exitosamente",
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Ya existe")) {
+        return reply.status(409).send({
+          error: "conflict",
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      request.log.error(error, "Error creating departamento");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al crear departamento",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // PUT /api/geograficas/departamentos/:id
+  // Actualiza un departamento existente
+  // Acceso: solo admin y gerente
+  async updateDepartamento(
+    request: FastifyRequest<{
+      Params: GeograficaParams;
+      Body: UpdateDepartamentoInput;
+    }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      const departamento = await this.geograficasService.updateDepartamento(
+        id,
+        request.body
+      );
+      return reply.status(200).send({
+        departamento,
+        message: "Departamento actualizado exitosamente",
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Departamento no encontrado"
+      ) {
+        return reply.status(404).send({
+          error: "not_found",
+          message: "Departamento no encontrado",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      request.log.error(error, "Error updating departamento");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al actualizar departamento",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // DELETE /api/geograficas/departamentos/:id
+  // Elimina (desactiva) un departamento
+  // Acceso: solo admin y gerente
+  async deleteDepartamento(
+    request: FastifyRequest<{ Params: GeograficaParams }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      await this.geograficasService.deleteDepartamento(id);
+      return reply.status(204).send();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message === "Departamento no encontrado" ||
+          error.message.includes("tiene"))
+      ) {
+        return reply.status(404).send({
+          error: "not_found",
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      request.log.error(error, "Error deleting departamento");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al eliminar departamento",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
 
   // PROVINCIAS
 

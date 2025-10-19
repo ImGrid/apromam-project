@@ -3,21 +3,23 @@
  * Muestra lista de productores con íconos GPS y acciones
  */
 
-import { MapPin } from 'lucide-react';
-import { DataTable, Badge, type DataTableColumn } from '@/shared/components/ui';
+import { MapPin, Edit, Trash2 } from 'lucide-react';
+import { DataTable, Badge, IconButton, type DataTableColumn } from '@/shared/components/ui';
 import { CATEGORIA_LABELS } from '../types/productor.types';
 import type { Productor } from '../types/productor.types';
 
 interface ProductoresListProps {
   productores: Productor[];
   loading?: boolean;
-  onRowClick?: (productor: Productor) => void;
+  onEdit?: (productor: Productor) => void;
+  onDelete?: (productor: Productor) => void;
 }
 
 export function ProductoresList({
   productores,
   loading = false,
-  onRowClick,
+  onEdit,
+  onDelete,
 }: ProductoresListProps) {
   const columns: DataTableColumn<Productor>[] = [
     {
@@ -37,6 +39,25 @@ export function ProductoresList({
           <p className="font-medium text-text-primary">{productor.nombre_productor}</p>
           {productor.ci_documento && (
             <p className="text-xs text-text-secondary">CI: {productor.ci_documento}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'nombre_organizacion',
+      label: 'Organización',
+      sortable: true,
+      render: (productor) => (
+        <div>
+          {productor.abreviatura_organizacion ? (
+            <>
+              <p className="text-sm font-medium text-text-primary">{productor.abreviatura_organizacion}</p>
+              {productor.nombre_organizacion && (
+                <p className="text-xs text-text-secondary">{productor.nombre_organizacion}</p>
+              )}
+            </>
+          ) : (
+            <span className="text-xs text-text-disabled">Sin organización</span>
           )}
         </div>
       ),
@@ -109,13 +130,36 @@ export function ProductoresList({
         </Badge>
       ),
     },
+    {
+      key: 'acciones',
+      label: 'Acciones',
+      render: (productor) => (
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <IconButton
+              icon={<Edit className="w-4 h-4" />}
+              tooltip="Editar productor"
+              variant="primary"
+              onClick={() => onEdit(productor)}
+            />
+          )}
+          {onDelete && (
+            <IconButton
+              icon={<Trash2 className="w-4 h-4" />}
+              tooltip="Eliminar productor"
+              variant="danger"
+              onClick={() => onDelete(productor)}
+            />
+          )}
+        </div>
+      ),
+    },
   ];
 
   return (
     <DataTable
       columns={columns}
       data={productores}
-      onRowClick={onRowClick}
       loading={loading}
       emptyMessage="No hay productores registrados"
       rowKey="codigo_productor"

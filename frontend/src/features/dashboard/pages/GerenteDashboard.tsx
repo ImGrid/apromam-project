@@ -12,11 +12,12 @@ import { PageContainer } from "@/shared/components/layout/PageContainer";
 import { StatCard } from "../components/StatCard";
 import { FichasPendientesList } from "../components/FichasPendientesList";
 import { Button } from "@/shared/components/ui/Button";
-import { useDashboardStats } from "../hooks/useDashboardStats";
-import { CreateUsuarioModal } from "@/features/usuarios/components/CreateUsuarioModal";
+import { dashboardService } from "../services/dashboard.service";
+import { CreateTecnicoModal } from "@/features/tecnicos/components/CreateTecnicoModal";
 import { CreateProductorModal } from "@/features/productores/components/CreateProductorModal";
 import { ROUTES } from "@/shared/config/routes.config";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
+import type { DashboardStats } from "../types/dashboard.types";
 
 // Tipo de ficha del backend
 interface FichaBackend {
@@ -35,15 +36,29 @@ interface FichaConDias extends FichaBackend {
 
 export function GerenteDashboard() {
   const navigate = useNavigate();
-  const { stats, isLoading, refetch } = useDashboardStats();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [fichasPendientes, setFichasPendientes] = useState<FichaConDias[]>([]);
   const [loadingFichas, setLoadingFichas] = useState(true);
-  const [usuarioModalOpen, setUsuarioModalOpen] = useState(false);
+  const [tecnicoModalOpen, setTecnicoModalOpen] = useState(false);
   const [productorModalOpen, setProductorModalOpen] = useState(false);
 
   useEffect(() => {
+    fetchStats();
     fetchFichasPendientes();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      setIsLoading(true);
+      const statsData = await dashboardService.getGerenteStats();
+      setStats(statsData);
+    } catch (error) {
+      console.error("Error fetching gerente stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchFichasPendientes = async () => {
     try {
@@ -78,7 +93,7 @@ export function GerenteDashboard() {
   };
 
   const handleRefresh = () => {
-    refetch();
+    fetchStats();
     fetchFichasPendientes();
   };
 
@@ -134,7 +149,7 @@ export function GerenteDashboard() {
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <button
-                onClick={() => setUsuarioModalOpen(true)}
+                onClick={() => setTecnicoModalOpen(true)}
                 className="flex flex-col items-center justify-center gap-3 p-6 text-white transition-colors rounded-lg bg-primary hover:bg-primary-dark"
               >
                 <UserPlus className="w-8 h-8" />
@@ -174,9 +189,9 @@ export function GerenteDashboard() {
         </div>
 
         {/* Modales */}
-        <CreateUsuarioModal
-          isOpen={usuarioModalOpen}
-          onClose={() => setUsuarioModalOpen(false)}
+        <CreateTecnicoModal
+          isOpen={tecnicoModalOpen}
+          onClose={() => setTecnicoModalOpen(false)}
           onSuccess={handleRefresh}
         />
 

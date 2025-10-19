@@ -1,70 +1,67 @@
 import { useState } from "react";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
+import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
+import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
 import {
   Button,
-  Modal,
   Select,
   type SelectOption,
 } from "@/shared/components/ui";
 import { ComunidadesList } from "../components/ComunidadesList";
-import { ComunidadCard } from "../components/ComunidadCard";
-import { ComunidadForm } from "../components/ComunidadForm";
+import { CreateComunidadModal } from "../components/CreateComunidadModal";
+import { EditComunidadModal } from "../components/EditComunidadModal";
 import { useComunidades } from "../hooks/useComunidades";
-import { useCreateComunidad } from "../hooks/useCreateComunidad";
-import { useUpdateComunidad } from "../hooks/useUpdateComunidad";
+import { useDeleteComunidad } from "../hooks/useDeleteComunidad";
 import { usePermissions } from "@/shared/hooks/usePermissions";
 import { Plus, Filter } from "lucide-react";
 import type { Comunidad } from "../types/comunidad.types";
 
 export function ComunidadesListPage() {
   const permissions = usePermissions();
+
+  // Seleccionar layout según rol
+  const Layout = permissions.isAdmin() ? AdminLayout :
+                 permissions.isGerente() ? GerenteLayout :
+                 permissions.isTecnico() ? TecnicoLayout :
+                 AdminLayout;
+
   const { comunidades, isLoading, filters, setFilters, refetch } =
     useComunidades();
-  const { createComunidad, isLoading: isCreating } = useCreateComunidad();
-  const { updateComunidad, isLoading: isUpdating } = useUpdateComunidad();
+  const { deleteComunidad } = useDeleteComunidad();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedComunidad, setSelectedComunidad] = useState<Comunidad | null>(
     null
   );
   const [showFilters, setShowFilters] = useState(false);
 
-  const canEdit = permissions.canAccess("comunidades", "edit");
   const canCreate = permissions.canAccess("comunidades", "create");
+  const canEdit = permissions.canAccess("comunidades", "edit");
+  const canDelete = permissions.canAccess("comunidades", "delete");
 
-  const handleRowClick = (comunidad: Comunidad) => {
+  const handleEdit = (comunidad: Comunidad) => {
     setSelectedComunidad(comunidad);
-    setDetailModalOpen(true);
-  };
-
-  const handleEdit = () => {
-    setDetailModalOpen(false);
     setEditModalOpen(true);
   };
 
-  const handleCreate = async (data: {
-    nombre_comunidad: string;
-    abreviatura_comunidad: string;
-    id_municipio: string;
-  }) => {
-    await createComunidad(data);
-    setCreateModalOpen(false);
-    refetch();
+  const handleDelete = async (comunidad: Comunidad) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de que deseas ${comunidad.activo ? 'desactivar' : 'activar'} la comunidad "${comunidad.nombre_comunidad}"?`
+      )
+    ) {
+      try {
+        await deleteComunidad(comunidad.id_comunidad);
+        refetch();
+      } catch (error) {
+        // Error manejado por el hook
+      }
+    }
   };
 
-  const handleUpdate = async (data: {
-    nombre_comunidad: string;
-    abreviatura_comunidad: string;
-    id_municipio: string;
-    activo?: boolean;
-  }) => {
-    if (!selectedComunidad) return;
-    await updateComunidad(selectedComunidad.id_comunidad, data);
-    setEditModalOpen(false);
-    setSelectedComunidad(null);
+  const handleSuccess = () => {
     refetch();
   };
 
@@ -74,7 +71,7 @@ export function ComunidadesListPage() {
   ];
 
   return (
-    <AdminLayout title="Comunidades">
+    <Layout title="Comunidades">
       <PageContainer
         title="Gestión de Comunidades"
         description="Administra las comunidades del programa"
@@ -124,71 +121,27 @@ export function ComunidadesListPage() {
           {/* Lista */}
           <ComunidadesList
             comunidades={comunidades}
-            onRowClick={handleRowClick}
             loading={isLoading}
+            onEdit={canEdit ? handleEdit : undefined}
+            onDelete={canDelete ? handleDelete : undefined}
           />
         </div>
       </PageContainer>
 
       {/* Modal Crear */}
-      <Modal
+      <CreateComunidadModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Nueva Comunidad"
-        size="medium"
-      >
-        <ComunidadForm
-          onSubmit={handleCreate}
-          onCancel={() => setCreateModalOpen(false)}
-          isLoading={isCreating}
-        />
-      </Modal>
-
-      {/* Modal Detalle */}
-      <Modal
-        isOpen={detailModalOpen}
-        onClose={() => {
-          setDetailModalOpen(false);
-          setSelectedComunidad(null);
-        }}
-        title="Detalle de Comunidad"
-        size="medium"
-      >
-        {selectedComunidad && (
-          <ComunidadCard
-            comunidad={selectedComunidad}
-            onEdit={canEdit ? handleEdit : undefined}
-            onClose={() => {
-              setDetailModalOpen(false);
-              setSelectedComunidad(null);
-            }}
-            canEdit={canEdit}
-          />
-        )}
-      </Modal>
+        onSuccess={handleSuccess}
+      />
 
       {/* Modal Editar */}
-      <Modal
+      <EditComunidadModal
         isOpen={editModalOpen}
-        onClose={() => {
-          setEditModalOpen(false);
-          setSelectedComunidad(null);
-        }}
-        title="Editar Comunidad"
-        size="medium"
-      >
-        {selectedComunidad && (
-          <ComunidadForm
-            comunidad={selectedComunidad}
-            onSubmit={handleUpdate}
-            onCancel={() => {
-              setEditModalOpen(false);
-              setSelectedComunidad(null);
-            }}
-            isLoading={isUpdating}
-          />
-        )}
-      </Modal>
-    </AdminLayout>
+        onClose={() => setEditModalOpen(false)}
+        comunidad={selectedComunidad}
+        onSuccess={handleSuccess}
+      />
+    </Layout>
   );
 }

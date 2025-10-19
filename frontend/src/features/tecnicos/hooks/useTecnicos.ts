@@ -2,7 +2,7 @@
  * Hook para obtener lista de técnicos con filtros
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { tecnicosService } from "../services/tecnicos.service";
 import type { Tecnico, TecnicoFilters } from "../types/tecnico.types";
 
@@ -24,14 +24,18 @@ export function useTecnicos(): UseTecnicosReturn {
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState<TecnicoFilters>({});
-  const [lastFetch, setLastFetch] = useState<number>(0);
+  const lastFetchRef = useRef<number>(0);
 
   const fetchTecnicos = useCallback(
     async (force = false) => {
       const now = Date.now();
 
       // Usar cache si no ha pasado el tiempo
-      if (!force && lastFetch && now - lastFetch < CACHE_TIME) {
+      if (
+        !force &&
+        lastFetchRef.current &&
+        now - lastFetchRef.current < CACHE_TIME
+      ) {
         return;
       }
 
@@ -42,16 +46,16 @@ export function useTecnicos(): UseTecnicosReturn {
         const response = await tecnicosService.listTecnicos(filters);
         setTecnicos(response.usuarios);
         setTotal(response.total);
-        setLastFetch(now);
+        lastFetchRef.current = now;
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Error al cargar técnicos"
+          err instanceof Error ? err.message : "Error al cargar tecnicos"
         );
       } finally {
         setIsLoading(false);
       }
     },
-    [filters, lastFetch]
+    [filters]
   );
 
   // Cargar al montar o cambiar filtros

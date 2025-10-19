@@ -113,12 +113,18 @@ button:disabled {
 .touch-target {
   min-height: 44px;
   min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Clase utility para elementos touch-safe recomendado */
 .touch-target-lg {
   min-height: 48px;
   min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Focus visible para teclado (no para mouse/touch) */

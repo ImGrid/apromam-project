@@ -9,7 +9,6 @@ import {
   Users,
   UserCog,
   MapPin,
-  Building2,
   Leaf,
   ClipboardList,
   BarChart3,
@@ -47,12 +46,6 @@ export function Sidebar() {
       path: ROUTES.TECNICOS,
       icon: UserCog,
       permission: () => permissions.isAdmin() || permissions.isGerente(),
-    },
-    {
-      label: "Comunidades",
-      path: ROUTES.COMUNIDADES,
-      icon: Building2,
-      permission: () => permissions.canAccess("comunidades", "read"),
     },
     {
       label: "Geografía",

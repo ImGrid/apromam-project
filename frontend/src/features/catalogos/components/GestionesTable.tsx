@@ -1,4 +1,4 @@
-import { Badge, DataTable } from "@/shared/components/ui";
+import { Badge, DataTable, IconButton } from "@/shared/components/ui";
 import { Edit, Trash2, CheckCircle, Star } from "lucide-react";
 import type { DataTableColumn } from "@/shared/components/ui";
 import type { Gestion } from "../types/catalogo.types";
@@ -24,6 +24,9 @@ export function GestionesTable({
   canEdit,
   canToggleActiva,
 }: GestionesTableProps) {
+  // Verificar si hay algún permiso de acción
+  const hasActionPermissions = canEdit || canToggleActiva;
+
   const columns: DataTableColumn<Gestion>[] = [
     {
       key: "anio_gestion",
@@ -94,50 +97,48 @@ export function GestionesTable({
         </Badge>
       ),
     },
-    {
-      key: "acciones",
-      label: "Acciones",
-      render: (gestion) => (
-        <div className="flex items-center gap-2">
-          {canEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(gestion);
-              }}
-              className="p-2 transition-colors rounded text-primary hover:bg-primary/10 touch-target"
-              aria-label="Editar gestión"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-          )}
+    // Solo agregar columna de acciones si hay permisos
+    ...(hasActionPermissions
+      ? [
+          {
+            key: "acciones" as const,
+            label: "Acciones",
+            render: (gestion: Gestion) => (
+              <div className="flex items-center gap-1">
+                {canEdit && (
+                  <IconButton
+                    icon={<Edit className="w-4 h-4" />}
+                    tooltip="Editar gestión"
+                    variant="primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(gestion);
+                    }}
+                  />
+                )}
 
-          {canToggleActiva && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleActiva(gestion);
-              }}
-              className={`p-2 transition-colors rounded touch-target ${
-                gestion.activa
-                  ? "text-error hover:bg-error/10"
-                  : "text-success hover:bg-success/10"
-              }`}
-              aria-label={
-                gestion.activa ? "Desactivar gestión" : "Activar gestión"
-              }
-              title={gestion.activa ? "Desactivar" : "Activar"}
-            >
-              {gestion.activa ? (
-                <Trash2 className="w-4 h-4" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
-              )}
-            </button>
-          )}
-        </div>
-      ),
-    },
+                {canToggleActiva && (
+                  <IconButton
+                    icon={
+                      gestion.activa ? (
+                        <Trash2 className="w-4 h-4" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )
+                    }
+                    tooltip={gestion.activa ? "Desactivar gestión" : "Activar gestión"}
+                    variant={gestion.activa ? "danger" : "success"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleActiva(gestion);
+                    }}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (

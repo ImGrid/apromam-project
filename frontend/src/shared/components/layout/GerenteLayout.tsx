@@ -3,11 +3,12 @@ import { Link, useLocation } from "react-router-dom";
 import { X } from "lucide-react";
 import {
   LayoutDashboard,
-  Building2,
   Leaf,
   ClipboardList,
   BarChart3,
   Users,
+  MapPin,
+  BookOpen,
 } from "lucide-react";
 import { Header } from "@/shared/components/layout/Header";
 import { Breadcrumbs } from "@/shared/components/layout/Breadcrumbs";
@@ -26,9 +27,14 @@ const gerenteNavItems = [
     icon: LayoutDashboard,
   },
   {
-    label: "Comunidades",
-    path: ROUTES.COMUNIDADES,
-    icon: Building2,
+    label: "Geografía",
+    path: ROUTES.GEOGRAFICAS,
+    icon: MapPin,
+  },
+  {
+    label: "Catálogos",
+    path: ROUTES.CATALOGOS,
+    icon: BookOpen,
   },
   {
     label: "Productores",
@@ -42,7 +48,7 @@ const gerenteNavItems = [
   },
   {
     label: "Técnicos",
-    path: ROUTES.USUARIOS,
+    path: ROUTES.TECNICOS,
     icon: Users,
   },
   {
@@ -63,9 +69,9 @@ function GerenteSidebar() {
   };
 
   return (
-    <aside className="hidden w-64 h-screen overflow-y-auto bg-white border-r lg:block border-neutral-border">
+    <aside className="fixed top-0 left-0 z-30 flex-col hidden w-64 h-screen bg-white border-r lg:flex border-neutral-border">
       {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-neutral-border">
+      <div className="flex items-center justify-center flex-shrink-0 h-16 border-b border-neutral-border">
         <Link to={ROUTES.DASHBOARD} className="flex items-center">
           <img
             src="/apromam_logo.webp"
@@ -76,7 +82,7 @@ function GerenteSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-1">
           {gerenteNavItems.map((item) => {
             const Icon = item.icon;
@@ -102,7 +108,7 @@ function GerenteSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 mt-auto border-t border-neutral-border">
+      <div className="flex-shrink-0 p-4 border-t border-neutral-border">
         <p className="text-xs text-center text-text-secondary">
           APROMAM © {new Date().getFullYear()}
         </p>
@@ -197,20 +203,27 @@ export function GerenteLayout({ children, title }: GerenteLayoutProps) {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-neutral-bg">
+    <div className="min-h-screen bg-neutral-bg">
+      {/* Sidebar desktop */}
       <GerenteSidebar />
+
+      {/* Sidebar mobile */}
       <GerenteMobileSidebar
         isOpen={isMobileMenuOpen}
         onClose={handleCloseMobileMenu}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
+      {/* Main content */}
+      <div className="flex flex-col min-h-screen lg:ml-64">
+        {/* Header */}
         <Header title={title} onMenuClick={handleOpenMobileMenu} />
 
+        {/* Breadcrumbs */}
         <div className="px-4 py-3 bg-white border-b sm:px-6 lg:px-8 border-neutral-border">
           <Breadcrumbs />
         </div>
 
+        {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>

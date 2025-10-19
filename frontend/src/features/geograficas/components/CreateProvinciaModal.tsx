@@ -2,11 +2,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal, Button, Input, FormField } from "@/shared/components/ui";
+import { DepartamentosSelect } from "./DepartamentosSelect";
 import { geograficasService } from "../services/geograficas.service";
 import { showToast } from "@/shared/components/ui";
 import { useState } from "react";
 
 const provinciaSchema = z.object({
+  id_departamento: z.string().min(1, "Selecciona un departamento"),
   nombre_provincia: z.string().min(3, "Mínimo 3 caracteres"),
 });
 
@@ -24,12 +26,14 @@ export function CreateProvinciaModal({
   onSuccess,
 }: CreateProvinciaModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [departamentoId, setDepartamentoId] = useState("");
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<ProvinciaFormData>({
     resolver: zodResolver(provinciaSchema),
   });
@@ -40,6 +44,7 @@ export function CreateProvinciaModal({
       await geograficasService.createProvincia(data);
       showToast.success("Provincia creada exitosamente");
       reset();
+      setDepartamentoId("");
       onClose();
       onSuccess?.();
     } catch (error) {
@@ -51,8 +56,14 @@ export function CreateProvinciaModal({
     }
   };
 
+  const handleDepartamentoChange = (value: string) => {
+    setDepartamentoId(value);
+    setValue("id_departamento", value, { shouldValidate: true });
+  };
+
   const handleClose = () => {
     reset();
+    setDepartamentoId("");
     onClose();
   };
 
@@ -65,14 +76,25 @@ export function CreateProvinciaModal({
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormField
+          label="Departamento"
+          required
+          error={errors.id_departamento?.message}
+        >
+          <DepartamentosSelect
+            value={departamentoId}
+            onChange={handleDepartamentoChange}
+            placeholder="Selecciona un departamento"
+          />
+        </FormField>
+
+        <FormField
           label="Nombre de la Provincia"
           required
           error={errors.nombre_provincia?.message}
         >
           <Input
             {...register("nombre_provincia")}
-            placeholder="Ej: La Paz"
-            autoFocus
+            placeholder="Ej: Oropeza"
           />
         </FormField>
 

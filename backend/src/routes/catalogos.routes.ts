@@ -19,7 +19,7 @@ import {
   GestionResponseSchema,
   CatalogoErrorSchema,
 } from "../schemas/catalogos.schema.js";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 /**
  * Plugin de rutas de catálogos
@@ -100,12 +100,12 @@ export default async function catalogosRoutes(
   /**
    * POST /api/catalogos/tipos-cultivo
    * Crea un nuevo tipo cultivo
-   * Acceso: gerente y admin
+   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
    */
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/tipos-cultivo",
     {
-      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      onRequest: [authenticate, requireRoles("administrador")],
       schema: {
         description: "Crea un nuevo tipo cultivo",
         tags: ["catalogos"],
@@ -132,12 +132,12 @@ export default async function catalogosRoutes(
   /**
    * PUT /api/catalogos/tipos-cultivo/:id
    * Actualiza un tipo cultivo existente
-   * Acceso: gerente y admin
+   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
    */
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/tipos-cultivo/:id",
     {
-      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      onRequest: [authenticate, requireRoles("administrador")],
       schema: {
         description: "Actualiza un tipo cultivo existente",
         tags: ["catalogos"],
@@ -165,12 +165,12 @@ export default async function catalogosRoutes(
   /**
    * DELETE /api/catalogos/tipos-cultivo/:id
    * Elimina (desactiva) un tipo cultivo
-   * Acceso: gerente y admin
+   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
    */
   fastify.withTypeProvider<ZodTypeProvider>().delete(
     "/tipos-cultivo/:id",
     {
-      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      onRequest: [authenticate, requireRoles("administrador")],
       schema: {
         description: "Elimina (desactiva) un tipo cultivo",
         tags: ["catalogos"],
@@ -281,12 +281,12 @@ export default async function catalogosRoutes(
   /**
    * POST /api/catalogos/gestiones
    * Crea una nueva gestión
-   * Acceso: gerente y admin
+   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
    */
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/gestiones",
     {
-      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      onRequest: [authenticate, requireRoles("administrador")],
       schema: {
         description: "Crea una nueva gestión",
         tags: ["catalogos"],
@@ -312,12 +312,12 @@ export default async function catalogosRoutes(
   /**
    * PUT /api/catalogos/gestiones/:id
    * Actualiza una gestión existente
-   * Acceso: gerente y admin
+   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
    */
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/gestiones/:id",
     {
-      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      onRequest: [authenticate, requireRoles("administrador")],
       schema: {
         description: "Actualiza una gestión existente",
         tags: ["catalogos"],
@@ -344,12 +344,12 @@ export default async function catalogosRoutes(
   /**
    * DELETE /api/catalogos/gestiones/:id
    * Elimina (desactiva) una gestión
-   * Acceso: gerente y admin
+   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
    */
   fastify.withTypeProvider<ZodTypeProvider>().delete(
     "/gestiones/:id",
     {
-      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      onRequest: [authenticate, requireRoles("administrador")],
       schema: {
         description: "Elimina (desactiva) una gestión",
         tags: ["catalogos"],

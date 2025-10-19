@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { AdminLayout } from '@/shared/components/layout/AdminLayout';
+import { GerenteLayout } from '@/shared/components/layout/GerenteLayout';
 import { TecnicoLayout } from '@/shared/components/layout/TecnicoLayout';
 import { PageContainer } from '@/shared/components/layout/PageContainer';
 import { Button, Alert } from '@/shared/components/ui';
@@ -14,11 +15,15 @@ import { usePermissions } from '@/shared/hooks/usePermissions';
 import { ProductoresList } from '../components/ProductoresList';
 import { ProductorFilters } from '../components/ProductorFilters';
 import { CreateProductorModal } from '../components/CreateProductorModal';
+import { EditProductorModal } from '../components/EditProductorModal';
 import { useProductores } from '../hooks/useProductores';
-import type { ProductorFiltersInput as Filters } from '../types/productor.types';
+import { useDeleteProductor } from '../hooks/useDeleteProductor';
+import type { ProductorFiltersInput as Filters, Productor } from '../types/productor.types';
 
 export function ProductoresListPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedProductor, setSelectedProductor] = useState<Productor | null>(null);
   const [filters, setFilters] = useState<Filters>({});
   const permissions = usePermissions();
 
@@ -31,6 +36,8 @@ export function ProductoresListPage() {
     updateFilters,
     clearFilters,
   } = useProductores(filters);
+
+  const { deleteProductor, isLoading: isDeleting } = useDeleteProductor();
 
   const handleFiltersChange = (newFilters: Filters) => {
     setFilters(newFilters);
@@ -46,8 +53,36 @@ export function ProductoresListPage() {
     refetch();
   };
 
+  const handleEdit = (productor: Productor) => {
+    setSelectedProductor(productor);
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = () => {
+    refetch();
+  };
+
+  const handleDelete = async (productor: Productor) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de eliminar al productor ${productor.nombre_productor} (${productor.codigo_productor})?`
+      )
+    ) {
+      try {
+        await deleteProductor(productor.codigo_productor);
+        refetch();
+      } catch {
+        // Error ya manejado por el hook
+      }
+    }
+  };
+
   // Determinar el layout según el rol del usuario
-  const Layout = permissions.isTecnico() ? TecnicoLayout : AdminLayout;
+  const Layout = permissions.isTecnico() ? TecnicoLayout : permissions.isGerente() ? GerenteLayout : AdminLayout;
+
+  // Permisos para acciones
+  const canEdit = permissions.canAccess("productores", "edit");
+  const canDelete = permissions.canAccess("productores", "delete");
 
   return (
     <Layout title="Productores">
@@ -84,7 +119,9 @@ export function ProductoresListPage() {
           {/* Tabla */}
           <ProductoresList
             productores={productores}
-            loading={isLoading}
+            loading={isLoading || isDeleting}
+            onEdit={canEdit ? handleEdit : undefined}
+            onDelete={canDelete ? handleDelete : undefined}
           />
 
           {/* Modal de crear */}
@@ -92,6 +129,14 @@ export function ProductoresListPage() {
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
             onSuccess={handleCreateSuccess}
+          />
+
+          {/* Modal de editar */}
+          <EditProductorModal
+            isOpen={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            productor={selectedProductor}
+            onSuccess={handleEditSuccess}
           />
         </div>
       </PageContainer>

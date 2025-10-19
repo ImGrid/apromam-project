@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
+import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
+import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
 import { Button, Alert } from "@/shared/components/ui";
 import { PermissionGate } from "@/shared/components/layout/PermissionGate";
@@ -22,6 +24,12 @@ type TabType = "tipos-cultivo" | "gestiones";
 export function CatalogosManagePage() {
   const permissions = usePermissions();
   const [activeTab, setActiveTab] = useState<TabType>("tipos-cultivo");
+
+  // Seleccionar layout según rol
+  const Layout = permissions.isAdmin() ? AdminLayout :
+                 permissions.isGerente() ? GerenteLayout :
+                 permissions.isTecnico() ? TecnicoLayout :
+                 AdminLayout;
 
   // Tipos de Cultivo
   const {
@@ -109,7 +117,7 @@ export function CatalogosManagePage() {
   };
 
   return (
-    <AdminLayout title="Catálogos">
+    <Layout title="Catálogos">
       <PageContainer
         title="Gestión de Catálogos"
         description="Administra tipos de cultivo y gestiones agrícolas"
@@ -286,6 +294,6 @@ export function CatalogosManagePage() {
           onSuccess={handleSuccessGestion}
         />
       )}
-    </AdminLayout>
+    </Layout>
   );
 }

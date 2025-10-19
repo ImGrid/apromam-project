@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Users,
   MapPin,
-  Building2,
   Leaf,
   ClipboardList,
   BarChart3,
@@ -64,12 +63,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       path: ROUTES.USUARIOS,
       icon: Users,
       permission: () => permissions.canAccess("usuarios", "read"),
-    },
-    {
-      label: "Comunidades",
-      path: ROUTES.COMUNIDADES,
-      icon: Building2,
-      permission: () => permissions.canAccess("comunidades", "read"),
     },
     {
       label: "Geografía",

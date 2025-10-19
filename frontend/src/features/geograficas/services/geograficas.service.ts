@@ -1,7 +1,10 @@
 import { apiClient, ENDPOINTS, getErrorMessage } from "@/shared/services/api";
 import type {
+  Departamento,
   Provincia,
   Municipio,
+  CreateDepartamentoInput,
+  UpdateDepartamentoInput,
   CreateProvinciaInput,
   UpdateProvinciaInput,
   CreateMunicipioInput,
@@ -9,6 +12,68 @@ import type {
 } from "../types/geografica.types";
 
 export const geograficasService = {
+  // Departamentos
+  async listDepartamentos(): Promise<{
+    departamentos: Departamento[];
+    total: number;
+  }> {
+    try {
+      const response = await apiClient.get<{
+        departamentos: Departamento[];
+        total: number;
+      }>(ENDPOINTS.GEOGRAFICAS.DEPARTAMENTOS);
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async getDepartamentoById(id: string): Promise<Departamento> {
+    try {
+      const response = await apiClient.get<{ departamento: Departamento }>(
+        ENDPOINTS.GEOGRAFICAS.DEPARTAMENTOS_BY_ID(id)
+      );
+      return response.data.departamento;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async createDepartamento(data: CreateDepartamentoInput): Promise<Departamento> {
+    try {
+      const response = await apiClient.post<{
+        departamento: Departamento;
+        message: string;
+      }>(ENDPOINTS.GEOGRAFICAS.DEPARTAMENTOS, data);
+      return response.data.departamento;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async updateDepartamento(
+    id: string,
+    data: UpdateDepartamentoInput
+  ): Promise<Departamento> {
+    try {
+      const response = await apiClient.put<{
+        departamento: Departamento;
+        message: string;
+      }>(ENDPOINTS.GEOGRAFICAS.DEPARTAMENTOS_BY_ID(id), data);
+      return response.data.departamento;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async deleteDepartamento(id: string): Promise<void> {
+    try {
+      await apiClient.delete(ENDPOINTS.GEOGRAFICAS.DEPARTAMENTOS_BY_ID(id));
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
   // Provincias
   async listProvincias(): Promise<{ provincias: Provincia[]; total: number }> {
     try {

@@ -1,4 +1,4 @@
-import { DataTable, Badge, Button } from "@/shared/components/ui";
+import { DataTable, Badge, IconButton } from "@/shared/components/ui";
 import { Edit, Trash2 } from "lucide-react";
 import type { DataTableColumn } from "@/shared/components/ui";
 import type { Provincia } from "../types/geografica.types";
@@ -23,6 +23,12 @@ export function ProvinciasTable({
       key: "nombre_provincia",
       label: "Nombre",
       sortable: true,
+    },
+    {
+      key: "nombre_departamento",
+      label: "Departamento",
+      sortable: true,
+      render: (provincia) => provincia.nombre_departamento || "-",
     },
     {
       key: "cantidad_municipios",
@@ -55,30 +61,26 @@ export function ProvinciasTable({
       render: (provincia) => (
         <div className="flex items-center gap-1">
           {onEdit && (
-            <Button
-              variant="ghost"
-              size="small"
+            <IconButton
+              icon={<Edit className="w-4 h-4" />}
+              tooltip="Editar provincia"
+              variant="primary"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(provincia);
               }}
-              title="Editar provincia"
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
+            />
           )}
           {onDelete && (
-            <Button
-              variant="ghost"
-              size="small"
+            <IconButton
+              icon={<Trash2 className="w-4 h-4" />}
+              tooltip="Eliminar provincia"
+              variant="danger"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(provincia);
               }}
-              title="Eliminar provincia"
-            >
-              <Trash2 className="w-4 h-4 text-error" />
-            </Button>
+            />
           )}
         </div>
       ),

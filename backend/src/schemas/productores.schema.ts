@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 
 // Schema base para UUID
 const UUIDSchema = z.string().uuid({
@@ -158,6 +158,9 @@ export const ProductorResponseSchema = z.object({
   codigo_productor: z.string(),
   nombre_productor: z.string(),
   ci_documento: z.string().optional(),
+  id_organizacion: UUIDSchema.optional(),
+  nombre_organizacion: z.string().optional(),
+  abreviatura_organizacion: z.string().optional(),
   nombre_comunidad: z.string().optional(),
   nombre_municipio: z.string().optional(),
   nombre_provincia: z.string().optional(),

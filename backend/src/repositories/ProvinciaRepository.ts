@@ -8,36 +8,39 @@ export class ProvinciaRepository {
     const query = {
       name: "find-provincia-by-id",
       text: `
-        SELECT 
+        SELECT
           p.id_provincia,
+          p.id_departamento,
           p.nombre_provincia,
           p.activo,
           p.created_at,
+          d.nombre_departamento,
           (
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
             FROM municipios m
-            WHERE m.id_provincia = p.id_provincia 
+            WHERE m.id_provincia = p.id_provincia
               AND m.activo = true
           ) as cantidad_municipios,
           (
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
             FROM municipios m
             INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
-            WHERE m.id_provincia = p.id_provincia 
+            WHERE m.id_provincia = p.id_provincia
               AND m.activo = true
               AND c.activo = true
           ) as cantidad_comunidades,
           (
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
             FROM municipios m
             INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
             INNER JOIN productores pr ON c.id_comunidad = pr.id_comunidad
-            WHERE m.id_provincia = p.id_provincia 
+            WHERE m.id_provincia = p.id_provincia
               AND m.activo = true
               AND c.activo = true
               AND pr.activo = true
           ) as cantidad_productores
         FROM provincias p
+        INNER JOIN departamentos d ON p.id_departamento = d.id_departamento
         WHERE p.id_provincia = $1 AND p.activo = true
       `,
       values: [id],
@@ -55,9 +58,11 @@ export class ProvinciaRepository {
       text: `
         SELECT
           p.id_provincia,
+          p.id_departamento,
           p.nombre_provincia,
           p.activo,
           p.created_at,
+          d.nombre_departamento,
           (
             SELECT COUNT(*)
             FROM municipios m
@@ -83,6 +88,7 @@ export class ProvinciaRepository {
               AND pr.activo = true
           ) as cantidad_productores
         FROM provincias p
+        INNER JOIN departamentos d ON p.id_departamento = d.id_departamento
         WHERE p.activo = true
         ORDER BY p.nombre_provincia ASC
       `,
@@ -98,14 +104,15 @@ export class ProvinciaRepository {
   async findByNombre(nombre: string): Promise<Provincia | null> {
     const query = {
       text: `
-        SELECT 
-          id_provincia,
-          nombre_provincia,
-          activo,
-          created_at
-        FROM provincias
-        WHERE LOWER(nombre_provincia) = LOWER($1)
-          AND activo = true
+        SELECT
+          p.id_provincia,
+          p.id_departamento,
+          p.nombre_provincia,
+          p.activo,
+          p.created_at
+        FROM provincias p
+        WHERE LOWER(p.nombre_provincia) = LOWER($1)
+          AND p.activo = true
       `,
       values: [nombre],
     };
@@ -150,16 +157,22 @@ export class ProvinciaRepository {
     const query = {
       text: `
         INSERT INTO provincias (
+          id_departamento,
           nombre_provincia,
           activo
-        ) VALUES ($1, $2)
-        RETURNING 
+        ) VALUES ($1, $2, $3)
+        RETURNING
           id_provincia,
+          id_departamento,
           nombre_provincia,
           activo,
           created_at
       `,
-      values: [insertData.nombre_provincia, insertData.activo],
+      values: [
+        provincia.idDepartamento,
+        insertData.nombre_provincia,
+        insertData.activo,
+      ],
     };
 
     const result = await WriteQuery.insert<ProvinciaData>(query);
@@ -182,12 +195,13 @@ export class ProvinciaRepository {
     const query = {
       text: `
         UPDATE provincias
-        SET 
+        SET
           nombre_provincia = $2,
           activo = $3
         WHERE id_provincia = $1 AND activo = true
-        RETURNING 
+        RETURNING
           id_provincia,
+          id_departamento,
           nombre_provincia,
           activo,
           created_at

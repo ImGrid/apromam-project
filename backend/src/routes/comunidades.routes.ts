@@ -15,7 +15,7 @@ import {
   ComunidadCreatedResponseSchema,
   ComunidadErrorSchema,
 } from "../schemas/comunidades.schema.js";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 /**
  * Plugin de rutas de comunidades

@@ -1,9 +1,11 @@
 // Interfaz para datos de Provincia desde BD
 export interface ProvinciaData {
   id_provincia: string;
+  id_departamento: string;
   nombre_provincia: string;
   activo: boolean;
   created_at: Date;
+  nombre_departamento?: string;
   cantidad_municipios?: number;
   cantidad_comunidades?: number;
   cantidad_productores?: number;
@@ -12,9 +14,11 @@ export interface ProvinciaData {
 // Interfaz para datos publicos de Provincia (response)
 export interface ProvinciaPublicData {
   id_provincia: string;
+  id_departamento: string;
   nombre_provincia: string;
   activo: boolean;
   created_at: string;
+  nombre_departamento?: string;
   cantidad_municipios?: number;
   cantidad_comunidades?: number;
   cantidad_productores?: number;
@@ -35,8 +39,16 @@ export class Provincia {
     return this.data.id_provincia;
   }
 
+  get idDepartamento(): string {
+    return this.data.id_departamento;
+  }
+
   get nombre(): string {
     return this.data.nombre_provincia;
+  }
+
+  get nombreDepartamento(): string | undefined {
+    return this.data.nombre_departamento;
   }
 
   get activo(): boolean {
@@ -60,9 +72,13 @@ export class Provincia {
   }
 
   // Crea una nueva instancia de Provincia
-  static create(data: { nombre_provincia: string }): Provincia {
+  static create(data: {
+    nombre_provincia: string;
+    id_departamento: string;
+  }): Provincia {
     return new Provincia({
       id_provincia: "",
+      id_departamento: data.id_departamento,
       nombre_provincia: data.nombre_provincia,
       activo: true,
       created_at: new Date(),
@@ -132,9 +148,11 @@ export class Provincia {
   toJSON(): ProvinciaPublicData {
     return {
       id_provincia: this.data.id_provincia,
+      id_departamento: this.data.id_departamento,
       nombre_provincia: this.data.nombre_provincia,
       activo: this.data.activo,
       created_at: this.data.created_at.toISOString(),
+      nombre_departamento: this.data.nombre_departamento,
       cantidad_municipios: this.data.cantidad_municipios,
       cantidad_comunidades: this.data.cantidad_comunidades,
       cantidad_productores: this.data.cantidad_productores,

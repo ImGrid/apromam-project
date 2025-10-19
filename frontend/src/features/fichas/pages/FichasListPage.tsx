@@ -11,7 +11,7 @@ import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
 import { usePermissions } from "@/shared/hooks/usePermissions";
-import { Button } from "@/shared/components/ui/Button";
+import { Button, IconButton } from "@/shared/components/ui";
 import { DataTable } from "@/shared/components/ui/DataTable";
 import { useFichas } from "../hooks/useFichas";
 import { FichasFilters } from "../components/FichasFilters";
@@ -24,8 +24,9 @@ import type { DataTableColumn } from "@/shared/components/ui/DataTable";
 export default function FichasListPage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const { isAdmin, isGerente, isTecnico } = usePermissions();
-  const canCreate = user?.nombre_rol === "tecnico" || user?.nombre_rol === "gerente";
+  const permissions = usePermissions();
+  const { isAdmin, isGerente, isTecnico } = permissions;
+  const canCreate = permissions.canAccess("fichas", "create");
 
   // Seleccionar layout según rol
   const Layout = isAdmin()
@@ -139,23 +140,21 @@ export default function FichasListPage() {
       label: "Acciones",
       render: (ficha) => (
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
+          <IconButton
+            icon={<Eye className="w-4 h-4" />}
+            tooltip="Ver detalle"
+            variant="primary"
             onClick={() => navigate(ROUTES.FICHAS_DETAIL(ficha.id_ficha))}
-            title="Ver detalle"
-          >
-            <Eye className="w-4 h-4" />
-          </Button>
+          />
           {(ficha.estado_ficha === "borrador" ||
             ficha.estado_ficha === "rechazado") &&
             canCreate && (
-              <Button
-                variant="ghost"
+              <IconButton
+                icon={<Edit className="w-4 h-4" />}
+                tooltip="Editar ficha"
+                variant="primary"
                 onClick={() => navigate(ROUTES.FICHAS_EDIT(ficha.id_ficha))}
-                title="Editar"
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
+              />
             )}
         </div>
       ),

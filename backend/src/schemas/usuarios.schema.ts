@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 
 // Schema base para UUID
 const UUIDSchema = z.string().uuid({
@@ -105,6 +105,7 @@ export const UsuarioResponseSchema = z.object({
   email: z.string(),
   nombre_completo: z.string(),
   nombre_rol: z.string(),
+  id_comunidad: UUIDSchema.optional(),
   nombre_comunidad: z.string().optional(),
   activo: z.boolean(),
   last_login: z.string().optional(),

@@ -1,4 +1,4 @@
-import { DataTable, Badge, Button } from "@/shared/components/ui";
+import { DataTable, Badge, IconButton } from "@/shared/components/ui";
 import { Edit, Trash2 } from "lucide-react";
 import type { DataTableColumn } from "@/shared/components/ui";
 import type { Municipio } from "../types/geografica.types";
@@ -55,30 +55,26 @@ export function MunicipiosTable({
       render: (municipio) => (
         <div className="flex items-center gap-1">
           {onEdit && (
-            <Button
-              variant="ghost"
-              size="small"
+            <IconButton
+              icon={<Edit className="w-4 h-4" />}
+              tooltip="Editar municipio"
+              variant="primary"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(municipio);
               }}
-              title="Editar municipio"
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
+            />
           )}
           {onDelete && (
-            <Button
-              variant="ghost"
-              size="small"
+            <IconButton
+              icon={<Trash2 className="w-4 h-4" />}
+              tooltip="Eliminar municipio"
+              variant="danger"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(municipio);
               }}
-              title="Eliminar municipio"
-            >
-              <Trash2 className="w-4 h-4 text-error" />
-            </Button>
+            />
           )}
         </div>
       ),

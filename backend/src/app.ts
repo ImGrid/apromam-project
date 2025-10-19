@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes.js";
 import comunidadesRoutes from "./routes/comunidades.routes.js";
 import catalogosRoutes from "./routes/catalogos.routes.js";
 import geograficasRoutes from "./routes/geograficas.routes.js";
+import organizacionesRoutes from "./routes/organizaciones.routes.js";
 import productoresRoutes from "./routes/productores.routes.js";
 import usuariosRoutes from "./routes/usuarios.routes.js";
 import parcelasRoutes from "./routes/parcelas.routes.js";
@@ -64,6 +65,7 @@ const startServer = async () => {
     await server.register(comunidadesRoutes, { prefix: "/api/comunidades" });
     await server.register(catalogosRoutes, { prefix: "/api/catalogos" });
     await server.register(geograficasRoutes, { prefix: "/api/geograficas" });
+    await server.register(organizacionesRoutes, { prefix: "/api/organizaciones" });
     await server.register(productoresRoutes, { prefix: "/api/productores" });
     await server.register(usuariosRoutes, { prefix: "/api/usuarios" });
     await server.register(parcelasRoutes, { prefix: "/api" });
@@ -126,8 +128,11 @@ const startServer = async () => {
             tipos_cultivo: `${localUrl}/api/catalogos/tipos-cultivo`,
             gestiones: `${localUrl}/api/catalogos/gestiones`,
             // Endpoints geograficas
+            departamentos: `${localUrl}/api/geograficas/departamentos`,
             provincias: `${localUrl}/api/geograficas/provincias`,
             municipios: `${localUrl}/api/geograficas/municipios`,
+            // Endpoints organizaciones
+            organizaciones: `${localUrl}/api/organizaciones`,
             // Endpoints productores
             productores: `${localUrl}/api/productores`,
             productores_nearby: `${localUrl}/api/productores/nearby`,

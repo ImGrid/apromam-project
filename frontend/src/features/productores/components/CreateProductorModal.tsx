@@ -157,10 +157,10 @@ export function CreateProductorModal({
   };
 
   const categorias: SelectOption[] = [
-    { value: "E", label: "E - En conversión" },
+    { value: "E", label: "E - En transición" },
     { value: "2T", label: "2T - Segundo año de transición" },
     { value: "1T", label: "1T - Primer año de transición" },
-    { value: "0T", label: "0T - Orgánico" },
+    { value: "0T", label: "0T - Inicio transición" },
   ];
 
   return (

@@ -15,7 +15,7 @@ import {
   MeResponseSchema,
   AuthErrorSchema,
 } from "../schemas/auth.schema.js";
-import { z } from "zod/v4";
+import { z } from "zod";
 /**
  * Plugin de rutas de autenticación
  * Registra todos los endpoints de auth con sus schemas y middleware

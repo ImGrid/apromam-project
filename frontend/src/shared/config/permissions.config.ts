@@ -39,9 +39,14 @@ export const PERMISSIONS: PermissionsMap = {
   },
 
   gerente: {
-    all: true,
-    createCatalogo: true,
+    read: true,
+    create: true,
+    edit: true,
+    delete: true,
+    approve: true,
+    reject: true,
     createProductor: true,
+    createTecnico: true,
   },
 
   tecnico: {
@@ -74,15 +79,15 @@ export const RESOURCE_PERMISSIONS = {
     create: ["createTecnico", "all"],
   },
   comunidades: {
-    create: ["all"],
-    edit: ["all"],
-    delete: ["all"],
+    create: ["create", "all"],
+    edit: ["edit", "all"],
+    delete: ["delete", "all"],
     read: ["read", "all"],
   },
   productores: {
     create: ["create", "createProductor", "all"],
     edit: ["edit", "editOwn", "all"],
-    delete: ["all"],
+    delete: ["delete", "all"],
     read: ["read", "readOwn", "all"],
   },
   parcelas: {
@@ -106,9 +111,9 @@ export const RESOURCE_PERMISSIONS = {
     read: ["read", "all"],
   },
   geograficas: {
-    create: ["all"],
-    edit: ["all"],
-    delete: ["all"],
+    create: ["create", "all"],
+    edit: ["edit", "all"],
+    delete: ["delete", "all"],
     read: ["read", "all"],
   },
 } as const;

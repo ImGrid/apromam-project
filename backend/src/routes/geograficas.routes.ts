@@ -2,11 +2,16 @@ import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { GeograficasController } from "../controllers/geograficas.controller.js";
 import { GeograficasService } from "../services/geograficas.service.js";
+import { DepartamentoRepository } from "../repositories/DepartamentoRepository.js";
 import { ProvinciaRepository } from "../repositories/ProvinciaRepository.js";
 import { MunicipioRepository } from "../repositories/MunicipioRepository.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { requireRoles } from "../middleware/authorize.js";
 import {
+  CreateDepartamentoSchema,
+  UpdateDepartamentoSchema,
+  DepartamentosListResponseSchema,
+  DepartamentoResponseSchema,
   CreateProvinciaSchema,
   UpdateProvinciaSchema,
   CreateMunicipioSchema,
@@ -19,21 +24,161 @@ import {
   MunicipioResponseSchema,
   GeograficaErrorSchema,
 } from "../schemas/geograficas.schema.js";
-import { z } from "zod/v4";
+import { z } from "zod";
 // Plugin de rutas para jerarquia geografica
-// Gestiona provincias y municipios
+// Gestiona departamentos, provincias y municipios
 export default async function geograficasRoutes(
   fastify: FastifyInstance,
   opts: FastifyPluginOptions
 ) {
   // Inicializar dependencias
+  const departamentoRepository = new DepartamentoRepository();
   const provinciaRepository = new ProvinciaRepository();
   const municipioRepository = new MunicipioRepository();
   const geograficasService = new GeograficasService(
+    departamentoRepository,
     provinciaRepository,
     municipioRepository
   );
   const geograficasController = new GeograficasController(geograficasService);
+
+  // RUTAS DEPARTAMENTOS
+
+  // GET /api/geograficas/departamentos
+  // Lista todos los departamentos
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    "/departamentos",
+    {
+      onRequest: [authenticate],
+      schema: {
+        description: "Lista todos los departamentos",
+        tags: ["geograficas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        response: {
+          200: DepartamentosListResponseSchema,
+          401: GeograficaErrorSchema,
+          500: GeograficaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) =>
+      geograficasController.listDepartamentos(request, reply)
+  );
+
+  // GET /api/geograficas/departamentos/:id
+  // Obtiene un departamento por ID
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    "/departamentos/:id",
+    {
+      onRequest: [authenticate],
+      schema: {
+        description: "Obtiene un departamento por ID",
+        tags: ["geograficas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: GeograficaParamsSchema,
+        response: {
+          200: z.object({ departamento: DepartamentoResponseSchema }),
+          401: GeograficaErrorSchema,
+          404: GeograficaErrorSchema,
+          500: GeograficaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) =>
+      geograficasController.getDepartamentoById(request, reply)
+  );
+
+  // POST /api/geograficas/departamentos
+  // Crea un nuevo departamento
+  fastify.withTypeProvider<ZodTypeProvider>().post(
+    "/departamentos",
+    {
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      schema: {
+        description: "Crea un nuevo departamento",
+        tags: ["geograficas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        body: CreateDepartamentoSchema,
+        response: {
+          201: z.object({
+            departamento: DepartamentoResponseSchema,
+            message: z.string(),
+          }),
+          401: GeograficaErrorSchema,
+          403: GeograficaErrorSchema,
+          409: GeograficaErrorSchema,
+          500: GeograficaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) =>
+      geograficasController.createDepartamento(request, reply)
+  );
+
+  // PUT /api/geograficas/departamentos/:id
+  // Actualiza un departamento existente
+  fastify.withTypeProvider<ZodTypeProvider>().put(
+    "/departamentos/:id",
+    {
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      schema: {
+        description: "Actualiza un departamento existente",
+        tags: ["geograficas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: GeograficaParamsSchema,
+        body: UpdateDepartamentoSchema,
+        response: {
+          200: z.object({
+            departamento: DepartamentoResponseSchema,
+            message: z.string(),
+          }),
+          401: GeograficaErrorSchema,
+          403: GeograficaErrorSchema,
+          404: GeograficaErrorSchema,
+          500: GeograficaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) =>
+      geograficasController.updateDepartamento(request, reply)
+  );
+
+  // DELETE /api/geograficas/departamentos/:id
+  // Elimina (desactiva) un departamento
+  fastify.withTypeProvider<ZodTypeProvider>().delete(
+    "/departamentos/:id",
+    {
+      onRequest: [authenticate, requireRoles("gerente", "administrador")],
+      schema: {
+        description: "Elimina (desactiva) un departamento",
+        tags: ["geograficas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: GeograficaParamsSchema,
+        response: {
+          204: {
+            type: "null",
+            description: "Departamento eliminado exitosamente",
+          },
+          401: GeograficaErrorSchema,
+          403: GeograficaErrorSchema,
+          404: GeograficaErrorSchema,
+          500: GeograficaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) =>
+      geograficasController.deleteDepartamento(request, reply)
+  );
 
   // RUTAS PROVINCIAS
 

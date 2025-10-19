@@ -35,6 +35,33 @@ export const dashboardService = {
   },
 
   /**
+   * Obtiene estadisticas para gerente (sin acceso a usuarios del sistema)
+   */
+  async getGerenteStats(): Promise<DashboardStats> {
+    try {
+      const [comunidades, productores, fichas] = await Promise.all([
+        apiClient.get(ENDPOINTS.COMUNIDADES.BASE),
+        apiClient.get(ENDPOINTS.PRODUCTORES.ESTADISTICAS),
+        apiClient.get(ENDPOINTS.FICHAS.ESTADISTICAS),
+      ]);
+
+      return {
+        totalUsuarios: 0, // Gerente no tiene acceso a lista de usuarios
+        totalComunidades: comunidades.data.total || 0,
+        totalProductores: productores.data.total || 0,
+        totalFichas: fichas.data.total || 0,
+        fichasPendientes: fichas.data.por_estado?.borrador || 0,
+        fichasEnRevision: fichas.data.por_estado?.revision || 0,
+        fichasAprobadas: fichas.data.por_estado?.aprobado || 0,
+        parcelasSinGPS: 0, // TODO: implementar endpoint
+      };
+    } catch (error) {
+      console.error("Error fetching gerente stats:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Obtiene alertas importantes
    */
   async getAlertas(): Promise<DashboardAlert[]> {
@@ -53,7 +80,7 @@ export const dashboardService = {
           message: `${comunidadesSinTecnicos.data.total} comunidades sin técnicos asignados`,
           action: {
             label: "Ver comunidades",
-            path: "/comunidades",
+            path: "/geograficas",
           },
         });
       }

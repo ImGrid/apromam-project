@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { productoresService } from '../services/productores.service';
-import { showToast } from '@/shared/components/ui';
+import { showToast } from '@/shared/hooks/useToast';
 import type { UpdateProductorInput, Productor } from '../types/productor.types';
 
 export function useUpdateProductor() {

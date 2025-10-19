@@ -16,7 +16,7 @@ import {
   ProductorResponseSchema,
   ProductorErrorSchema,
 } from "../schemas/productores.schema.js";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 // Plugin de rutas para productores
 // CRUD de productores con control de acceso por comunidad

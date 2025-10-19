@@ -37,6 +37,7 @@ export interface UsuarioPublicData {
   email: string;
   nombre_completo: string;
   nombre_rol: string;
+  id_comunidad?: string;
   nombre_comunidad?: string;
   activo: boolean;
   last_login?: string;
@@ -234,6 +235,7 @@ export class Usuario {
       email: this.data.email,
       nombre_completo: this.data.nombre_completo,
       nombre_rol: this.data.nombre_rol || "unknown",
+      id_comunidad: this.data.id_comunidad || undefined,
       nombre_comunidad: this.data.nombre_comunidad || undefined,
       activo: this.data.activo,
       last_login: this.data.last_login?.toISOString(),

@@ -3,11 +3,11 @@
  * Muestra lista de técnicos con comunidad asignada y acciones
  */
 
-import { Building2, MapPin, Power, CheckCircle, XCircle } from "lucide-react";
+import { Building2, MapPin, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import {
   DataTable,
   Badge,
-  Button,
+  IconButton,
   type DataTableColumn,
 } from "@/shared/components/ui";
 import type { Tecnico } from "../types/tecnico.types";
@@ -15,14 +15,14 @@ import type { Tecnico } from "../types/tecnico.types";
 interface TecnicosListProps {
   tecnicos: Tecnico[];
   loading?: boolean;
-  onAsignarComunidad?: (tecnico: Tecnico) => void;
+  onEdit?: (tecnico: Tecnico) => void;
   onToggleActivo?: (tecnico: Tecnico) => void;
 }
 
 export function TecnicosList({
   tecnicos,
   loading = false,
-  onAsignarComunidad,
+  onEdit,
   onToggleActivo,
 }: TecnicosListProps) {
   const columns: DataTableColumn<Tecnico>[] = [
@@ -109,28 +109,30 @@ export function TecnicosList({
       label: "Acciones",
       render: (tecnico) => (
         <div className="flex items-center gap-1">
-          {/* Asignar comunidad */}
-          {onAsignarComunidad && (
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={() => onAsignarComunidad(tecnico)}
-              title="Asignar comunidad"
-            >
-              <Building2 className="w-4 h-4" />
-            </Button>
+          {/* Editar técnico */}
+          {onEdit && (
+            <IconButton
+              icon={<Edit className="w-4 h-4" />}
+              tooltip="Editar técnico"
+              variant="primary"
+              onClick={() => onEdit(tecnico)}
+            />
           )}
 
           {/* Toggle activo */}
           {onToggleActivo && (
-            <Button
-              variant="ghost"
-              size="small"
+            <IconButton
+              icon={
+                tecnico.activo ? (
+                  <Trash2 className="w-4 h-4" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )
+              }
+              tooltip={tecnico.activo ? "Desactivar técnico" : "Activar técnico"}
+              variant={tecnico.activo ? "danger" : "success"}
               onClick={() => onToggleActivo(tecnico)}
-              title={tecnico.activo ? "Desactivar" : "Activar"}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
+            />
           )}
         </div>
       ),

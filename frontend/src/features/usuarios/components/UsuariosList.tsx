@@ -1,6 +1,6 @@
 // src/features/usuarios/components/UsuariosList.tsx
 
-import { Badge, DataTable, Tooltip } from "@/shared/components/ui";
+import { Badge, DataTable, IconButton } from "@/shared/components/ui";
 import { Edit, Trash2, CheckCircle } from "lucide-react";
 import type { DataTableColumn } from "@/shared/components/ui";
 import type { Usuario } from "../types/usuario.types";
@@ -92,48 +92,35 @@ export function UsuariosList({
       key: "acciones",
       label: "Acciones",
       render: (usuario) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {canEdit && (
-            <Tooltip content="Editar usuario" position="top">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(usuario);
-                }}
-                className="p-2 transition-colors rounded text-primary hover:bg-primary/10 touch-target"
-                aria-label="Editar usuario"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-            </Tooltip>
+            <IconButton
+              icon={<Edit className="w-4 h-4" />}
+              tooltip="Editar usuario"
+              variant="primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(usuario);
+              }}
+            />
           )}
 
           {canDelete && (
-            <Tooltip
-              content={usuario.activo ? "Desactivar usuario" : "Activar usuario"}
-              position="top"
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(usuario);
-                }}
-                className={`p-2 transition-colors rounded touch-target ${
-                  usuario.activo
-                    ? "text-error hover:bg-error/10"
-                    : "text-success hover:bg-success/10"
-                }`}
-                aria-label={
-                  usuario.activo ? "Desactivar usuario" : "Activar usuario"
-                }
-              >
-                {usuario.activo ? (
+            <IconButton
+              icon={
+                usuario.activo ? (
                   <Trash2 className="w-4 h-4" />
                 ) : (
                   <CheckCircle className="w-4 h-4" />
-                )}
-              </button>
-            </Tooltip>
+                )
+              }
+              tooltip={usuario.activo ? "Desactivar usuario" : "Activar usuario"}
+              variant={usuario.activo ? "danger" : "success"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(usuario);
+              }}
+            />
           )}
         </div>
       ),

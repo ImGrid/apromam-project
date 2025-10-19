@@ -1,26 +1,29 @@
 /**
  * Página principal de técnicos
- * Lista de técnicos con filtros, asignación de comunidades y acciones
+ * Lista de técnicos con filtros y acciones de edición
  */
 
 import { useState } from "react";
-import { UserCog, Users, Building2, UserX } from "lucide-react";
+import { UserCog, Users, Building2, UserX, Plus } from "lucide-react";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
-import { Alert } from "@/shared/components/ui";
+import { Alert, Button } from "@/shared/components/ui";
 import { usePermissions } from "@/shared/hooks/usePermissions";
 import { TecnicosList } from "../components/TecnicosList";
 import { TecnicoFilters } from "../components/TecnicoFilters";
-import { AsignarComunidadModal } from "../components/AsignarComunidadModal";
+import { CreateTecnicoModal } from "../components/CreateTecnicoModal";
+import { EditTecnicoModal } from "../components/EditTecnicoModal";
 import { useTecnicos } from "../hooks/useTecnicos";
 import { useToggleTecnico } from "../hooks/useToggleTecnico";
 import type { Tecnico, TecnicoFilters as Filters } from "../types/tecnico.types";
 
 export default function TecnicosListPage() {
-  const { isAdmin, isGerente } = usePermissions();
+  const permissions = usePermissions();
+  const { isAdmin, isGerente } = permissions;
   const [selectedTecnico, setSelectedTecnico] = useState<Tecnico | null>(null);
-  const [showAsignarModal, setShowAsignarModal] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const {
     tecnicos,
@@ -37,6 +40,9 @@ export default function TecnicosListPage() {
   // Seleccionar layout según rol
   const Layout = isAdmin() ? AdminLayout : isGerente() ? GerenteLayout : AdminLayout;
 
+  const canCreate = permissions.canAccess("usuarios", "create") || isGerente();
+  const canEdit = permissions.canAccess("usuarios", "edit") || isGerente();
+
   const handleFiltersChange = (newFilters: Filters) => {
     setFilters(newFilters);
   };
@@ -45,9 +51,9 @@ export default function TecnicosListPage() {
     setFilters({});
   };
 
-  const handleAsignarComunidad = (tecnico: Tecnico) => {
+  const handleEdit = (tecnico: Tecnico) => {
     setSelectedTecnico(tecnico);
-    setShowAsignarModal(true);
+    setEditModalOpen(true);
   };
 
   const handleToggleActivo = async (tecnico: Tecnico) => {
@@ -81,6 +87,18 @@ export default function TecnicosListPage() {
       <PageContainer
         title="Gestión de Técnicos"
         description="Administra técnicos y asigna comunidades"
+        actions={
+          canCreate ? (
+            <Button
+              size="small"
+              variant="primary"
+              onClick={() => setCreateModalOpen(true)}
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Nuevo Técnico</span>
+            </Button>
+          ) : undefined
+        }
       >
         <div className="space-y-6">
           {/* Estadísticas rápidas */}
@@ -133,20 +151,27 @@ export default function TecnicosListPage() {
             <TecnicosList
               tecnicos={tecnicos}
               loading={isLoading || isToggling}
-              onAsignarComunidad={handleAsignarComunidad}
+              onEdit={canEdit ? handleEdit : undefined}
               onToggleActivo={handleToggleActivo}
             />
           </div>
-
-          {/* Modal de asignar comunidad */}
-          <AsignarComunidadModal
-            isOpen={showAsignarModal}
-            onClose={() => setShowAsignarModal(false)}
-            tecnico={selectedTecnico}
-            onSuccess={handleModalSuccess}
-          />
         </div>
       </PageContainer>
+
+      {/* Modal crear técnico */}
+      <CreateTecnicoModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={handleModalSuccess}
+      />
+
+      {/* Modal editar técnico */}
+      <EditTecnicoModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        tecnico={selectedTecnico}
+        onSuccess={handleModalSuccess}
+      />
     </Layout>
   );
 }

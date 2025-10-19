@@ -31,6 +31,8 @@ export const ENDPOINTS = {
 
   // Geograficas
   GEOGRAFICAS: {
+    DEPARTAMENTOS: "/api/geograficas/departamentos",
+    DEPARTAMENTOS_BY_ID: (id: string) => `/api/geograficas/departamentos/${id}`,
     PROVINCIAS: "/api/geograficas/provincias",
     PROVINCIAS_BY_ID: (id: string) => `/api/geograficas/provincias/${id}`,
     MUNICIPIOS: "/api/geograficas/municipios",

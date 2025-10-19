@@ -14,6 +14,7 @@ export interface ProductorData {
   nombre_productor: string;
   ci_documento?: string;
   id_comunidad: string;
+  id_organizacion?: string;
   año_ingreso_programa: number;
   // Coordenadas decimales
   latitud_domicilio?: number;
@@ -31,6 +32,8 @@ export interface ProductorData {
   nombre_municipio?: string;
   nombre_provincia?: string;
   abreviatura_comunidad?: string;
+  nombre_organizacion?: string;
+  abreviatura_organizacion?: string;
 }
 
 // Interfaz para datos publicos de Productor (response)
@@ -41,6 +44,9 @@ export interface ProductorPublicData {
   nombre_comunidad?: string;
   nombre_municipio?: string;
   nombre_provincia?: string;
+  id_organizacion?: string;
+  nombre_organizacion?: string;
+  abreviatura_organizacion?: string;
   categoria_actual: CategoriaProductor;
   superficie_total_has: number;
   numero_parcelas_total: number;
@@ -387,6 +393,9 @@ export class Productor {
       nombre_comunidad: this.data.nombre_comunidad,
       nombre_municipio: this.data.nombre_municipio,
       nombre_provincia: this.data.nombre_provincia,
+      id_organizacion: this.data.id_organizacion,
+      nombre_organizacion: this.data.nombre_organizacion,
+      abreviatura_organizacion: this.data.abreviatura_organizacion,
       categoria_actual: this.data.categoria_actual,
       superficie_total_has: this.data.superficie_total_has,
       numero_parcelas_total: this.data.numero_parcelas_total,
