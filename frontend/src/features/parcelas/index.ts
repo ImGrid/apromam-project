@@ -11,4 +11,6 @@ export type {
   Parcela,
   ParcelaCoordenadas,
   ParcelasProductorResponse,
+  CreateParcelaInput,
+  UpdateParcelaInput,
 } from "./services/parcelas.service";

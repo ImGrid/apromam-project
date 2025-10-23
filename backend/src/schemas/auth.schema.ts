@@ -67,14 +67,14 @@ const NombreCompletoSchema = z
   .trim();
 
 /**
- * Schema para rol (uno de los 5 del sistema)
+ * Schema para rol (uno de los 4 del sistema)
  */
 const RolNombreSchema = z.enum(
-  ["administrador", "gerente", "tecnico", "invitado", "productor"],
+  ["administrador", "gerente", "tecnico", "invitado"],
   {
     errorMap: () => ({
       message:
-        "Rol debe ser: administrador, gerente, tecnico, invitado o productor",
+        "Rol debe ser: administrador, gerente, tecnico o invitado",
     }),
   }
 );

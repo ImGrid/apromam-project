@@ -275,8 +275,7 @@ export interface DetalleCultivoParcela {
   control_hierbas_otro?: string;
   metodo_cosecha?: MetodoCosecha;
   metodo_cosecha_otro?: string;
-  rotacion?: boolean;
-  insumos_organicos_usados?: string;
+  situacion_actual?: string;
   created_at: string;
 
   // Datos enriquecidos
@@ -301,8 +300,7 @@ export interface CreateDetalleCultivoParcelaInput {
   control_hierbas_otro?: string;
   metodo_cosecha?: MetodoCosecha;
   metodo_cosecha_otro?: string;
-  rotacion?: boolean;
-  insumos_organicos_usados?: string;
+  situacion_actual?: string;
 }
 
 // ============================================
@@ -481,4 +479,37 @@ export interface Parcela {
     longitude: number;
   };
   activo: boolean;
+}
+
+// ============================================
+// DRAFT TYPES (BORRADORES)
+// ============================================
+
+export interface FichaDraftMetadata {
+  codigo_productor: string;
+  gestion: number;
+  step_actual: number;
+  created_at: string;
+  updated_at: string;
+  saves_count: number;
+  last_sync_server?: string;
+  is_synced: boolean;
+}
+
+export interface FichaDraftData {
+  id_draft?: string;
+  codigo_productor: string;
+  gestion: number;
+  step_actual: number;
+  draft_data: any; // Datos del formulario completo
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SaveDraftInput {
+  codigo_productor: string;
+  gestion: number;
+  step_actual: number;
+  draft_data: any;
 }

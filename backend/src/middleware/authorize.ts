@@ -4,13 +4,12 @@ import { createAuthLogger } from "../utils/logger.js";
 const logger = createAuthLogger();
 
 // Roles del sistema APROMAM
-// Estos son los 5 roles definidos en la base de datos
+// Estos son los 4 roles definidos en la base de datos
 export const ROLES = {
   ADMINISTRADOR: "administrador",
   GERENTE: "gerente",
   TECNICO: "tecnico",
   INVITADO: "invitado",
-  PRODUCTOR: "productor",
 } as const;
 
 export type RoleName = (typeof ROLES)[keyof typeof ROLES];
@@ -247,7 +246,7 @@ export function requireComunidadAccess(
       return;
     }
 
-    // Otros roles (invitado, productor) no tienen acceso a comunidades
+    // Invitado no tiene acceso a comunidades
     logger.warn(
       {
         user_id: request.user.userId,

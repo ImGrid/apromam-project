@@ -212,7 +212,6 @@ export interface FichaData {
   comentarios_evaluacion?: string;
   firma_productor?: string;
   firma_inspector?: string;
-  descripcion_uso_guano_general?: string;
 
   // Auditoría
   created_by: string;

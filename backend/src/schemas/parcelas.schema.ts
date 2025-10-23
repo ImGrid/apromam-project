@@ -41,7 +41,8 @@ const CoordenadasParcelaSchema = z.object({
 });
 
 // Schema para crear parcela
-// NOTA: Las parcelas NO tienen superficie fija (se calcula dinámicamente por cultivos)
+// NOTA: superficie_ha se define al crear el productor (por el gerente)
+// Los demas campos (GPS, riego, etc) los completa el tecnico en la ficha
 export const CreateParcelaSchema = z.object({
   codigo_productor: z
     .string()
@@ -52,10 +53,15 @@ export const CreateParcelaSchema = z.object({
     .int()
     .min(1, "Numero de parcela debe ser mayor a 0")
     .max(100, "Numero de parcela no puede exceder 100"),
+  superficie_ha: z
+    .number()
+    .min(0.01, "Superficie debe ser mayor a 0")
+    .max(10000, "Superficie no puede exceder 10,000 hectareas"),
   coordenadas: CoordenadasParcelaSchema.optional(),
   utiliza_riego: z.boolean().optional(),
-  situacion_cumple: z.boolean().optional(),
   tipo_barrera: TipoBarreraSchema.optional(),
+  insumos_organicos: z.string().max(500, "Insumos organicos no puede exceder 500 caracteres").optional(),
+  rotacion: z.boolean().optional(),
 });
 
 export type CreateParcelaInput = z.infer<typeof CreateParcelaSchema>;
@@ -64,8 +70,9 @@ export type CreateParcelaInput = z.infer<typeof CreateParcelaSchema>;
 export const UpdateParcelaSchema = z.object({
   coordenadas: CoordenadasParcelaSchema.optional(),
   utiliza_riego: z.boolean().optional(),
-  situacion_cumple: z.boolean().optional(),
   tipo_barrera: TipoBarreraSchema.optional(),
+  insumos_organicos: z.string().max(500, "Insumos organicos no puede exceder 500 caracteres").optional(),
+  rotacion: z.boolean().optional(),
   activo: z.boolean().optional(),
 });
 
@@ -104,6 +111,7 @@ export const ParcelaResponseSchema = z.object({
   codigo_productor: z.string(),
   nombre_productor: z.string().optional(),
   numero_parcela: z.number().int(),
+  superficie_ha: z.number(),
   coordenadas: z
     .object({
       latitude: z.number(),
@@ -111,8 +119,9 @@ export const ParcelaResponseSchema = z.object({
     })
     .optional(),
   utiliza_riego: z.boolean(),
-  situacion_cumple: z.boolean(),
   tipo_barrera: TipoBarreraSchema,
+  insumos_organicos: z.string().optional(),
+  rotacion: z.boolean(),
   activo: z.boolean(),
   created_at: z.string().datetime(),
 });
@@ -123,6 +132,7 @@ export type ParcelaResponse = z.infer<typeof ParcelaResponseSchema>;
 export const ParcelasListResponseSchema = z.object({
   parcelas: z.array(ParcelaResponseSchema),
   total: z.number().int(),
+  superficie_total: z.number(),
 });
 
 export type ParcelasListResponse = z.infer<typeof ParcelasListResponseSchema>;

@@ -218,14 +218,6 @@ export function isTecnico(user: User | null): boolean {
 }
 
 /**
- * Verifica si es productor
- */
-export function isProductor(user: User | null): boolean {
-  if (!user) return false;
-  return user.nombre_rol.toLowerCase() === "productor";
-}
-
-/**
  * Verifica si es invitado
  */
 export function isInvitado(user: User | null): boolean {

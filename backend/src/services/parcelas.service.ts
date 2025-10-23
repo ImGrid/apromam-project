@@ -175,11 +175,12 @@ export class ParcelasService {
     const parcela = Parcela.create({
       codigo_productor: input.codigo_productor,
       numero_parcela: input.numero_parcela,
+      superficie_ha: input.superficie_ha,
       latitud_sud: input.coordenadas?.latitud,
       longitud_oeste: input.coordenadas?.longitud,
       utiliza_riego: input.utiliza_riego,
-      situacion_cumple: input.situacion_cumple,
       tipo_barrera: input.tipo_barrera,
+      insumos_organicos: input.insumos_organicos,
     });
 
     const parcelaCreada = await this.parcelaRepository.create(parcela);
@@ -240,12 +241,12 @@ export class ParcelasService {
       parcelaActual.actualizarRiego(input.utiliza_riego);
     }
 
-    if (input.situacion_cumple !== undefined) {
-      parcelaActual.actualizarSituacion(input.situacion_cumple);
-    }
-
     if (input.tipo_barrera) {
       parcelaActual.actualizarBarrera(input.tipo_barrera);
+    }
+
+    if (input.insumos_organicos !== undefined) {
+      parcelaActual.actualizarInsumosOrganicos(input.insumos_organicos);
     }
 
     if (input.activo !== undefined) {

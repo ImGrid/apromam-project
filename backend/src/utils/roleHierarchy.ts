@@ -13,7 +13,6 @@ export const ROLE_HIERARCHY = {
   gerente: 2,
   tecnico: 3,
   invitado: 4,
-  productor: 5,
 } as const;
 
 export type RoleName = keyof typeof ROLE_HIERARCHY;
@@ -59,8 +58,8 @@ export function canManageUser(
  * @returns Array de nombres de roles que puede gestionar
  *
  * Ejemplo:
- * - administrador -> ['gerente', 'tecnico', 'invitado', 'productor']
- * - gerente -> ['tecnico', 'invitado', 'productor']
+ * - administrador -> ['gerente', 'tecnico', 'invitado']
+ * - gerente -> ['tecnico', 'invitado']
  * - tecnico -> [] (no puede gestionar usuarios)
  */
 export function getRolesManageableBy(managerRole: string): string[] {

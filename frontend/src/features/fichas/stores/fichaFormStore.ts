@@ -91,7 +91,9 @@ export const useFichaFormStore = create<FichaFormStore>()(
       actions: {
         // Navegación
         setCurrentStep: (step: number) => {
-          if (step < 1 || step > TOTAL_STEPS) return;
+          if (step < 1 || step > TOTAL_STEPS) {
+            return;
+          }
           set({ currentStep: step });
         },
 

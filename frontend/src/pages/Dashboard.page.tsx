@@ -4,10 +4,17 @@ import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { usePermissions } from "@/shared/hooks/usePermissions";
 import { PermissionGate } from "@/shared/components/layout/PermissionGate";
+import { useMyDrafts, useFichaEstadisticas } from "@/features/fichas/hooks";
 
 export function DashboardPage() {
   const { user } = useAuth();
   const { isAdmin, isGerente, isTecnico } = usePermissions();
+
+  // Obtener drafts solo si es técnico
+  const { data: drafts = [], isLoading: loadingDrafts } = useMyDrafts();
+
+  // Obtener estadísticas de fichas
+  const { data: stats, isLoading: loadingStats } = useFichaEstadisticas();
 
   // Seleccionar layout segun rol
   const Layout = isAdmin()
@@ -39,30 +46,51 @@ export function DashboardPage() {
 
         {/* Stats cards */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <PermissionGate permission="report">
-            <div className="p-6 bg-white border rounded-lg border-neutral-border">
-              <h3 className="mb-2 text-sm font-medium text-text-secondary">
-                Total Productores
-              </h3>
-              <p className="text-3xl font-bold text-primary">--</p>
-            </div>
-          </PermissionGate>
-
+          {/* Total de fichas */}
           <PermissionGate resource="fichas" action="read">
             <div className="p-6 bg-white border rounded-lg border-neutral-border">
               <h3 className="mb-2 text-sm font-medium text-text-secondary">
-                Fichas Pendientes
+                Total Fichas
               </h3>
-              <p className="text-3xl font-bold text-warning">--</p>
+              <p className="text-3xl font-bold text-primary">
+                {loadingStats ? "..." : stats?.total || 0}
+              </p>
             </div>
           </PermissionGate>
 
+          {/* Borradores (solo técnicos) */}
+          {isTecnico() && (
+            <div className="p-6 bg-white border rounded-lg border-neutral-border">
+              <h3 className="mb-2 text-sm font-medium text-text-secondary">
+                Borradores
+              </h3>
+              <p className="text-3xl font-bold text-warning">
+                {loadingDrafts ? "..." : drafts.length}
+              </p>
+            </div>
+          )}
+
+          {/* En Revisión (gerentes y admin) */}
           <PermissionGate permission="approve">
             <div className="p-6 bg-white border rounded-lg border-neutral-border">
               <h3 className="mb-2 text-sm font-medium text-text-secondary">
                 En Revisión
               </h3>
-              <p className="text-3xl font-bold text-info">--</p>
+              <p className="text-3xl font-bold text-info">
+                {loadingStats ? "..." : stats?.por_estado?.revision || 0}
+              </p>
+            </div>
+          </PermissionGate>
+
+          {/* Aprobadas */}
+          <PermissionGate resource="fichas" action="read">
+            <div className="p-6 bg-white border rounded-lg border-neutral-border">
+              <h3 className="mb-2 text-sm font-medium text-text-secondary">
+                Aprobadas
+              </h3>
+              <p className="text-3xl font-bold text-success">
+                {loadingStats ? "..." : stats?.por_estado?.aprobado || 0}
+              </p>
             </div>
           </PermissionGate>
         </div>

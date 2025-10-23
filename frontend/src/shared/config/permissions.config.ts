@@ -24,8 +24,7 @@ export type RoleName =
   | "administrador"
   | "gerente"
   | "tecnico"
-  | "invitado"
-  | "productor";
+  | "invitado";
 
 export type PermissionsMap = {
   [K in RoleName]: Partial<Record<Permission, boolean>>;
@@ -60,10 +59,6 @@ export const PERMISSIONS: PermissionsMap = {
   invitado: {
     read: true,
     report: true,
-  },
-
-  productor: {
-    readOwn: true,
   },
 } as const;
 

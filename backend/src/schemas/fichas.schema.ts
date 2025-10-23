@@ -227,10 +227,9 @@ export const DetalleCultivoParcelaSchema = z.object({
     .string()
     .max(200, "Metodo de cosecha no puede exceder 200 caracteres")
     .optional(),
-  rotacion: z.boolean().default(false),
-  insumos_organicos_usados: z
+  situacion_actual: z
     .string()
-    .max(500, "Insumos no pueden exceder 500 caracteres")
+    .max(100, "Situacion actual no puede exceder 100 caracteres")
     .optional(),
 });
 
@@ -356,10 +355,6 @@ export const CreateFichaSchema = z.object({
     .string()
     .max(100, "Firma no puede exceder 100 caracteres")
     .optional(),
-  descripcion_uso_guano_general: z
-    .string()
-    .max(1000, "Descripcion uso guano general no puede exceder 1000 caracteres")
-    .optional(),
 });
 
 export type CreateFichaInput = z.infer<typeof CreateFichaSchema>;
@@ -402,10 +397,6 @@ export const UpdateFichaSchema = z.object({
     .string()
     .max(100, "Firma no puede exceder 100 caracteres")
     .optional(),
-  descripcion_uso_guano_general: z
-    .string()
-    .max(1000, "Descripcion uso guano general no puede exceder 1000 caracteres")
-    .optional(),
 });
 
 export type UpdateFichaInput = z.infer<typeof UpdateFichaSchema>;
@@ -427,6 +418,19 @@ export const FichaQuerySchema = z.object({
   productor: z.string().optional(),
   comunidad: UUIDSchema.optional(),
   estado_sync: EstadoSyncSchema.optional(),
+  // Paginacion
+  page: z
+    .string()
+    .optional()
+    .default("1")
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => val > 0, "Page debe ser mayor a 0"),
+  limit: z
+    .string()
+    .optional()
+    .default("20")
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => val > 0 && val <= 100, "Limit debe estar entre 1 y 100"),
 });
 
 export type FichaQuery = z.infer<typeof FichaQuerySchema>;
@@ -476,10 +480,16 @@ export const FichaResponseSchema = z.object({
   inspector_interno: z.string(),
   persona_entrevistada: z.string().optional(),
   categoria_gestion_anterior: CategoriaProductorSchema.optional(),
+  origen_captura: OrigenCapturaSchema,
+  fecha_sincronizacion: z.string().datetime().optional(),
+  estado_sync: EstadoSyncSchema,
   estado_ficha: EstadoFichaSchema,
   resultado_certificacion: ResultadoCertificacionSchema,
-  origen_captura: OrigenCapturaSchema,
-  estado_sync: EstadoSyncSchema,
+  recomendaciones: z.string().optional(),
+  comentarios_evaluacion: z.string().optional(),
+  firma_productor: z.string().optional(),
+  firma_inspector: z.string().optional(),
+  created_by: UUIDSchema,
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
@@ -490,6 +500,9 @@ export type FichaResponse = z.infer<typeof FichaResponseSchema>;
 export const FichasListResponseSchema = z.object({
   fichas: z.array(FichaResponseSchema),
   total: z.number().int(),
+  page: z.number().int(),
+  limit: z.number().int(),
+  totalPages: z.number().int(),
 });
 
 export type FichasListResponse = z.infer<typeof FichasListResponseSchema>;
@@ -519,3 +532,69 @@ export const ArchivoFichaResponseSchema = z.object({
 });
 
 export type ArchivoFichaResponse = z.infer<typeof ArchivoFichaResponseSchema>;
+
+// ============================================
+// SCHEMAS PARA DRAFT
+// ============================================
+
+export const CreateFichaDraftSchema = z.object({
+  codigo_productor: z
+    .string()
+    .min(5, "Codigo de productor debe tener al menos 5 caracteres")
+    .max(20, "Codigo no puede exceder 20 caracteres"),
+  gestion: z
+    .number()
+    .int()
+    .min(2000, "Gestion debe ser mayor a 2000")
+    .max(2100, "Gestion debe ser menor a 2100"),
+  draft_data: z.any(),
+  step_actual: z
+    .number()
+    .int()
+    .min(1, "Step debe ser mayor a 0")
+    .max(11, "Step no puede exceder 11")
+    .default(1),
+});
+
+export type CreateFichaDraftInput = z.infer<typeof CreateFichaDraftSchema>;
+
+export const UpdateFichaDraftSchema = z.object({
+  draft_data: z.any().optional(),
+  step_actual: z
+    .number()
+    .int()
+    .min(1, "Step debe ser mayor a 0")
+    .max(11, "Step no puede exceder 11")
+    .optional(),
+});
+
+export type UpdateFichaDraftInput = z.infer<typeof UpdateFichaDraftSchema>;
+
+export const FichaDraftParamsSchema = z.object({
+  id: z.string().uuid("ID de draft debe ser UUID valido"),
+});
+
+export type FichaDraftParams = z.infer<typeof FichaDraftParamsSchema>;
+
+export const GetDraftParamsSchema = z.object({
+  codigoProductor: z.string().min(1, "Codigo de productor es requerido"),
+  gestion: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => val >= 2000 && val <= 2100, "Gestion invalida"),
+});
+
+export type GetDraftParams = z.infer<typeof GetDraftParamsSchema>;
+
+export const FichaDraftResponseSchema = z.object({
+  id_draft: z.string().uuid(),
+  codigo_productor: z.string(),
+  gestion: z.number().int(),
+  draft_data: z.any(),
+  step_actual: z.number().int(),
+  created_by: z.string().uuid(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+
+export type FichaDraftResponse = z.infer<typeof FichaDraftResponseSchema>;

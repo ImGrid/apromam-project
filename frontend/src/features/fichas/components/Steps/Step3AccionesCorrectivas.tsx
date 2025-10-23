@@ -3,7 +3,7 @@
  * Sección 3: Seguimiento de implementación acciones correctivas (gestión anterior)
  */
 
-import { useFormContext, useFieldArray } from "react-hook-form";
+import { useFormContext, useFieldArray, Controller } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import { FormSection } from "@/shared/components/ui/FormSection";
@@ -14,7 +14,7 @@ export default function Step3AccionesCorrectivas() {
   const {
     register,
     control,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useFormContext<CreateFichaCompletaInput>();
 
   const { fields, append, remove } = useFieldArray({
@@ -36,7 +36,7 @@ export default function Step3AccionesCorrectivas() {
       <FormSection>
         {/* Botón agregar */}
         <div className="flex justify-end mb-4">
-          <Button onClick={handleAddAccion} variant="primary" size="medium">
+          <Button type="button" onClick={handleAddAccion} variant="primary" size="medium">
             <Plus className="w-4 h-4 mr-2" />
             Agregar Acción
           </Button>
@@ -101,13 +101,19 @@ export default function Step3AccionesCorrectivas() {
 
                     {/* Descripción de la acción */}
                     <td className="px-4 py-3 border-l border-neutral-border">
-                      <textarea
-                        rows={2}
-                        placeholder="Ej: Mejorar el sistema de almacenamiento de insumos orgánicos"
-                        {...register(
-                          `acciones_correctivas.${index}.descripcion_accion` as const
+                      <Controller
+                        name={`acciones_correctivas.${index}.descripcion_accion` as const}
+                        control={control}
+                        render={({ field: fieldProps }) => (
+                          <textarea
+                            {...fieldProps}
+                            rows={2}
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder="Ej: Mejorar el sistema de almacenamiento de insumos orgánicos"
+                            className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                          />
                         )}
-                        className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                       />
                       {errors.acciones_correctivas?.[index]
                         ?.descripcion_accion && (
@@ -122,13 +128,19 @@ export default function Step3AccionesCorrectivas() {
 
                     {/* Implementación */}
                     <td className="px-4 py-3 border-l border-neutral-border">
-                      <textarea
-                        rows={2}
-                        placeholder="Ej: Se construyó un almacén techado"
-                        {...register(
-                          `acciones_correctivas.${index}.implementacion_descripcion` as const
+                      <Controller
+                        name={`acciones_correctivas.${index}.implementacion_descripcion` as const}
+                        control={control}
+                        render={({ field: fieldProps }) => (
+                          <textarea
+                            {...fieldProps}
+                            rows={2}
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder="Ej: Se construyó un almacén techado"
+                            className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                          />
                         )}
-                        className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                       />
                       {errors.acciones_correctivas?.[index]
                         ?.implementacion_descripcion && (
@@ -144,7 +156,12 @@ export default function Step3AccionesCorrectivas() {
                     {/* Acción */}
                     <td className="px-4 py-3 text-center border-l border-neutral-border">
                       <Button
-                        onClick={() => remove(index)}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          remove(index);
+                        }}
                         variant="danger"
                         size="small"
                         className="mx-auto"
@@ -187,7 +204,12 @@ export default function Step3AccionesCorrectivas() {
                     </span>
                   </div>
                   <Button
-                    onClick={() => remove(index)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      remove(index);
+                    }}
                     variant="danger"
                     size="small"
                   >
@@ -218,13 +240,19 @@ export default function Step3AccionesCorrectivas() {
                         ?.message
                     }
                   >
-                    <textarea
-                      rows={3}
-                      placeholder="Ej: Mejorar el sistema de almacenamiento de insumos orgánicos"
-                      {...register(
-                        `acciones_correctivas.${index}.descripcion_accion` as const
+                    <Controller
+                      name={`acciones_correctivas.${index}.descripcion_accion` as const}
+                      control={control}
+                      render={({ field: fieldProps }) => (
+                        <textarea
+                          {...fieldProps}
+                          rows={3}
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder="Ej: Mejorar el sistema de almacenamiento de insumos orgánicos"
+                          className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                        />
                       )}
-                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                     />
                   </FormField>
 
@@ -235,13 +263,19 @@ export default function Step3AccionesCorrectivas() {
                         ?.implementacion_descripcion?.message
                     }
                   >
-                    <textarea
-                      rows={3}
-                      placeholder="Ej: Se construyó un almacén techado"
-                      {...register(
-                        `acciones_correctivas.${index}.implementacion_descripcion` as const
+                    <Controller
+                      name={`acciones_correctivas.${index}.implementacion_descripcion` as const}
+                      control={control}
+                      render={({ field: fieldProps }) => (
+                        <textarea
+                          {...fieldProps}
+                          rows={3}
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder="Ej: Se construyó un almacén techado"
+                          className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                        />
                       )}
-                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                     />
                   </FormField>
                 </div>

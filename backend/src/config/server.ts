@@ -214,6 +214,37 @@ export const createServer = async (): Promise<FastifyInstance> => {
       .toString(36)
       .substring(2, 9)}`;
 
+    // Verificar si es un error de serializacion de respuesta (Zod validation)
+    const isResponseSerializationError = (err: any): err is { cause: { issues: any[] } } => {
+      return err.cause?.issues !== undefined;
+    };
+
+    if (isResponseSerializationError(error)) {
+      request.log.error(
+        {
+          errorId,
+          error: error.message,
+          validationIssues: error.cause.issues,
+          method: request.method,
+          url: request.url,
+          ip: request.ip,
+        },
+        "Response serialization error - Schema validation failed"
+      );
+
+      // En desarrollo, mostrar los detalles de validacion
+      const statusCode = error.statusCode || 500;
+      const errorResponse = {
+        error: "ResponseValidationError",
+        message: "Response doesn't match the schema",
+        validationIssues: config.node_env !== "production" ? error.cause.issues : undefined,
+        errorId,
+        timestamp: new Date().toISOString(),
+      };
+
+      return reply.status(statusCode).send(errorResponse);
+    }
+
     request.log.error(
       {
         errorId,

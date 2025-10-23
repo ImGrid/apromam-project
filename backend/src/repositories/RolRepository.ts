@@ -237,21 +237,20 @@ export class RolRepository {
   async findAllSystemRoles(): Promise<Rol[]> {
     const query = {
       text: `
-        SELECT 
+        SELECT
           id_rol,
           nombre_rol,
           descripcion,
           permisos,
           activo
         FROM roles
-        WHERE nombre_rol IN ('administrador', 'gerente', 'tecnico', 'invitado', 'productor')
-        ORDER BY 
+        WHERE nombre_rol IN ('administrador', 'gerente', 'tecnico', 'invitado')
+        ORDER BY
           CASE nombre_rol
             WHEN 'administrador' THEN 1
             WHEN 'gerente' THEN 2
             WHEN 'tecnico' THEN 3
             WHEN 'invitado' THEN 4
-            WHEN 'productor' THEN 5
           END
       `,
       values: [],

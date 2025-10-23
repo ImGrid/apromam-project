@@ -12,9 +12,11 @@ import {
   type SelectOption,
 } from "@/shared/components/ui";
 import { LocationPicker } from "@/shared/components/maps";
+import { ParcelasInput, type ParcelaSuperficie } from "./ParcelasInput";
 import { useCreateProductor } from "../hooks/useCreateProductor";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
+import { parcelasService } from "@/features/parcelas";
 import type { Productor } from "../types/productor.types";
 
 // Schema de validacion
@@ -27,8 +29,7 @@ const productorSchema = z.object({
     .min(2000, "Año inválido")
     .max(new Date().getFullYear(), "Año no puede ser futuro"),
   categoria_actual: z.enum(["E", "2T", "1T", "0T"]),
-  superficie_total_has: z.number().optional(),
-  numero_parcelas_total: z.number().optional(),
+  superficie_total_has: z.number().min(0.01, "Superficie debe ser mayor a 0"),
   latitud: z.number().optional(),
   longitud: z.number().optional(),
   altitud: z.number().optional(),
@@ -51,6 +52,8 @@ export function CreateProductorModal({
   const { createProductor, isLoading } = useCreateProductor();
   const [comunidades, setComunidades] = useState<SelectOption[]>([]);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [parcelas, setParcelas] = useState<ParcelaSuperficie[]>([]);
+  const [parcelasError, setParcelasError] = useState<string>("");
 
   const {
     register,
@@ -122,7 +125,25 @@ export function CreateProductorModal({
 
   const onSubmit = async (data: ProductorFormData) => {
     try {
-      // Construir payload tipado
+      // Validar que haya parcelas definidas
+      if (parcelas.length === 0) {
+        setParcelasError("Debes definir al menos una parcela");
+        return;
+      }
+
+      // Validar Nivel 2: suma de parcelas = total productor
+      const sumaParcelas = parcelas.reduce((sum, p) => sum + (p.superficie_ha || 0), 0);
+      const diferencia = Math.abs(sumaParcelas - data.superficie_total_has);
+      const tolerancia = 0.001;
+
+      if (diferencia > tolerancia) {
+        setParcelasError(
+          `La suma de superficies de parcelas (${sumaParcelas.toFixed(4)} ha) debe ser igual a la superficie total del productor (${data.superficie_total_has.toFixed(4)} ha)`
+        );
+        return;
+      }
+
+      // Construir payload del productor
       const payload = {
         nombre_productor: data.nombre_productor,
         ci_documento: data.ci_documento,
@@ -130,7 +151,7 @@ export function CreateProductorModal({
         año_ingreso_programa: data.año_ingreso_programa,
         categoria_actual: data.categoria_actual,
         superficie_total_has: data.superficie_total_has,
-        numero_parcelas_total: data.numero_parcelas_total,
+        numero_parcelas_total: parcelas.length,
         ...(data.latitud && data.longitud
           ? {
               coordenadas: {
@@ -142,8 +163,21 @@ export function CreateProductorModal({
           : {}),
       };
 
+      // Crear productor
       const productor = await createProductor(payload);
+
+      // Crear parcelas para el productor
+      for (const parcela of parcelas) {
+        await parcelasService.createParcela({
+          codigo_productor: productor.codigo_productor,
+          numero_parcela: parcela.numero,
+          superficie_ha: parcela.superficie_ha,
+        });
+      }
+
       reset();
+      setParcelas([]);
+      setParcelasError("");
       onClose();
       onSuccess?.(productor);
     } catch {
@@ -153,6 +187,8 @@ export function CreateProductorModal({
 
   const handleClose = () => {
     reset();
+    setParcelas([]);
+    setParcelasError("");
     onClose();
   };
 
@@ -249,35 +285,35 @@ export function CreateProductorModal({
 
         <FormSection
           title="Información de Producción"
-          description="Opcional - Se puede completar después"
+          description="Define la superficie total y las parcelas del productor"
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField
-              label="Superficie Total (Has)"
-              error={errors.superficie_total_has?.message}
-            >
-              <Input
-                {...register("superficie_total_has", { valueAsNumber: true })}
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-              />
-            </FormField>
-
-            <FormField
-              label="Número de Parcelas"
-              error={errors.numero_parcelas_total?.message}
-            >
-              <Input
-                {...register("numero_parcelas_total", {
-                  valueAsNumber: true,
-                })}
-                type="number"
-                placeholder="0"
-              />
-            </FormField>
-          </div>
+          <FormField
+            label="Superficie Total (Hectáreas)"
+            required
+            error={errors.superficie_total_has?.message}
+          >
+            <Input
+              {...register("superficie_total_has", { valueAsNumber: true })}
+              type="number"
+              step="0.0001"
+              min="0.01"
+              max="10000"
+              placeholder="0.0000"
+            />
+          </FormField>
         </FormSection>
+
+        {watch("superficie_total_has") > 0 && (
+          <ParcelasInput
+            superficieTotalProductor={watch("superficie_total_has")}
+            parcelas={parcelas}
+            onChange={(nuevasParcelas) => {
+              setParcelas(nuevasParcelas);
+              setParcelasError("");
+            }}
+            error={parcelasError}
+          />
+        )}
 
         <FormSection
           title="Ubicación GPS del Domicilio"

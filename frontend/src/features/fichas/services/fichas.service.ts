@@ -40,14 +40,6 @@ export const fichasService = {
   },
 
   /**
-   * Obtiene solo la ficha principal (sin secciones)
-   */
-  async getFicha(id: string): Promise<Ficha> {
-    const response = await apiClient.get<Ficha>(`${BASE_URL}/${id}/ficha`);
-    return response.data;
-  },
-
-  /**
    * Crea una nueva ficha completa (con todas las secciones)
    */
   async create(data: CreateFichaCompletaInput): Promise<FichaCompleta> {
@@ -56,24 +48,10 @@ export const fichasService = {
   },
 
   /**
-   * Actualiza una ficha (solo borrador)
+   * Actualiza una ficha (solo borrador o rechazado)
    */
   async update(id: string, data: UpdateFichaInput): Promise<Ficha> {
     const response = await apiClient.put<Ficha>(`${BASE_URL}/${id}`, data);
-    return response.data;
-  },
-
-  /**
-   * Actualiza una ficha completa (borrador)
-   */
-  async updateCompleta(
-    id: string,
-    data: Partial<CreateFichaCompletaInput>
-  ): Promise<FichaCompleta> {
-    const response = await apiClient.put<FichaCompleta>(
-      `${BASE_URL}/${id}/completa`,
-      data
-    );
     return response.data;
   },
 
@@ -172,20 +150,6 @@ export const fichasService = {
     return response.data;
   },
 
-  /**
-   * Elimina un archivo
-   */
-  async deleteArchivo(idFicha: string, idArchivo: string): Promise<void> {
-    await apiClient.delete(`${BASE_URL}/${idFicha}/archivos/${idArchivo}`);
-  },
-
-  /**
-   * Descarga un archivo
-   */
-  getArchivoUrl(idFicha: string, idArchivo: string): string {
-    return `${apiClient.defaults.baseURL}${BASE_URL}/${idFicha}/archivos/${idArchivo}/download`;
-  },
-
   // ============================================
   // ESTADISTICAS
   // ============================================
@@ -207,67 +171,83 @@ export const fichasService = {
   },
 
   // ============================================
-  // QUERIES ESPECIFICAS
+  // DRAFT MANAGEMENT
   // ============================================
 
   /**
-   * Obtiene fichas por productor
+   * Guarda un borrador de ficha en el servidor
    */
-  async getByProductor(codigoProductor: string): Promise<Ficha[]> {
-    const response = await apiClient.get<Ficha[]>(
-      `${BASE_URL}/productor/${codigoProductor}`
-    );
-    return response.data;
+  async saveDraft(
+    codigoProductor: string,
+    gestion: number,
+    stepActual: number,
+    draftData: any
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.post(`${BASE_URL}/draft`, {
+        codigo_productor: codigoProductor,
+        gestion,
+        step_actual: stepActual,
+        draft_data: draftData,
+      });
+
+      return {
+        success: true,
+        message: 'Borrador guardado en servidor',
+      };
+    } catch (error) {
+      console.error('[API] Error al guardar borrador:', error);
+      return {
+        success: false,
+        message: 'Error al guardar en servidor',
+      };
+    }
   },
 
   /**
-   * Obtiene fichas por gestión
+   * Obtiene un borrador por código de productor y gestión
    */
-  async getByGestion(gestion: number): Promise<Ficha[]> {
-    const response = await apiClient.get<Ficha[]>(
-      `${BASE_URL}/gestion/${gestion}`
-    );
-    return response.data;
-  },
-
-  /**
-   * Obtiene fichas en revisión (para gerente)
-   */
-  async getEnRevision(): Promise<Ficha[]> {
-    const response = await apiClient.get<Ficha[]>(
-      `${BASE_URL}/en-revision`
-    );
-    return response.data;
-  },
-
-  /**
-   * Obtiene mis fichas (técnico)
-   */
-  async getMisFichas(filters?: {
-    estado_ficha?: string;
-  }): Promise<Ficha[]> {
-    const response = await apiClient.get<Ficha[]>(
-      `${BASE_URL}/mis-fichas`,
-      {
-        params: filters,
-      }
-    );
-    return response.data;
-  },
-
-  /**
-   * Verifica si existe una ficha para un productor en una gestión
-   */
-  async existsByProductorGestion(
+  async getDraft(
     codigoProductor: string,
     gestion: number
-  ): Promise<boolean> {
-    const response = await apiClient.get<{ exists: boolean }>(
-      `${BASE_URL}/exists`,
-      {
-        params: { codigo_productor: codigoProductor, gestion },
+  ): Promise<any | null> {
+    try {
+      const response = await apiClient.get(
+        `${BASE_URL}/draft/${codigoProductor}/${gestion}`
+      );
+      return response.data;
+    } catch (error: any) {
+      // 404 es esperado si no hay borrador
+      if (error.response?.status === 404) {
+        return null;
       }
-    );
-    return response.data.exists;
+      console.error('[API] Error al obtener borrador:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Lista todos los borradores del usuario actual
+   */
+  async listMyDrafts(): Promise<any[]> {
+    try {
+      const response = await apiClient.get(`${BASE_URL}/draft/my-drafts`);
+      return response.data.drafts || [];
+    } catch (error) {
+      console.error('[API] Error al listar borradores:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Elimina un borrador del servidor
+   */
+  async deleteDraft(draftId: string): Promise<void> {
+    try {
+      await apiClient.delete(`${BASE_URL}/draft/${draftId}`);
+    } catch (error) {
+      console.error('[API] Error al eliminar borrador:', error);
+      throw error;
+    }
   },
 };

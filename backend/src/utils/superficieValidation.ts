@@ -1,18 +1,18 @@
 /**
  * Utilidades para validación de superficies en fichas de inspección
  *
- * MODELO CORRECTO:
- * - Las parcelas NO tienen superficie fija (eliminada de BD)
- * - La superficie se define POR CULTIVO en cada ficha
- * - La ÚNICA validación es: suma_total_cultivos <= superficie_total_productor
+ * MODELO CORRECTO (3 niveles):
+ * Nivel 1: ELIMINADO (ya no comparamos cultivos vs superficie total productor)
+ * Nivel 2: Suma de superficie_ha de parcelas = superficie_total_has del productor
+ * Nivel 3: Suma de cultivos en UNA parcela <= superficie_ha de ESA parcela
  *
  * REGLAS:
- * - Si excede: ERROR (bloquear)
- * - Si es menor: WARNING (permitir, solo advertir)
+ * - Nivel 2: ERROR si suma ≠ total (bloquea creación de parcelas)
+ * - Nivel 3: ERROR si excede, WARNING si es menor
  */
 
 import type { DetalleCultivoParcelaData } from "../types/ficha.types.js";
-import type { ProductorData } from "../entities/Productor.js";
+import type { ParcelaData } from "../entities/Parcela.js";
 
 // ============================================
 // TIPOS DE VALIDACIÓN
@@ -27,10 +27,18 @@ export interface SuperficieValidationResult {
 
 export interface SuperficieDetalles {
   superficie_total_productor: number;
-  superficie_usada_en_ficha: number;
+  superficie_total_parcelas: number;
+  cultivos_por_parcela: Map<string, CultivoSuperficieDetalle[]>;
+  resumen_por_parcela: ParcelaResumen[];
+}
+
+export interface ParcelaResumen {
+  id_parcela: string;
+  numero_parcela: number;
+  superficie_definida: number;
+  superficie_cultivada: number;
   superficie_disponible: number;
   porcentaje_uso: number;
-  cultivos_por_parcela: Map<string, CultivoSuperficieDetalle[]>;
 }
 
 export interface CultivoSuperficieDetalle {
@@ -41,99 +49,179 @@ export interface CultivoSuperficieDetalle {
 }
 
 // ============================================
-// VALIDACIÓN GLOBAL DE PRODUCTOR
+// VALIDACIÓN NIVEL 2: SUMA PARCELAS = TOTAL PRODUCTOR
 // ============================================
 
 /**
- * Valida que la suma TOTAL de superficies de cultivos no exceda la superficie del productor
+ * Valida que la suma de superficie_ha de todas las parcelas sea igual
+ * a la superficie_total_has del productor
  *
- * @param productor - Datos del productor
- * @param detallesCultivo - TODOS los cultivos de la ficha
- * @returns Resultado de validación con detalles
+ * Se usa al crear/editar productor con sus parcelas
+ *
+ * @param superficieTotalProductor - Superficie total del productor
+ * @param superficiesParcelas - Array con superficie de cada parcela
+ * @returns Resultado de validación
  */
-export function validarSuperficieProductor(
-  productor: ProductorData,
-  detallesCultivo: DetalleCultivoParcelaData[]
+export function validarSumaParcelasProductor(
+  superficieTotalProductor: number,
+  superficiesParcelas: number[]
 ): SuperficieValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Calcular superficie total usada (suma de TODOS los cultivos)
-  const superficieTotalUsada = detallesCultivo.reduce(
-    (sum, cultivo) => sum + cultivo.superficie_ha,
-    0
-  );
+  const sumaParcelas = superficiesParcelas.reduce((sum, s) => sum + s, 0);
 
-  // VALIDACIÓN CRÍTICA: No puede exceder
-  if (superficieTotalUsada > productor.superficie_total_has) {
-    errors.push(
-      `ERROR: La superficie total de cultivos (${superficieTotalUsada.toFixed(4)} ha) excede la superficie total del productor (${productor.superficie_total_has.toFixed(4)} ha). Diferencia: +${(superficieTotalUsada - productor.superficie_total_has).toFixed(4)} ha`
-    );
+  // Permitir diferencia mínima por redondeo (0.001 ha = 10 m²)
+  const diferencia = Math.abs(sumaParcelas - superficieTotalProductor);
+
+  if (diferencia > 0.001) {
+    if (sumaParcelas > superficieTotalProductor) {
+      errors.push(
+        `La suma de superficies de parcelas (${sumaParcelas.toFixed(4)} ha) excede la superficie total del productor (${superficieTotalProductor.toFixed(4)} ha). Exceso: ${(sumaParcelas - superficieTotalProductor).toFixed(4)} ha`
+      );
+    } else {
+      errors.push(
+        `La suma de superficies de parcelas (${sumaParcelas.toFixed(4)} ha) es menor a la superficie total del productor (${superficieTotalProductor.toFixed(4)} ha). Faltante: ${(superficieTotalProductor - sumaParcelas).toFixed(4)} ha`
+      );
+    }
   }
-
-  // WARNING: Si no usa toda la superficie disponible
-  const superficieDisponible =
-    productor.superficie_total_has - superficieTotalUsada;
-  if (superficieDisponible > 0.01) {
-    warnings.push(
-      `ADVERTENCIA: Hay ${superficieDisponible.toFixed(4)} ha sin cultivar de ${productor.superficie_total_has.toFixed(4)} ha totales declaradas (${((superficieDisponible / productor.superficie_total_has) * 100).toFixed(1)}% sin usar)`
-    );
-  }
-
-  // Agrupar cultivos por parcela para el reporte
-  const cultivosPorParcela = agruparCultivosPorParcela(detallesCultivo);
-
-  const porcentajeUso =
-    productor.superficie_total_has > 0
-      ? (superficieTotalUsada / productor.superficie_total_has) * 100
-      : 0;
 
   return {
     valid: errors.length === 0,
     errors,
     warnings,
+  };
+}
+
+// ============================================
+// VALIDACIÓN NIVEL 3: CULTIVOS POR PARCELA
+// ============================================
+
+/**
+ * Valida que la suma de cultivos en UNA parcela no exceda
+ * la superficie_ha de ESA parcela
+ *
+ * Se usa en la ficha de inspección al añadir/editar cultivos
+ *
+ * @param superficieParcela - Superficie definida de la parcela
+ * @param superficiesCultivos - Array con superficie de cada cultivo en la parcela
+ * @returns Resultado de validación
+ */
+export function validarCultivosPorParcela(
+  superficieParcela: number,
+  superficiesCultivos: number[]
+): SuperficieValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const sumaCultivos = superficiesCultivos.reduce((sum, s) => sum + s, 0);
+
+  // ERROR si excede la superficie de la parcela
+  if (sumaCultivos > superficieParcela) {
+    errors.push(
+      `Los cultivos suman ${sumaCultivos.toFixed(4)} ha pero la parcela tiene ${superficieParcela.toFixed(4)} ha. Exceso: ${(sumaCultivos - superficieParcela).toFixed(4)} ha`
+    );
+  }
+
+  // WARNING si no usa toda la superficie (diferencia > 10 m²)
+  const disponible = superficieParcela - sumaCultivos;
+  if (disponible > 0.001) {
+    warnings.push(
+      `La parcela tiene ${disponible.toFixed(4)} ha sin cultivar de ${superficieParcela.toFixed(4)} ha (${((disponible / superficieParcela) * 100).toFixed(1)}% sin usar)`
+    );
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+// ============================================
+// VALIDACIÓN COMPLETA DE FICHA
+// ============================================
+
+/**
+ * Valida todas las superficies de una ficha completa
+ * Aplica validación nivel 3 para cada parcela
+ *
+ * @param parcelas - Todas las parcelas del productor
+ * @param todosLosCultivos - Todos los cultivos de la ficha
+ * @returns Resultado completo de validación
+ */
+export function validarSuperficiesFicha(
+  parcelas: ParcelaData[],
+  todosLosCultivos: DetalleCultivoParcelaData[]
+): SuperficieValidationResult {
+  const allErrors: string[] = [];
+  const allWarnings: string[] = [];
+  const resumenPorParcela: ParcelaResumen[] = [];
+  const cultivosPorParcela = agruparCultivosPorParcela(todosLosCultivos);
+
+  // Validar cada parcela individualmente (Nivel 3)
+  for (const parcela of parcelas) {
+    const cultivosDeParcela = todosLosCultivos.filter(
+      (c) => c.id_parcela === parcela.id_parcela
+    );
+    const superficiesCultivos = cultivosDeParcela.map((c) => c.superficie_ha);
+
+    const validacion = validarCultivosPorParcela(
+      parcela.superficie_ha,
+      superficiesCultivos
+    );
+
+    // Añadir errores con contexto de parcela
+    if (validacion.errors.length > 0) {
+      allErrors.push(
+        `Parcela ${parcela.numero_parcela}: ${validacion.errors.join(", ")}`
+      );
+    }
+
+    // Añadir warnings con contexto de parcela
+    if (validacion.warnings.length > 0) {
+      allWarnings.push(
+        `Parcela ${parcela.numero_parcela}: ${validacion.warnings.join(", ")}`
+      );
+    }
+
+    // Generar resumen
+    const sumaCultivos = superficiesCultivos.reduce((s, c) => s + c, 0);
+    resumenPorParcela.push({
+      id_parcela: parcela.id_parcela,
+      numero_parcela: parcela.numero_parcela,
+      superficie_definida: parcela.superficie_ha,
+      superficie_cultivada: sumaCultivos,
+      superficie_disponible: parcela.superficie_ha - sumaCultivos,
+      porcentaje_uso:
+        parcela.superficie_ha > 0
+          ? (sumaCultivos / parcela.superficie_ha) * 100
+          : 0,
+    });
+  }
+
+  // Calcular superficie total de parcelas
+  const superficieTotalParcelas = parcelas.reduce(
+    (sum, p) => sum + p.superficie_ha,
+    0
+  );
+
+  return {
+    valid: allErrors.length === 0,
+    errors: allErrors,
+    warnings: allWarnings,
     detalles: {
-      superficie_total_productor: productor.superficie_total_has,
-      superficie_usada_en_ficha: superficieTotalUsada,
-      superficie_disponible: superficieDisponible,
-      porcentaje_uso: porcentajeUso,
+      superficie_total_productor: superficieTotalParcelas, // Esto sería ideal tenerlo del productor
+      superficie_total_parcelas: superficieTotalParcelas,
       cultivos_por_parcela: cultivosPorParcela,
+      resumen_por_parcela: resumenPorParcela,
     },
   };
 }
 
 // ============================================
-// VALIDACIÓN PRINCIPAL DE FICHA
-// ============================================
-
-/**
- * Valida las superficies de una ficha completa
- * ÚNICA VALIDACIÓN: suma_total_cultivos <= superficie_total_productor
- *
- * @param productor - Datos del productor
- * @param detallesCultivo - Todos los detalles de cultivo de la ficha
- * @returns Resultado completo de validación
- */
-export function validarSuperficiesFicha(
-  productor: ProductorData,
-  detallesCultivo: DetalleCultivoParcelaData[]
-): SuperficieValidationResult {
-  // Validación global contra superficie_total del productor
-  return validarSuperficieProductor(productor, detallesCultivo);
-}
-
-// ============================================
 // UTILIDADES
 // ============================================
-
-/**
- * Calcula la superficie total usada en una lista de cultivos
- */
-export function calcularSuperficieTotal(
-  cultivos: DetalleCultivoParcelaData[]
-): number {
-  return cultivos.reduce((sum, cultivo) => sum + cultivo.superficie_ha, 0);
-}
 
 /**
  * Agrupa cultivos por id de parcela para generar reportes
@@ -158,31 +246,32 @@ export function agruparCultivosPorParcela(
 }
 
 /**
- * Genera un reporte legible de superficies
+ * Genera un reporte legible de superficies por parcela
  */
 export function generarReporteSuperficie(
   detalles: SuperficieDetalles
 ): string {
   let reporte = "=== REPORTE DE SUPERFICIES ===\n\n";
 
-  reporte += `Superficie Total del Productor: ${detalles.superficie_total_productor.toFixed(4)} ha\n`;
-  reporte += `Superficie Usada en Ficha: ${detalles.superficie_usada_en_ficha.toFixed(4)} ha (${detalles.porcentaje_uso.toFixed(1)}%)\n`;
-  reporte += `Superficie Disponible: ${detalles.superficie_disponible.toFixed(4)} ha\n\n`;
+  reporte += `Superficie Total (suma de parcelas): ${detalles.superficie_total_parcelas.toFixed(4)} ha\n\n`;
 
   reporte += "=== DETALLE POR PARCELAS ===\n\n";
 
-  for (const [idParcela, cultivos] of detalles.cultivos_por_parcela.entries()) {
-    const superficieParcela = cultivos.reduce(
-      (sum, c) => sum + c.superficie_ha,
-      0
-    );
-    reporte += `Parcela ${idParcela}:\n`;
-    reporte += `  Superficie cultivada: ${superficieParcela.toFixed(4)} ha\n`;
-    reporte += `  Cultivos:\n`;
+  for (const parcela of detalles.resumen_por_parcela) {
+    reporte += `Parcela ${parcela.numero_parcela}:\n`;
+    reporte += `  Superficie definida: ${parcela.superficie_definida.toFixed(4)} ha\n`;
+    reporte += `  Superficie cultivada: ${parcela.superficie_cultivada.toFixed(4)} ha (${parcela.porcentaje_uso.toFixed(1)}%)\n`;
+    reporte += `  Superficie disponible: ${parcela.superficie_disponible.toFixed(4)} ha\n`;
 
-    for (const cultivo of cultivos) {
-      const nombre = cultivo.nombre_cultivo || cultivo.id_tipo_cultivo;
-      reporte += `    - ${nombre}: ${cultivo.superficie_ha.toFixed(4)} ha\n`;
+    const cultivosParcela = detalles.cultivos_por_parcela.get(
+      parcela.id_parcela
+    );
+    if (cultivosParcela && cultivosParcela.length > 0) {
+      reporte += `  Cultivos:\n`;
+      for (const cultivo of cultivosParcela) {
+        const nombre = cultivo.nombre_cultivo || cultivo.id_tipo_cultivo;
+        reporte += `    - ${nombre}: ${cultivo.superficie_ha.toFixed(4)} ha\n`;
+      }
     }
 
     reporte += "\n";

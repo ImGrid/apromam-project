@@ -9,22 +9,24 @@ import {
 export type TipoBarrera = "ninguna" | "viva" | "muerta";
 
 // Interfaz para datos de Parcela desde BD
-// IMPORTANTE: Las parcelas NO tienen superficie fija.
-// La superficie se calcula dinámicamente como la suma de los cultivos
-// en cada ficha (tabla detalles_cultivo_parcelas).
+// IMPORTANTE: Las parcelas tienen superficie fija definida al crear el productor.
+// Esta superficie es establecida por el gerente y debe sumar el total del productor.
+// Los cultivos en las fichas deben respetar esta superficie (no excederla).
 export interface ParcelaData {
   id_parcela: string;
   codigo_productor: string;
   numero_parcela: number;
+  superficie_ha: number; // Superficie fija de la parcela (definida al crear)
 
-  // Coordenadas decimales
+  // Coordenadas decimales (completadas por el tecnico en la ficha)
   latitud_sud?: number;
   longitud_oeste?: number;
 
-  // Caracteristicas agronomicas
+  // Caracteristicas agronomicas (completadas por el tecnico en la ficha)
   utiliza_riego: boolean;
-  situacion_cumple: boolean;
   tipo_barrera: TipoBarrera;
+  insumos_organicos?: string;
+  rotacion: boolean;
 
   activo: boolean;
   created_at: Date;
@@ -40,10 +42,12 @@ export interface ParcelaPublicData {
   codigo_productor: string;
   nombre_productor?: string;
   numero_parcela: number;
+  superficie_ha: number;
   coordenadas?: Coordinates;
   utiliza_riego: boolean;
-  situacion_cumple: boolean;
   tipo_barrera: TipoBarrera;
+  insumos_organicos?: string;
+  rotacion: boolean;
   activo: boolean;
   created_at: string;
 }
@@ -70,6 +74,10 @@ export class Parcela {
     return this.data.numero_parcela;
   }
 
+  get superficieHa(): number {
+    return this.data.superficie_ha;
+  }
+
   get latitudSud(): number | undefined {
     return this.data.latitud_sud;
   }
@@ -82,12 +90,16 @@ export class Parcela {
     return this.data.utiliza_riego;
   }
 
-  get situacionCumple(): boolean {
-    return this.data.situacion_cumple;
-  }
-
   get tipoBarrera(): TipoBarrera {
     return this.data.tipo_barrera;
+  }
+
+  get insumosOrganicos(): string | undefined {
+    return this.data.insumos_organicos;
+  }
+
+  get rotacion(): boolean {
+    return this.data.rotacion;
   }
 
   get activo(): boolean {
@@ -122,21 +134,25 @@ export class Parcela {
   static create(data: {
     codigo_productor: string;
     numero_parcela: number;
+    superficie_ha: number;
     latitud_sud?: number;
     longitud_oeste?: number;
     utiliza_riego?: boolean;
-    situacion_cumple?: boolean;
     tipo_barrera?: TipoBarrera;
+    insumos_organicos?: string;
+    rotacion?: boolean;
   }): Parcela {
     return new Parcela({
       id_parcela: "",
       codigo_productor: data.codigo_productor,
       numero_parcela: data.numero_parcela,
+      superficie_ha: data.superficie_ha,
       latitud_sud: data.latitud_sud,
       longitud_oeste: data.longitud_oeste,
       utiliza_riego: data.utiliza_riego || false,
-      situacion_cumple: data.situacion_cumple !== false,
       tipo_barrera: data.tipo_barrera || "ninguna",
+      insumos_organicos: data.insumos_organicos,
+      rotacion: data.rotacion || false,
       activo: true,
       created_at: new Date(),
     });
@@ -162,6 +178,15 @@ export class Parcela {
     // Validar numero de parcela
     if (this.data.numero_parcela < 1 || this.data.numero_parcela > 100) {
       errors.push("Numero de parcela debe estar entre 1 y 100");
+    }
+
+    // Validar superficie
+    if (this.data.superficie_ha <= 0) {
+      errors.push("Superficie debe ser mayor a 0");
+    }
+
+    if (this.data.superficie_ha > 10000) {
+      errors.push("Superficie no puede exceder 10,000 hectareas");
     }
 
     // Validar coordenadas si existen
@@ -212,21 +237,25 @@ export class Parcela {
   toDatabaseInsert(): {
     codigo_productor: string;
     numero_parcela: number;
+    superficie_ha: number;
     latitud_sud?: number;
     longitud_oeste?: number;
     utiliza_riego: boolean;
-    situacion_cumple: boolean;
     tipo_barrera: TipoBarrera;
+    insumos_organicos?: string;
+    rotacion: boolean;
     activo: boolean;
   } {
     return {
       codigo_productor: this.data.codigo_productor.trim().toUpperCase(),
       numero_parcela: this.data.numero_parcela,
+      superficie_ha: this.data.superficie_ha,
       latitud_sud: this.data.latitud_sud,
       longitud_oeste: this.data.longitud_oeste,
       utiliza_riego: this.data.utiliza_riego,
-      situacion_cumple: this.data.situacion_cumple,
       tipo_barrera: this.data.tipo_barrera,
+      insumos_organicos: this.data.insumos_organicos,
+      rotacion: this.data.rotacion,
       activo: this.data.activo,
     };
   }
@@ -236,16 +265,18 @@ export class Parcela {
     latitud_sud?: number;
     longitud_oeste?: number;
     utiliza_riego?: boolean;
-    situacion_cumple?: boolean;
     tipo_barrera?: TipoBarrera;
+    insumos_organicos?: string;
+    rotacion?: boolean;
     activo?: boolean;
   } {
     return {
       latitud_sud: this.data.latitud_sud,
       longitud_oeste: this.data.longitud_oeste,
       utiliza_riego: this.data.utiliza_riego,
-      situacion_cumple: this.data.situacion_cumple,
       tipo_barrera: this.data.tipo_barrera,
+      insumos_organicos: this.data.insumos_organicos,
+      rotacion: this.data.rotacion,
       activo: this.data.activo,
     };
   }
@@ -255,12 +286,14 @@ export class Parcela {
     return {
       id_parcela: this.data.id_parcela,
       codigo_productor: this.data.codigo_productor,
-      nombre_productor: this.data.nombre_productor,
+      nombre_productor: this.data.nombre_productor ?? undefined,
       numero_parcela: this.data.numero_parcela,
+      superficie_ha: this.data.superficie_ha,
       coordenadas: this.coordenadas || undefined,
       utiliza_riego: this.data.utiliza_riego,
-      situacion_cumple: this.data.situacion_cumple,
       tipo_barrera: this.data.tipo_barrera,
+      insumos_organicos: this.data.insumos_organicos ?? undefined,
+      rotacion: this.data.rotacion,
       activo: this.data.activo,
       created_at: this.data.created_at.toISOString(),
     };
@@ -326,14 +359,19 @@ export class Parcela {
     this.data.utiliza_riego = utilizaRiego;
   }
 
-  // Actualiza situacion de cumplimiento
-  actualizarSituacion(cumple: boolean): void {
-    this.data.situacion_cumple = cumple;
-  }
-
   // Actualiza barrera
   actualizarBarrera(tipo: TipoBarrera): void {
     this.data.tipo_barrera = tipo;
+  }
+
+  // Actualiza insumos organicos
+  actualizarInsumosOrganicos(insumos: string | undefined): void {
+    this.data.insumos_organicos = insumos;
+  }
+
+  // Actualiza rotacion
+  actualizarRotacion(rotacion: boolean): void {
+    this.data.rotacion = rotacion;
   }
 
   // Activa la parcela

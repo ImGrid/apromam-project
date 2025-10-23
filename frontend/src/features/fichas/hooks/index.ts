@@ -16,3 +16,11 @@ export { useRechazarFicha } from "./useRechazarFicha";
 
 // File Upload Hook
 export { useUploadArchivo } from "./useUploadArchivo";
+
+// Draft Hooks
+export { useAutoSaveDraft } from "./useAutoSaveDraft";
+export { useRecoverDraft } from "./useRecoverDraft";
+export { useMyDrafts } from "./useMyDrafts";
+
+// Estadisticas Hook
+export { useFichaEstadisticas } from "./useFichaEstadisticas";

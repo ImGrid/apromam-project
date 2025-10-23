@@ -6,6 +6,7 @@ import { FichasService } from "../services/fichas.service.js";
 import { FichaRepository } from "../repositories/FichaRepository.js";
 import { ProductorRepository } from "../repositories/ProductorRepository.js";
 import { ArchivoFichaRepository } from "../repositories/ArchivoFichaRepository.js";
+import { FichaDraftRepository } from "../repositories/FichaDraftRepository.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { requireRoles, requireAdmin } from "../middleware/authorize.js";
 import {
@@ -20,6 +21,9 @@ import {
   FichaResponseSchema,
   FichaErrorSchema,
   ArchivoFichaResponseSchema,
+  CreateFichaDraftSchema,
+  GetDraftParamsSchema,
+  FichaDraftResponseSchema,
 } from "../schemas/fichas.schema.js";
 import { z } from "zod";
 
@@ -33,10 +37,12 @@ export default async function fichasRoutes(
   const fichaRepository = new FichaRepository();
   const productorRepository = new ProductorRepository();
   const archivoFichaRepository = new ArchivoFichaRepository();
+  const fichaDraftRepository = new FichaDraftRepository();
   const fichasService = new FichasService(
     fichaRepository,
     productorRepository,
-    archivoFichaRepository
+    archivoFichaRepository,
+    fichaDraftRepository
   );
   const fichasController = new FichasController(fichasService);
 
@@ -271,6 +277,115 @@ export default async function fichasRoutes(
       },
     },
     async (request, reply) => fichasController.uploadArchivo(request, reply)
+  );
+
+  // --- DRAFT ROUTES ---
+
+  // POST /api/fichas/draft
+  // Guarda o actualiza un borrador de ficha
+  fastify.withTypeProvider<ZodTypeProvider>().post(
+    "/draft",
+    {
+      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      schema: {
+        description: "Guarda o actualiza un borrador de ficha.",
+        tags: ["fichas-draft"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        body: CreateFichaDraftSchema,
+        response: {
+          200: z.object({
+            draft: FichaDraftResponseSchema,
+            message: z.string(),
+          }),
+          401: FichaErrorSchema,
+          403: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.saveDraft(request, reply)
+  );
+
+  // GET /api/fichas/draft/my-drafts
+  // Lista todos los borradores del usuario actual
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    "/draft/my-drafts",
+    {
+      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      schema: {
+        description: "Lista todos los borradores del usuario actual.",
+        tags: ["fichas-draft"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        response: {
+          200: z.object({
+            drafts: z.array(FichaDraftResponseSchema),
+            total: z.number().int(),
+          }),
+          401: FichaErrorSchema,
+          403: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.listMyDrafts(request, reply)
+  );
+
+  // GET /api/fichas/draft/:codigoProductor/:gestion
+  // Obtiene un borrador específico por código de productor y gestión
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    "/draft/:codigoProductor/:gestion",
+    {
+      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      schema: {
+        description: "Obtiene un borrador por código de productor y gestión.",
+        tags: ["fichas-draft"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: GetDraftParamsSchema,
+        response: {
+          200: z.object({
+            draft: FichaDraftResponseSchema.nullable(),
+            message: z.string().optional(),
+          }),
+          401: FichaErrorSchema,
+          403: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.getDraft(request, reply)
+  );
+
+  // DELETE /api/fichas/draft/:id
+  // Elimina un borrador por ID
+  fastify.withTypeProvider<ZodTypeProvider>().delete(
+    "/draft/:id",
+    {
+      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      schema: {
+        description: "Elimina un borrador por ID.",
+        tags: ["fichas-draft"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: z.object({
+          id: z.string().uuid(),
+        }),
+        response: {
+          204: z.null(),
+          401: FichaErrorSchema,
+          403: FichaErrorSchema,
+          404: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.deleteDraft(request, reply)
   );
 
   // --- WORKFLOW ROUTES ---

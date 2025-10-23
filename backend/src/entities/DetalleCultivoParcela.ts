@@ -38,8 +38,7 @@ export interface DetalleCultivoParcelaData {
   control_hierbas_otro?: string | null;
   metodo_cosecha?: MetodoCosecha | null;
   metodo_cosecha_otro?: string | null;
-  rotacion: boolean;
-  insumos_organicos_usados?: string | null;
+  situacion_actual?: string | null;
   created_at: Date;
 }
 
@@ -62,8 +61,7 @@ export interface DetalleCultivoParcelaPublicData {
   control_hierbas_otro?: string | null;
   metodo_cosecha?: MetodoCosecha | null;
   metodo_cosecha_otro?: string | null;
-  rotacion: boolean;
-  insumos_organicos_usados?: string | null;
+  situacion_actual?: string | null;
   created_at: string;
 }
 
@@ -145,12 +143,8 @@ export class DetalleCultivoParcela {
     return this.data.metodo_cosecha_otro ?? null;
   }
 
-  get rotacion(): boolean {
-    return this.data.rotacion;
-  }
-
-  get insumosOrganicos(): string | null {
-    return this.data.insumos_organicos_usados ?? null;
+  get situacionActual(): string | null {
+    return this.data.situacion_actual ?? null;
   }
 
   get createdAt(): Date {
@@ -175,8 +169,7 @@ export class DetalleCultivoParcela {
     control_hierbas_otro?: string;
     metodo_cosecha?: MetodoCosecha;
     metodo_cosecha_otro?: string;
-    rotacion?: boolean;
-    insumos_organicos_usados?: string;
+    situacion_actual?: string;
   }): DetalleCultivoParcela {
     return new DetalleCultivoParcela({
       id_detalle: "",
@@ -196,8 +189,7 @@ export class DetalleCultivoParcela {
       control_hierbas_otro: data.control_hierbas_otro,
       metodo_cosecha: data.metodo_cosecha,
       metodo_cosecha_otro: data.metodo_cosecha_otro,
-      rotacion: data.rotacion ?? false,
-      insumos_organicos_usados: data.insumos_organicos_usados,
+      situacion_actual: data.situacion_actual,
       created_at: new Date(),
     });
   }
@@ -342,10 +334,10 @@ export class DetalleCultivoParcela {
     }
 
     if (
-      this.data.insumos_organicos_usados &&
-      this.data.insumos_organicos_usados.length > 500
+      this.data.situacion_actual &&
+      this.data.situacion_actual.length > 100
     ) {
-      errors.push("Insumos organicos no pueden exceder 500 caracteres");
+      errors.push("Situacion actual no puede exceder 100 caracteres");
     }
 
     return {
@@ -377,9 +369,7 @@ export class DetalleCultivoParcela {
       control_hierbas_otro: this.data.control_hierbas_otro?.trim() || null,
       metodo_cosecha: this.data.metodo_cosecha || null,
       metodo_cosecha_otro: this.data.metodo_cosecha_otro?.trim() || null,
-      rotacion: this.data.rotacion,
-      insumos_organicos_usados:
-        this.data.insumos_organicos_usados?.trim() || null,
+      situacion_actual: this.data.situacion_actual?.trim() || null,
     };
   }
 
@@ -404,9 +394,7 @@ export class DetalleCultivoParcela {
       control_hierbas_otro: this.data.control_hierbas_otro?.trim() || null,
       metodo_cosecha: this.data.metodo_cosecha || null,
       metodo_cosecha_otro: this.data.metodo_cosecha_otro?.trim() || null,
-      rotacion: this.data.rotacion,
-      insumos_organicos_usados:
-        this.data.insumos_organicos_usados?.trim() || null,
+      situacion_actual: this.data.situacion_actual?.trim() || null,
     };
   }
 
@@ -430,15 +418,9 @@ export class DetalleCultivoParcela {
       control_hierbas_otro: this.data.control_hierbas_otro ?? null,
       metodo_cosecha: this.data.metodo_cosecha ?? null,
       metodo_cosecha_otro: this.data.metodo_cosecha_otro ?? null,
-      rotacion: this.data.rotacion,
-      insumos_organicos_usados: this.data.insumos_organicos_usados ?? null,
+      situacion_actual: this.data.situacion_actual ?? null,
       created_at: this.data.created_at.toISOString(),
     };
-  }
-
-  // Verifica si tiene rotacion
-  tieneRotacion(): boolean {
-    return this.data.rotacion;
   }
 
   // Verifica si usa semilla organica
@@ -482,36 +464,23 @@ export class DetalleCultivoParcela {
     this.data.categoria_semilla = categoria;
   }
 
-  // Actualiza rotacion
-  actualizarRotacion(rotacion: boolean): void {
-    this.data.rotacion = rotacion;
-  }
-
   // Actualiza tratamiento semillas
-  actualizarTratamientoSemillas(tratamiento: string): void {
-    if (tratamiento.length > 100) {
-      throw new Error("Tratamiento semillas no puede exceder 100 caracteres");
-    }
-
-    this.data.tratamiento_semillas = tratamiento.trim();
+  actualizarTratamientoSemillas(tratamiento: TratamientoSemillas): void {
+    this.data.tratamiento_semillas = tratamiento;
   }
 
   // Actualiza tipo abonamiento
-  actualizarTipoAbonamiento(abonamiento: string): void {
-    if (abonamiento.length > 100) {
-      throw new Error("Tipo abonamiento no puede exceder 100 caracteres");
-    }
-
-    this.data.tipo_abonamiento = abonamiento.trim();
+  actualizarTipoAbonamiento(abonamiento: TipoAbonamiento): void {
+    this.data.tipo_abonamiento = abonamiento;
   }
 
-  // Actualiza insumos organicos
-  actualizarInsumosOrganicos(insumos: string): void {
-    if (insumos.length > 500) {
-      throw new Error("Insumos organicos no pueden exceder 500 caracteres");
+  // Actualiza situacion actual
+  actualizarSituacionActual(situacion: string): void {
+    if (situacion.length > 100) {
+      throw new Error("Situacion actual no puede exceder 100 caracteres");
     }
 
-    this.data.insumos_organicos_usados = insumos.trim();
+    this.data.situacion_actual = situacion.trim();
   }
 
   // Actualiza superficie

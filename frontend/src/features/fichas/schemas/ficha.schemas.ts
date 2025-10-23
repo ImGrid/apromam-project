@@ -405,7 +405,6 @@ export const detalleCultivoParcelaSchema = z
       .max(200, "La descripción no puede exceder 200 caracteres")
       .trim()
       .optional(),
-    rotacion: z.boolean().default(false),
     insumos_organicos_usados: z
       .string()
       .max(500, "Los insumos no pueden exceder 500 caracteres")

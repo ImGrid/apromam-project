@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { FichasService } from "../services/fichas.service.js";
+import { FichaDraftEntity } from "../entities/FichaDraft.js";
 import type {
   CreateFichaInput,
   UpdateFichaInput,
@@ -8,6 +9,9 @@ import type {
   EnviarRevisionInput,
   AprobarFichaInput,
   RechazarFichaInput,
+  CreateFichaDraftInput,
+  FichaDraftParams,
+  GetDraftParams,
 } from "../schemas/fichas.schema.js";
 
 // Controlador para endpoints de fichas de inspeccion
@@ -17,7 +21,7 @@ export class FichasController {
   constructor(private fichasService: FichasService) {}
 
   // GET /api/fichas
-  // Lista fichas con filtros opcionales
+  // Lista fichas con filtros opcionales y paginacion
   // Tecnico: solo su comunidad
   // Gerente/Admin: todas las comunidades
   async list(
@@ -25,7 +29,7 @@ export class FichasController {
     reply: FastifyReply
   ) {
     try {
-      const { gestion, estado, productor, comunidad, estado_sync } =
+      const { gestion, estado, productor, comunidad, estado_sync, page, limit } =
         request.query;
       const usuarioComunidadId = request.user?.comunidadId;
       const esAdminOGerente =
@@ -38,7 +42,10 @@ export class FichasController {
         gestion,
         comunidad,
         productor,
-        estado
+        estado,
+        estado_sync,
+        page,
+        limit
       );
 
       return reply.status(200).send(result);
@@ -647,6 +654,148 @@ export class FichasController {
       return reply.status(500).send({
         error: "internal_server_error",
         message: "Error al descargar archivo",
+      });
+    }
+  }
+
+  // METODOS PARA DRAFT
+
+  // POST /api/fichas/draft
+  // Guarda o actualiza un borrador
+  async saveDraft(
+    request: FastifyRequest<{
+      Body: CreateFichaDraftInput;
+    }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { codigo_productor, gestion, draft_data, step_actual } =
+        request.body;
+      const userId = request.user!.userId;
+
+      const draft = await this.fichasService.saveDraft(
+        codigo_productor,
+        gestion,
+        step_actual,
+        draft_data,
+        userId
+      );
+
+      // Convertir Draft a entity para usar toJSON()
+      const draftEntity = new FichaDraftEntity(draft);
+
+      return reply.status(200).send({
+        draft: draftEntity.toJSON(),
+        message: "Borrador guardado exitosamente",
+      });
+    } catch (error: any) {
+      request.log.error(error, "Error saving draft");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: error.message || "Error al guardar borrador",
+      });
+    }
+  }
+
+  // GET /api/fichas/draft/:codigoProductor/:gestion
+  // Obtiene un borrador por código de productor y gestión
+  async getDraft(
+    request: FastifyRequest<{
+      Params: GetDraftParams;
+    }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { codigoProductor, gestion } = request.params;
+      const userId = request.user!.userId;
+
+      const draft = await this.fichasService.getDraft(
+        codigoProductor,
+        gestion,
+        userId
+      );
+
+      if (!draft) {
+        return reply.status(404).send({
+          error: "not_found",
+          message: "Borrador no encontrado",
+        });
+      }
+
+      const draftEntity = new FichaDraftEntity(draft);
+      return reply.status(200).send({
+        draft: draftEntity.toJSON(),
+      });
+    } catch (error: any) {
+      request.log.error(error, "Error getting draft");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: error.message || "Error al obtener borrador",
+      });
+    }
+  }
+
+  // GET /api/fichas/draft/my-drafts
+  // Lista todos los borradores del usuario actual
+  async listMyDrafts(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const userId = request.user!.userId;
+
+      const drafts = await this.fichasService.listMyDrafts(userId);
+
+      // Convertir cada draft a JSON
+      const draftsJson = drafts.map(draft => new FichaDraftEntity(draft).toJSON());
+
+      return reply.status(200).send({
+        drafts: draftsJson,
+        total: draftsJson.length,
+      });
+    } catch (error: any) {
+      request.log.error(error, "Error listing my drafts");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: error.message || "Error al listar borradores",
+      });
+    }
+  }
+
+  // DELETE /api/fichas/draft/:id
+  // Elimina un borrador
+  async deleteDraft(
+    request: FastifyRequest<{
+      Params: FichaDraftParams;
+    }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      const userId = request.user!.userId;
+
+      await this.fichasService.deleteDraft(id, userId);
+
+      return reply.status(200).send({
+        message: "Borrador eliminado exitosamente",
+      });
+    } catch (error: any) {
+      request.log.error(error, "Error deleting draft");
+
+      if (error.message.includes("No tienes permiso")) {
+        return reply.status(403).send({
+          error: "forbidden",
+          message: error.message,
+        });
+      }
+
+      if (error.message.includes("no encontrado")) {
+        return reply.status(404).send({
+          error: "not_found",
+          message: error.message,
+        });
+      }
+
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al eliminar borrador",
       });
     }
   }

@@ -20,6 +20,7 @@ export default function Step6ActividadPecuaria() {
   const {
     register,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useFormContext<CreateFichaCompletaInput>();
 
@@ -27,6 +28,9 @@ export default function Step6ActividadPecuaria() {
     control,
     name: "actividades_pecuarias",
   });
+
+  // Debug
+  const actividadesValues = watch("actividades_pecuarias");
 
   const handleAddActividad = () => {
     append({
@@ -40,6 +44,14 @@ export default function Step6ActividadPecuaria() {
 
   return (
     <div className="space-y-6">
+      {/* DEBUG INFO */}
+      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
+        <p className="text-sm font-semibold">DEBUG INFO Step 6:</p>
+        <p className="text-xs">Fields count: {fields.length}</p>
+        <p className="text-xs">Values: {JSON.stringify(actividadesValues || [])}</p>
+        <p className="text-xs">Is submitting: {isSubmitting ? 'Yes' : 'No'}</p>
+      </div>
+
       {/* Sección: Actividades Pecuarias */}
       <FormSection>
         {/* Botón agregar */}
@@ -97,22 +109,19 @@ export default function Step6ActividadPecuaria() {
                   >
                     {/* Tipo de ganado */}
                     <td className="px-4 py-3">
-                      <Controller
-                        name={`actividades_pecuarias.${index}.tipo_ganado` as const}
-                        control={control}
-                        render={({ field: fieldProps }) => (
-                          <select
-                            {...fieldProps}
-                            className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                          >
-                            {TIPOS_GANADO.map((tipo) => (
-                              <option key={tipo.value} value={tipo.value}>
-                                {tipo.label}
-                              </option>
-                            ))}
-                          </select>
+                      <select
+                        key={`tipo-${field.id}`}
+                        className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                        {...register(
+                          `actividades_pecuarias.${index}.tipo_ganado` as const
                         )}
-                      />
+                      >
+                        {TIPOS_GANADO.map((tipo) => (
+                          <option key={tipo.value} value={tipo.value}>
+                            {tipo.label}
+                          </option>
+                        ))}
+                      </select>
                       {errors.actividades_pecuarias?.[index]?.tipo_ganado && (
                         <p className="mt-1 text-xs text-error">
                           {
@@ -125,16 +134,13 @@ export default function Step6ActividadPecuaria() {
 
                     {/* Animal específico */}
                     <td className="px-4 py-3 border-l border-neutral-border">
-                      <Controller
-                        name={`actividades_pecuarias.${index}.animal_especifico` as const}
-                        control={control}
-                        render={({ field: fieldProps }) => (
-                          <input
-                            {...fieldProps}
-                            type="text"
-                            placeholder="Ej: Vacas"
-                            className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                          />
+                      <input
+                        key={`animal-${field.id}`}
+                        type="text"
+                        placeholder="Ej: Vacas"
+                        className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                        {...register(
+                          `actividades_pecuarias.${index}.animal_especifico` as const
                         )}
                       />
                       {errors.actividades_pecuarias?.[index]
@@ -150,17 +156,16 @@ export default function Step6ActividadPecuaria() {
 
                     {/* Cantidad */}
                     <td className="px-4 py-3 border-l border-neutral-border">
-                      <Controller
-                        name={`actividades_pecuarias.${index}.cantidad` as const}
-                        control={control}
-                        render={({ field: fieldProps }) => (
-                          <input
-                            {...fieldProps}
-                            type="number"
-                            min="0"
-                            onChange={(e) => fieldProps.onChange(Number(e.target.value))}
-                            className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                          />
+                      <input
+                        key={`cant-${field.id}`}
+                        type="number"
+                        min="0"
+                        className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                        {...register(
+                          `actividades_pecuarias.${index}.cantidad` as const,
+                          {
+                            valueAsNumber: true,
+                          }
                         )}
                       />
                       {errors.actividades_pecuarias?.[index]?.cantidad && (
@@ -175,16 +180,13 @@ export default function Step6ActividadPecuaria() {
 
                     {/* Sistema de manejo */}
                     <td className="px-4 py-3 border-l border-neutral-border">
-                      <Controller
-                        name={`actividades_pecuarias.${index}.sistema_manejo` as const}
-                        control={control}
-                        render={({ field: fieldProps }) => (
-                          <input
-                            {...fieldProps}
-                            type="text"
-                            placeholder="Ej: Estabulado"
-                            className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                          />
+                      <input
+                        key={`sist-${field.id}`}
+                        type="text"
+                        placeholder="Ej: Estabulado"
+                        className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                        {...register(
+                          `actividades_pecuarias.${index}.sistema_manejo` as const
                         )}
                       />
                       {errors.actividades_pecuarias?.[index]
@@ -200,18 +202,15 @@ export default function Step6ActividadPecuaria() {
 
                     {/* Uso del guano */}
                     <td className="px-4 py-3 border-l border-neutral-border">
-                      <Controller
-                        name={`actividades_pecuarias.${index}.uso_guano` as const}
-                        control={control}
-                        render={({ field: fieldProps }) => (
-                          <textarea
-                            {...fieldProps}
-                            rows={2}
-                            autoComplete="off"
-                            spellCheck={false}
-                            placeholder="Describa cómo usa el guano"
-                            className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                          />
+                      <textarea
+                        key={`guano-${field.id}`}
+                        rows={2}
+                        autoComplete="off"
+                        spellCheck="false"
+                        placeholder="Describa cómo usa el guano"
+                        className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                        {...register(
+                          `actividades_pecuarias.${index}.uso_guano` as const
                         )}
                       />
                       {errors.actividades_pecuarias?.[index]?.uso_guano && (
@@ -293,22 +292,18 @@ export default function Step6ActividadPecuaria() {
                         ?.message
                     }
                   >
-                    <Controller
-                      name={`actividades_pecuarias.${index}.tipo_ganado` as const}
-                      control={control}
-                      render={({ field: fieldProps }) => (
-                        <select
-                          {...fieldProps}
-                          className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                        >
-                          {TIPOS_GANADO.map((tipo) => (
-                            <option key={tipo.value} value={tipo.value}>
-                              {tipo.label}
-                            </option>
-                          ))}
-                        </select>
+                    <select
+                      {...register(
+                        `actividades_pecuarias.${index}.tipo_ganado` as const
                       )}
-                    />
+                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      {TIPOS_GANADO.map((tipo) => (
+                        <option key={tipo.value} value={tipo.value}>
+                          {tipo.label}
+                        </option>
+                      ))}
+                    </select>
                   </FormField>
 
                   <FormField
@@ -318,17 +313,13 @@ export default function Step6ActividadPecuaria() {
                         ?.message
                     }
                   >
-                    <Controller
-                      name={`actividades_pecuarias.${index}.animal_especifico` as const}
-                      control={control}
-                      render={({ field: fieldProps }) => (
-                        <input
-                          {...fieldProps}
-                          type="text"
-                          placeholder="Ej: Vacas"
-                          className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                        />
+                    <input
+                      type="text"
+                      placeholder="Ej: Vacas"
+                      {...register(
+                        `actividades_pecuarias.${index}.animal_especifico` as const
                       )}
+                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </FormField>
 
@@ -338,18 +329,16 @@ export default function Step6ActividadPecuaria() {
                       errors.actividades_pecuarias?.[index]?.cantidad?.message
                     }
                   >
-                    <Controller
-                      name={`actividades_pecuarias.${index}.cantidad` as const}
-                      control={control}
-                      render={({ field: fieldProps }) => (
-                        <input
-                          {...fieldProps}
-                          type="number"
-                          min="0"
-                          onChange={(e) => fieldProps.onChange(Number(e.target.value))}
-                          className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                        />
+                    <input
+                      type="number"
+                      min="0"
+                      {...register(
+                        `actividades_pecuarias.${index}.cantidad` as const,
+                        {
+                          valueAsNumber: true,
+                        }
                       )}
+                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </FormField>
 
@@ -360,17 +349,13 @@ export default function Step6ActividadPecuaria() {
                         ?.message
                     }
                   >
-                    <Controller
-                      name={`actividades_pecuarias.${index}.sistema_manejo` as const}
-                      control={control}
-                      render={({ field: fieldProps }) => (
-                        <input
-                          {...fieldProps}
-                          type="text"
-                          placeholder="Ej: Estabulado"
-                          className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                        />
+                    <input
+                      type="text"
+                      placeholder="Ej: Estabulado"
+                      {...register(
+                        `actividades_pecuarias.${index}.sistema_manejo` as const
                       )}
+                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </FormField>
 
@@ -380,19 +365,15 @@ export default function Step6ActividadPecuaria() {
                       errors.actividades_pecuarias?.[index]?.uso_guano?.message
                     }
                   >
-                    <Controller
-                      name={`actividades_pecuarias.${index}.uso_guano` as const}
-                      control={control}
-                      render={({ field: fieldProps }) => (
-                        <textarea
-                          {...fieldProps}
-                          rows={3}
-                          autoComplete="off"
-                          spellCheck={false}
-                          placeholder="Describa cómo usa el guano"
-                          className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                        />
+                    <textarea
+                      rows={3}
+                      autoComplete="off"
+                      spellCheck="false"
+                      placeholder="Describa cómo usa el guano"
+                      {...register(
+                        `actividades_pecuarias.${index}.uso_guano` as const
                       )}
+                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                     />
                   </FormField>
                 </div>

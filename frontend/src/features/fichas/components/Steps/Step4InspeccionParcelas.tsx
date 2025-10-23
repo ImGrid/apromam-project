@@ -2,43 +2,39 @@
  * Step4InspeccionParcelas
  * Sección 4: Registro de inspección de parcelas certificables
  *
- * MODELO CORRECTO:
- * - Las parcelas NO tienen superficie fija
- * - La superficie se define por cultivo
- * - Validación: suma_total_cultivos <= superficie_total_productor
- * - Diseño compacto similar al documento oficial
+ * ESTRUCTURA CORRECTA:
+ * - Campos de PARCELA aparecen UNA VEZ por parcela (situación, riego, barreras, rotación, coordenadas, insumos orgánicos)
+ * - Campos de CULTIVO aparecen en cada fila de la tabla (tipo cultivo, superficie)
  */
 
 import { useFormContext, useFieldArray } from "react-hook-form";
 import { Plus, Trash2, MapPin } from "lucide-react";
-import { useMemo } from "react";
-import { FormSection } from "@/shared/components/ui/FormSection";
-import { FormField } from "@/shared/components/ui/FormField";
-import { Button } from "@/shared/components/ui/Button";
-import { Accordion } from "@/shared/components/ui/Accordion";
-import { Alert } from "@/shared/components/ui/Alert";
-import { Radio } from "@/shared/components/ui/Radio";
+import { useState, useMemo } from "react";
+import { Card, Alert, Button, Input, Select } from "@/shared/components/ui";
 import { TiposCultivoSelect } from "@/features/catalogos/components/TiposCultivoSelect";
+import { LocationPicker } from "@/shared/components/maps";
 import { useProductorParcelas } from "@/features/productores/hooks/useProductorParcelas";
+import { parcelasService } from "@/features/parcelas";
 import type { CreateFichaCompletaInput } from "../../types/ficha.types";
 
 export default function Step4InspeccionParcelas() {
-  const {
-    register,
-    control,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useFormContext<CreateFichaCompletaInput>();
+  const { register, control, watch, setValue, formState: { errors } } = useFormContext<CreateFichaCompletaInput>();
+  const { fields, append, remove } = useFieldArray({ control, name: "detalles_cultivo" });
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "detalles_cultivo",
-  });
+  const [showLocationPicker, setShowLocationPicker] = useState<{ [key: string]: boolean }>({});
+  const [parcelaData, setParcelaData] = useState<{
+    [key: string]: {
+      latitud_sud?: number;
+      longitud_oeste?: number;
+      utiliza_riego?: boolean;
+      tipo_barrera?: "ninguna" | "viva" | "muerta";
+      insumos_organicos?: string;
+      rotacion?: boolean;
+    };
+  }>({});
 
   const codigoProductor = watch("ficha.codigo_productor");
-  const { parcelas, superficieTotal, isLoading, error } =
-    useProductorParcelas(codigoProductor);
+  const { parcelas, superficieTotal, isLoading, error } = useProductorParcelas(codigoProductor);
 
   // Agrupar cultivos por parcela
   const cultivosPorParcela = useMemo(() => {
@@ -53,12 +49,33 @@ export default function Step4InspeccionParcelas() {
     });
     return grupos;
   }, [fields, watch]);
-  // Agregar cultivo a una parcela específica
-  const handleAddCultivoAParcela = (parcelaId: string) => {
+
+  // Validación Nivel 3
+  const validacionesPorParcela = useMemo(() => {
+    const validaciones = new Map<string, { error: boolean; mensaje: string }>();
+    parcelas.forEach((parcela) => {
+      const cultivosIndices = cultivosPorParcela.get(parcela.id_parcela) || [];
+      const sumaCultivos = cultivosIndices.reduce((sum, idx) => {
+        const sup = watch(`detalles_cultivo.${idx}.superficie_ha`);
+        return sum + (sup && !isNaN(Number(sup)) ? Number(sup) : 0);
+      }, 0);
+      const excede = sumaCultivos > parcela.superficie_ha;
+      validaciones.set(parcela.id_parcela, {
+        error: excede,
+        mensaje: excede
+          ? `ERROR: Los cultivos suman ${sumaCultivos.toFixed(4)} ha pero la parcela tiene ${parcela.superficie_ha.toFixed(4)} ha`
+          : "",
+      });
+    });
+    return validaciones;
+  }, [parcelas, cultivosPorParcela, watch]);
+
+  const handleAddCultivo = (parcelaId: string) => {
     append({
       id_parcela: parcelaId,
       id_tipo_cultivo: "",
       superficie_ha: 0,
+      situacion_actual: "",
       procedencia_semilla: undefined,
       categoria_semilla: undefined,
       tratamiento_semillas: undefined,
@@ -71,314 +88,385 @@ export default function Step4InspeccionParcelas() {
       control_hierbas_otro: undefined,
       metodo_cosecha: undefined,
       metodo_cosecha_otro: undefined,
-      rotacion: false,
-      insumos_organicos_usados: "",
     });
+  };
+
+  const handleUpdateParcela = async (parcelaId: string) => {
+    const data = parcelaData[parcelaId];
+    if (!data) return;
+    try {
+      await parcelasService.updateParcela(parcelaId, {
+        coordenadas: data.latitud_sud && data.longitud_oeste ? {
+          latitud: data.latitud_sud,
+          longitud: data.longitud_oeste,
+        } : undefined,
+        utiliza_riego: data.utiliza_riego,
+        tipo_barrera: data.tipo_barrera,
+        insumos_organicos: data.insumos_organicos,
+        rotacion: data.rotacion,
+      });
+      window.location.reload();
+    } catch (error) {
+      console.error("Error al actualizar parcela:", error);
+    }
   };
 
   if (!codigoProductor) {
     return (
-      <FormSection>
-        <Alert
-          type="warning"
-          message="Primero debe seleccionar un productor en la Sección 1 (Datos Generales)"
-        />
-      </FormSection>
+      <Alert type="warning" message="Primero debe seleccionar un productor en la Sección 1" />
     );
   }
 
   if (isLoading) {
-    return (
-      <FormSection>
-        <div className="p-8 text-center">
-          <p className="text-gray-600">Cargando parcelas del productor...</p>
-        </div>
-      </FormSection>
-    );
+    return <div className="p-8 text-center text-gray-600">Cargando parcelas...</div>;
   }
 
   if (error || parcelas.length === 0) {
     return (
-      <FormSection>
-        <Alert
-          type="warning"
-          message={
-            error ||
-            "Este productor no tiene parcelas registradas. Debe crear las parcelas primero."
-          }
-        />
-      </FormSection>
+      <Alert
+        type="warning"
+        message={error || "Este productor no tiene parcelas registradas"}
+      />
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header compacto */}
-      <div className="p-3 border border-blue-200 rounded-lg bg-blue-50">
+    <div className="space-y-6">
+      {/* Header */}
+      <Card>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-900">
-              Productor: {codigoProductor}
-            </p>
-            <p className="text-xs text-blue-700">
-              {parcelas.length} parcela{parcelas.length !== 1 ? "s" : ""} •
-              Superficie total: {superficieTotal.toFixed(2)} ha
+            <h3 className="text-sm font-semibold">Productor: {codigoProductor}</h3>
+            <p className="text-xs text-gray-600">
+              {parcelas.length} parcela{parcelas.length !== 1 ? "s" : ""} • Superficie total: {superficieTotal.toFixed(2)} ha
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <FormSection>
-        <div className="space-y-3">
-          {parcelas.map((parcela) => {
-            const cultivosIndices =
-              cultivosPorParcela.get(parcela.id_parcela) || [];
-            const superficieParcela = cultivosIndices.reduce((sum, idx) => {
-              const sup = watch(`detalles_cultivo.${idx}.superficie_ha`);
-              return sum + (sup && !isNaN(Number(sup)) ? Number(sup) : 0);
-            }, 0);
+      {/* Por cada parcela */}
+      {parcelas.map((parcela) => {
+        const cultivosIndices = cultivosPorParcela.get(parcela.id_parcela) || [];
+        const validacion = validacionesPorParcela.get(parcela.id_parcela);
+        const currentData = parcelaData[parcela.id_parcela] || {};
 
-            return (
-              <Accordion
-                key={parcela.id_parcela}
-                title={`Parcela ${parcela.numero_parcela}${
-                  parcela.utiliza_riego ? " • Con riego" : ""
-                }${
-                  superficieParcela > 0
-                    ? ` • ${superficieParcela.toFixed(2)} ha cultivadas`
-                    : ""
-                }`}
-                defaultOpen={true}
-              >
-                <div className="p-3 space-y-4">
-                  {/* DATOS DE LA PARCELA - Read-only, datos precargados */}
-                  <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
-                    <h4 className="mb-3 text-sm font-semibold text-gray-700">
-                      Características de la Parcela (datos precargados)
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-                      {/* Situación actual */}
-                      <div>
-                        <p className="mb-1 text-xs text-gray-600">
-                          Situación actual:
-                        </p>
-                        <span
-                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                            parcela.situacion_cumple
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {parcela.situacion_cumple ? "Cumple" : "No cumple"}
-                        </span>
-                      </div>
+        return (
+          <Card key={parcela.id_parcela}>
+            {/* Título de parcela */}
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold">
+                Parcela {parcela.numero_parcela} - {parcela.superficie_ha.toFixed(4)} ha
+              </h4>
+              {validacion?.error && (
+                <Alert type="error" message={validacion.mensaje} />
+              )}
+            </div>
 
-                      {/* Utiliza riego */}
-                      <div>
-                        <p className="mb-1 text-xs text-gray-600">
-                          Utiliza riego:
-                        </p>
-                        <span
-                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                            parcela.utiliza_riego
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {parcela.utiliza_riego ? "Sí" : "No"}
-                        </span>
-                      </div>
+            {/* SECCIÓN 1: DATOS DE LA PARCELA (UNA VEZ) */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <h5 className="text-xs font-semibold text-gray-700 mb-3">Datos de la Parcela</h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                      {/* Barreras de protección */}
-                      <div>
-                        <p className="mb-1 text-xs text-gray-600">Barreras:</p>
-                        <span className="inline-block px-2 py-1 text-xs font-medium text-purple-800 capitalize bg-purple-100 rounded">
-                          {parcela.tipo_barrera === "ninguna"
-                            ? "Ninguna"
-                            : parcela.tipo_barrera === "viva"
-                            ? "Viva"
-                            : "Muerta"}
-                        </span>
-                      </div>
-
-                      {/* Coordenadas */}
-                      <div>
-                        <p className="mb-1 text-xs text-gray-600">
-                          <MapPin className="inline w-3 h-3 mr-1" />
-                          Coordenadas GPS:
-                        </p>
-                        {parcela.coordenadas ? (
-                          <div className="text-xs text-gray-700">
-                            <div>
-                              Lat: {parcela.coordenadas.latitude.toFixed(6)}
-                            </div>
-                            <div>
-                              Long: {parcela.coordenadas.longitude.toFixed(6)}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-500">Sin GPS</span>
-                        )}
-                      </div>
-                    </div>
+                {/* Utiliza riego */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Utiliza riego
+                  </label>
+                  <div className="flex gap-3">
+                    <label className="flex items-center text-sm">
+                      <input
+                        type="radio"
+                        checked={currentData.utiliza_riego ?? parcela.utiliza_riego ?? false}
+                        onChange={() => {
+                          setParcelaData((prev) => ({
+                            ...prev,
+                            [parcela.id_parcela]: { ...prev[parcela.id_parcela], utiliza_riego: true },
+                          }));
+                        }}
+                        className="mr-2"
+                      />
+                      Sí
+                    </label>
+                    <label className="flex items-center text-sm">
+                      <input
+                        type="radio"
+                        checked={!(currentData.utiliza_riego ?? parcela.utiliza_riego ?? false)}
+                        onChange={() => {
+                          setParcelaData((prev) => ({
+                            ...prev,
+                            [parcela.id_parcela]: { ...prev[parcela.id_parcela], utiliza_riego: false },
+                          }));
+                        }}
+                        className="mr-2"
+                      />
+                      No
+                    </label>
                   </div>
+                </div>
 
-                  {/* LISTA DE CULTIVOS - Diseño tabla compacta */}
-                  <div>
-                    <h4 className="mb-2 text-sm font-semibold text-gray-700">
-                      Cultivos en esta parcela
-                    </h4>
+                {/* Tipo de barrera */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Tipo de barrera
+                  </label>
+                  <Select
+                    options={[
+                      { value: "ninguna", label: "Ninguna" },
+                      { value: "viva", label: "Viva" },
+                      { value: "muerta", label: "Muerta" },
+                    ]}
+                    value={currentData.tipo_barrera ?? parcela.tipo_barrera ?? "ninguna"}
+                    onChange={(value) => {
+                      setParcelaData((prev) => ({
+                        ...prev,
+                        [parcela.id_parcela]: {
+                          ...prev[parcela.id_parcela],
+                          tipo_barrera: value as "ninguna" | "viva" | "muerta",
+                        },
+                      }));
+                    }}
+                  />
+                </div>
 
-                    {cultivosIndices.length === 0 ? (
-                      <div className="p-4 text-center border-2 border-gray-300 border-dashed rounded-lg bg-gray-50">
-                        <p className="text-sm text-gray-600">
-                          No hay cultivos registrados
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {cultivosIndices.map((index, i) => (
-                          <div
-                            key={index}
-                            className="p-3 bg-white border border-gray-200 rounded-lg"
-                          >
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-xs font-semibold text-gray-600">
-                                Cultivo {i + 1}
-                              </span>
-                              <Button
-                                onClick={() => remove(index)}
-                                variant="danger"
-                                size="small"
-                                type="button"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
+                {/* Insumos orgánicos */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Insumos orgánicos utilizados
+                  </label>
+                  <Input
+                    type="text"
+                    value={currentData.insumos_organicos ?? parcela.insumos_organicos ?? ""}
+                    onChange={(e) => {
+                      setParcelaData((prev) => ({
+                        ...prev,
+                        [parcela.id_parcela]: {
+                          ...prev[parcela.id_parcela],
+                          insumos_organicos: e.target.value,
+                        },
+                      }));
+                    }}
+                    placeholder="Ej: Compost, humus, estiércol..."
+                  />
+                </div>
 
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                              {/* Cultivo */}
-                              <FormField
-                                label="Cultivo"
-                                required
-                                error={
-                                  errors.detalles_cultivo?.[index]
-                                    ?.id_tipo_cultivo?.message
-                                }
-                              >
-                                <TiposCultivoSelect
-                                  value={
-                                    watch(
-                                      `detalles_cultivo.${index}.id_tipo_cultivo`
-                                    ) || ""
-                                  }
-                                  onChange={(value) =>
-                                    setValue(
-                                      `detalles_cultivo.${index}.id_tipo_cultivo`,
-                                      value
-                                    )
-                                  }
-                                  placeholder="Seleccionar..."
-                                />
-                              </FormField>
+                {/* Rotación */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                    Rotación
+                  </label>
+                  <div className="flex gap-3">
+                    <label className="flex items-center text-sm">
+                      <input
+                        type="radio"
+                        checked={currentData.rotacion ?? parcela.rotacion ?? false}
+                        onChange={() => {
+                          setParcelaData((prev) => ({
+                            ...prev,
+                            [parcela.id_parcela]: { ...prev[parcela.id_parcela], rotacion: true },
+                          }));
+                        }}
+                        className="mr-2"
+                      />
+                      Sí
+                    </label>
+                    <label className="flex items-center text-sm">
+                      <input
+                        type="radio"
+                        checked={!(currentData.rotacion ?? parcela.rotacion ?? false)}
+                        onChange={() => {
+                          setParcelaData((prev) => ({
+                            ...prev,
+                            [parcela.id_parcela]: { ...prev[parcela.id_parcela], rotacion: false },
+                          }));
+                        }}
+                        className="mr-2"
+                      />
+                      No
+                    </label>
+                  </div>
+                </div>
 
-                              {/* Superficie */}
-                              <FormField
-                                label="Sup. (ha)"
-                                required
-                                error={
-                                  errors.detalles_cultivo?.[index]
-                                    ?.superficie_ha?.message
-                                }
-                              >
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  {...register(
-                                    `detalles_cultivo.${index}.superficie_ha`,
-                                    { valueAsNumber: true }
-                                  )}
-                                  className="w-full px-2 py-1.5 text-sm border rounded-md focus:ring-2 focus:ring-primary"
-                                  placeholder="0.00"
-                                />
-                              </FormField>
-
-                              {/* Rotación */}
-                              <FormField label="Rotación">
-                                <div className="flex gap-2 mt-1">
-                                  <Radio
-                                    label="Sí"
-                                    value="true"
-                                    checked={
-                                      watch(
-                                        `detalles_cultivo.${index}.rotacion`
-                                      ) === true
-                                    }
-                                    onChange={() =>
-                                      setValue(
-                                        `detalles_cultivo.${index}.rotacion`,
-                                        true
-                                      )
-                                    }
-                                  />
-                                  <Radio
-                                    label="No"
-                                    value="false"
-                                    checked={
-                                      watch(
-                                        `detalles_cultivo.${index}.rotacion`
-                                      ) === false
-                                    }
-                                    onChange={() =>
-                                      setValue(
-                                        `detalles_cultivo.${index}.rotacion`,
-                                        false
-                                      )
-                                    }
-                                  />
-                                </div>
-                              </FormField>
-
-                              {/* Insumos orgánicos - full width */}
-                              <div className="md:col-span-4">
-                                <FormField label="¿Utiliza insumos orgánicos? Cuáles:">
-                                  <input
-                                    type="text"
-                                    {...register(
-                                      `detalles_cultivo.${index}.insumos_organicos_usados`
-                                    )}
-                                    className="w-full px-2 py-1.5 text-sm border rounded-md focus:ring-2 focus:ring-primary"
-                                    placeholder="Ej: Compost, humus de lombriz, bocashi..."
-                                  />
-                                </FormField>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Botón agregar cultivo - más compacto */}
+                {/* Coordenadas */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Coordenadas GPS
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      value={currentData.latitud_sud ?? parcela.latitud_sud ?? ""}
+                      onChange={(e) => {
+                        setParcelaData((prev) => ({
+                          ...prev,
+                          [parcela.id_parcela]: {
+                            ...prev[parcela.id_parcela],
+                            latitud_sud: parseFloat(e.target.value) || undefined,
+                          },
+                        }));
+                      }}
+                      placeholder="Latitud"
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      value={currentData.longitud_oeste ?? parcela.longitud_oeste ?? ""}
+                      onChange={(e) => {
+                        setParcelaData((prev) => ({
+                          ...prev,
+                          [parcela.id_parcela]: {
+                            ...prev[parcela.id_parcela],
+                            longitud_oeste: parseFloat(e.target.value) || undefined,
+                          },
+                        }));
+                      }}
+                      placeholder="Longitud"
+                      className="flex-1"
+                    />
                     <Button
-                      onClick={() =>
-                        handleAddCultivoAParcela(parcela.id_parcela)
-                      }
+                      type="button"
                       variant="secondary"
                       size="small"
-                      type="button"
-                      className="w-full mt-2"
+                      onClick={() => {
+                        setShowLocationPicker((prev) => ({
+                          ...prev,
+                          [parcela.id_parcela]: !prev[parcela.id_parcela],
+                        }));
+                      }}
                     >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Agregar cultivo
+                      <MapPin className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              </Accordion>
-            );
-          })}
-        </div>
-      </FormSection>
+              </div>
+
+              {/* GPS Picker */}
+              {showLocationPicker[parcela.id_parcela] && (
+                <div className="mt-3">
+                  <LocationPicker
+                    initialPosition={
+                      currentData.latitud_sud && currentData.longitud_oeste
+                        ? { lat: currentData.latitud_sud, lng: currentData.longitud_oeste }
+                        : parcela.coordenadas
+                        ? { lat: parcela.coordenadas.latitude, lng: parcela.coordenadas.longitude }
+                        : null
+                    }
+                    onLocationSelect={(pos) => {
+                      setParcelaData((prev) => ({
+                        ...prev,
+                        [parcela.id_parcela]: {
+                          ...prev[parcela.id_parcela],
+                          latitud_sud: pos.lat,
+                          longitud_oeste: pos.lng,
+                        },
+                      }));
+                    }}
+                    height="300px"
+                  />
+                </div>
+              )}
+
+              {/* Guardar datos de parcela */}
+              {parcelaData[parcela.id_parcela] && (
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="small"
+                    onClick={() => handleUpdateParcela(parcela.id_parcela)}
+                  >
+                    Guardar datos de parcela
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* SECCIÓN 2: TABLA DE CULTIVOS */}
+            <div>
+              <h5 className="text-xs font-semibold text-gray-700 mb-2">Cultivos de la Parcela</h5>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border-collapse border">
+                  <thead>
+                    <tr className="bg-gray-100 border-b">
+                      <th className="px-3 py-2 text-left text-xs font-medium border-r">Cultivo</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium border-r">Sup. (ha)</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium border-r">Situación actual</th>
+                      <th className="px-3 py-2 text-center text-xs font-medium">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cultivosIndices.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-3 py-8 text-center text-gray-500">
+                          No hay cultivos registrados. Agrega un cultivo para empezar.
+                        </td>
+                      </tr>
+                    ) : (
+                      cultivosIndices.map((index) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          {/* Cultivo */}
+                          <td className="px-3 py-2 border-r">
+                            <TiposCultivoSelect
+                              value={watch(`detalles_cultivo.${index}.id_tipo_cultivo`) || ""}
+                              onChange={(value) => setValue(`detalles_cultivo.${index}.id_tipo_cultivo`, value)}
+                              placeholder="Seleccionar cultivo..."
+                            />
+                          </td>
+
+                          {/* Superficie */}
+                          <td className="px-3 py-2 border-r">
+                            <Input
+                              type="number"
+                              step="0.0001"
+                              min="0"
+                              {...register(`detalles_cultivo.${index}.superficie_ha`, { valueAsNumber: true })}
+                              placeholder="0.0000"
+                            />
+                          </td>
+
+                          {/* Situación actual */}
+                          <td className="px-3 py-2 border-r">
+                            <Input
+                              type="text"
+                              {...register(`detalles_cultivo.${index}.situacion_actual`)}
+                              placeholder="Ej: Producción, Madurez..."
+                            />
+                          </td>
+
+                          {/* Eliminar */}
+                          <td className="px-3 py-2 text-center">
+                            <Button
+                              type="button"
+                              variant="danger"
+                              size="small"
+                              onClick={() => remove(index)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Agregar cultivo */}
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => handleAddCultivo(parcela.id_parcela)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Agregar cultivo
+                </Button>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }

@@ -54,7 +54,7 @@ export class FichaRepository {
     const query = {
       name: "find-ficha-by-id",
       text: `
-        SELECT 
+        SELECT
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
@@ -96,7 +96,7 @@ export class FichaRepository {
     const query = {
       name: "find-ficha-by-productor-gestion",
       text: `
-        SELECT 
+        SELECT
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
@@ -135,7 +135,7 @@ export class FichaRepository {
     const query = {
       name: "find-fichas-by-productor",
       text: `
-        SELECT 
+        SELECT
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
@@ -175,7 +175,7 @@ export class FichaRepository {
     const query = {
       name: "find-fichas-by-gestion",
       text: `
-        SELECT 
+        SELECT
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
@@ -218,7 +218,7 @@ export class FichaRepository {
     const query = {
       name: "find-fichas-by-comunidad-gestion",
       text: `
-        SELECT 
+        SELECT
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
@@ -261,7 +261,7 @@ export class FichaRepository {
     const query = {
       text: `
         SELECT EXISTS(
-          SELECT 1 
+          SELECT 1
           FROM ficha_inspeccion
           WHERE codigo_productor = $1 AND gestion = $2
         ) as exists
@@ -271,6 +271,119 @@ export class FichaRepository {
 
     const result = await ReadQuery.findOne<{ exists: boolean }>(query);
     return result?.exists ?? false;
+  }
+
+  // Lista fichas con paginacion y filtros dinamicos
+  async findWithPagination(params: {
+    gestion?: number;
+    estado?: string;
+    codigoProductor?: string;
+    comunidadId?: string;
+    estadoSync?: string;
+    page: number;
+    limit: number;
+  }): Promise<{ fichas: Ficha[]; total: number }> {
+    const { gestion, estado, codigoProductor, comunidadId, estadoSync, page, limit } = params;
+
+    // Construir WHERE dinamico
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (gestion !== undefined) {
+      conditions.push(`fi.gestion = $${paramIndex}`);
+      values.push(gestion);
+      paramIndex++;
+    }
+
+    if (estado) {
+      conditions.push(`fi.estado_ficha = $${paramIndex}`);
+      values.push(estado);
+      paramIndex++;
+    }
+
+    if (codigoProductor) {
+      conditions.push(`fi.codigo_productor = $${paramIndex}`);
+      values.push(codigoProductor);
+      paramIndex++;
+    }
+
+    if (comunidadId) {
+      conditions.push(`c.id_comunidad = $${paramIndex}`);
+      values.push(comunidadId);
+      paramIndex++;
+    }
+
+    if (estadoSync) {
+      conditions.push(`fi.estado_sync = $${paramIndex}`);
+      values.push(estadoSync);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Calcular offset para paginacion
+    const offset = (page - 1) * limit;
+
+    // Query para contar total
+    const countQuery = {
+      text: `
+        SELECT COUNT(*) as total
+        FROM ficha_inspeccion fi
+        INNER JOIN productores p ON fi.codigo_productor = p.codigo_productor
+        INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
+        ${whereClause}
+      `,
+      values: values,
+    };
+
+    // Query para obtener fichas paginadas
+    const dataQuery = {
+      text: `
+        SELECT
+          fi.id_ficha,
+          fi.codigo_productor,
+          fi.gestion,
+          fi.fecha_inspeccion,
+          fi.inspector_interno,
+          fi.persona_entrevistada,
+          fi.categoria_gestion_anterior,
+          fi.origen_captura,
+          fi.fecha_sincronizacion,
+          fi.estado_sync,
+          fi.estado_ficha,
+          fi.resultado_certificacion,
+          fi.recomendaciones,
+          fi.comentarios_evaluacion,
+          fi.firma_productor,
+          fi.firma_inspector,
+          fi.created_by,
+          fi.created_at,
+          fi.updated_at,
+          p.nombre_productor,
+          c.nombre_comunidad
+        FROM ficha_inspeccion fi
+        INNER JOIN productores p ON fi.codigo_productor = p.codigo_productor
+        INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
+        ${whereClause}
+        ORDER BY fi.fecha_inspeccion DESC, fi.gestion DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `,
+      values: [...values, limit, offset],
+    };
+
+    // Ejecutar ambas queries
+    const [countResult, fichas] = await Promise.all([
+      ReadQuery.findOne<{ total: string }>(countQuery),
+      ReadQuery.execute<FichaData>(dataQuery),
+    ]);
+
+    const total = parseInt(countResult?.total || "0", 10);
+
+    return {
+      fichas: fichas.map((data) => Ficha.fromDatabase(data)),
+      total,
+    };
   }
 
   // Crea ficha completa con todas sus secciones en transaccion atomica
@@ -332,9 +445,8 @@ export class FichaRepository {
             comentarios_evaluacion,
             firma_productor,
             firma_inspector,
-            descripcion_uso_guano_general,
             created_by
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           RETURNING id_ficha, created_at, updated_at
         `,
         values: [
@@ -353,7 +465,6 @@ export class FichaRepository {
           fichaData.comentarios_evaluacion,
           fichaData.firma_productor,
           fichaData.firma_inspector,
-          fichaData.descripcion_uso_guano_general,
           fichaData.created_by,
         ],
       };
@@ -567,30 +678,40 @@ export class FichaRepository {
                 id_ficha,
                 id_parcela,
                 id_tipo_cultivo,
+                superficie_ha,
                 procedencia_semilla,
                 categoria_semilla,
                 tratamiento_semillas,
+                tratamiento_semillas_otro,
                 tipo_abonamiento,
+                tipo_abonamiento_otro,
                 metodo_aporque,
+                metodo_aporque_otro,
                 control_hierbas,
+                control_hierbas_otro,
                 metodo_cosecha,
-                rotacion,
-                insumos_organicos_usados
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                metodo_cosecha_otro,
+                situacion_actual
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             `,
             values: [
               idFicha,
               detData.id_parcela,
               detData.id_tipo_cultivo,
+              detData.superficie_ha,
               detData.procedencia_semilla,
               detData.categoria_semilla,
               detData.tratamiento_semillas,
+              detData.tratamiento_semillas_otro,
               detData.tipo_abonamiento,
+              detData.tipo_abonamiento_otro,
               detData.metodo_aporque,
+              detData.metodo_aporque_otro,
               detData.control_hierbas,
+              detData.control_hierbas_otro,
               detData.metodo_cosecha,
-              detData.rotacion,
-              detData.insumos_organicos_usados,
+              detData.metodo_cosecha_otro,
+              detData.situacion_actual,
             ],
           });
         }
@@ -911,8 +1032,7 @@ export class FichaRepository {
           comentarios_evaluacion = $12,
           firma_productor = $13,
           firma_inspector = $14,
-          descripcion_uso_guano_general = $15,
-          updated_at = $16
+          updated_at = $15
         WHERE id_ficha = $1
         RETURNING id_ficha
       `,
@@ -931,7 +1051,6 @@ export class FichaRepository {
         updateData.comentarios_evaluacion,
         updateData.firma_productor,
         updateData.firma_inspector,
-        updateData.descripcion_uso_guano_general,
         updateData.updated_at,
       ],
     };

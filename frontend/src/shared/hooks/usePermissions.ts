@@ -19,7 +19,6 @@ import {
   isAdmin,
   isGerente,
   isTecnico,
-  isProductor,
   isInvitado,
 } from "../utils/roleHelpers";
 import type { Permission, ResourceName } from "../config/permissions.config";
@@ -68,7 +67,6 @@ export function usePermissions() {
     isAdmin: () => isAdmin(user),
     isGerente: () => isGerente(user),
     isTecnico: () => isTecnico(user),
-    isProductor: () => isProductor(user),
     isInvitado: () => isInvitado(user),
 
     // Utiles

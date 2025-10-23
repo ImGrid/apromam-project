@@ -4,8 +4,8 @@
  * Estructura IDÉNTICA a páginas con AdminLayout pero usa FichaLayout + FichaSidebar
  */
 
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FichaLayout } from "@/shared/components/layout/FichaLayout";
 import { FichaMultiStepForm, FichaSidebar, STEP_CONFIGS } from "../components/FichaMultiStepForm";
 import { useCreateFicha } from "../hooks/useCreateFicha";
@@ -14,8 +14,25 @@ import type { CreateFichaCompletaInput } from "../types/ficha.types";
 
 export default function FichaCreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { createFicha } = useCreateFicha();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Leer query params para "Continuar" con un borrador
+  const productor = searchParams.get("productor");
+  const gestion = searchParams.get("gestion");
+
+  const initialData = useMemo(() => {
+    if (productor && gestion) {
+      return {
+        ficha: {
+          codigo_productor: productor,
+          gestion: parseInt(gestion, 10),
+        },
+      };
+    }
+    return undefined;
+  }, [productor, gestion]);
 
   const handleSubmit = async (data: CreateFichaCompletaInput) => {
     const ficha = await createFicha(data);
@@ -43,7 +60,13 @@ export default function FichaCreatePage() {
         />
       }
     >
-      <FichaMultiStepForm onSubmit={handleSubmit} mode="create" />
+      <FichaMultiStepForm
+        onSubmit={handleSubmit}
+        mode="create"
+        initialData={initialData}
+        codigoProductorFromUrl={productor || undefined}
+        gestionFromUrl={gestion ? parseInt(gestion, 10) : undefined}
+      />
     </FichaLayout>
   );
 }

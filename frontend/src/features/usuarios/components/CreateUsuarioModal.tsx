@@ -97,8 +97,7 @@ export function CreateUsuarioModal({
         { value: "1", label: "Administrador" },
         { value: "2", label: "Gerente" },
         { value: "3", label: "Técnico" },
-        { value: "4", label: "Productor" },
-        { value: "5", label: "Invitado" },
+        { value: "4", label: "Invitado" },
       ];
 
       if (user?.nombre_rol.toLowerCase() === "gerente") {

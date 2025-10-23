@@ -2,6 +2,7 @@
  * FichaMultiStepForm
  * Contenedor principal del formulario multi-paso de fichas
  * Integra React Hook Form + Zustand para gestión de estado
+ * Con sistema de borradores: auto-save, recuperación y sincronización
  */
 
 import { useEffect, useCallback, useRef } from "react";
@@ -23,6 +24,13 @@ import FichaStepHeader from "./FichaStepHeader";
 import FichaStepFooter from "./FichaStepFooter";
 import { STEP_CONFIGS } from "./stepConfigs";
 
+// Sistema de borradores
+import { useAutoSaveDraft } from "../../hooks/useAutoSaveDraft";
+import { useRecoverDraft } from "../../hooks/useRecoverDraft";
+import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
+import { SaveStatusIndicator } from "../SaveStatusIndicator";
+import { DraftRecoveryModal } from "../DraftRecoveryModal";
+
 // ============================================
 // TYPES
 // ============================================
@@ -33,6 +41,9 @@ export interface FichaMultiStepFormProps {
   initialData?: Partial<FichaCompleta>;
   onSubmit: (data: CreateFichaCompletaInput) => Promise<void>;
   onSaveDraft?: (data: Partial<FichaCompleta>) => Promise<void>;
+  // Para recuperar drafts cuando se hace clic en "Continuar"
+  codigoProductorFromUrl?: string;
+  gestionFromUrl?: number;
 }
 
 // ============================================
@@ -44,12 +55,14 @@ export default function FichaMultiStepForm({
   initialData,
   onSubmit,
   onSaveDraft,
+  codigoProductorFromUrl,
+  gestionFromUrl,
 }: FichaMultiStepFormProps) {
   const currentStep = useCurrentStep();
   const isDirty = useIsDirty();
   const isAutosaving = useIsAutosaving();
   const actions = useFichaFormActions();
-  const autosaveTimerRef = useRef<number | undefined>(undefined);
+  const isOnline = useOnlineStatus();
 
   // React Hook Form setup
   const methods = useForm<CreateFichaCompletaInput>({
@@ -57,8 +70,12 @@ export default function FichaMultiStepForm({
     mode: "onChange",
     defaultValues: initialData || {
       ficha: {},
+      revision_documentacion: {},
       acciones_correctivas: [],
       no_conformidades: [],
+      evaluacion_mitigacion: {},
+      evaluacion_poscosecha: {},
+      evaluacion_conocimiento: {},
       actividades_pecuarias: [],
       detalles_cultivo: [],
       cosecha_ventas: [],
@@ -68,54 +85,88 @@ export default function FichaMultiStepForm({
   const {
     handleSubmit,
     watch,
+    reset,
+    control,
     formState: { errors },
   } = methods;
 
+  // Obtener código productor y gestión del formulario o de la URL
+  const codigoProductorFromForm = watch("ficha.codigo_productor");
+  const gestionFromForm = watch("ficha.gestion");
+
+  // Priorizar valores de URL (cuando se hace clic en "Continuar") sobre los del formulario
+  const codigoProductor = codigoProductorFromUrl || codigoProductorFromForm;
+  const gestion = gestionFromUrl || gestionFromForm;
+
+  // Hook de recuperación de borrador (DEBE ejecutarse PRIMERO)
+  const {
+    isLoading: isLoadingDraft,
+    draft,
+    acceptDraft,
+    rejectDraft,
+  } = useRecoverDraft(codigoProductor, gestion);
+
+  // Hook de auto-save (reemplaza el setInterval anterior)
+  // IMPORTANTE: Deshabilitar mientras se carga el draft o el modal está abierto
+  const { saveStatus, lastSavedAt, manualSave } = useAutoSaveDraft({
+    control,
+    codigoProductor,
+    gestion,
+    currentStep,
+    enabled: !!codigoProductor && !!gestion && !isLoadingDraft && !draft,
+  });
+
   // Sincronizar datos del formulario con Zustand
+  // IMPORTANTE: No incluir 'actions' en dependencies para evitar re-renders infinitos
   useEffect(() => {
     const subscription = watch((data) => {
-      actions.updateFichaData(data as Partial<FichaCompleta>);
+      // Solo actualizar si hay datos realmente
+      if (data && Object.keys(data).length > 0) {
+        actions.updateFichaData(data as Partial<FichaCompleta>);
+      }
     });
     return () => subscription.unsubscribe();
-  }, [watch, actions]);
+  }, [watch]); // Removido 'actions' de dependencias
 
   // Cargar datos iniciales
   useEffect(() => {
     if (initialData) {
       actions.setFichaData(initialData);
-      methods.reset(initialData as Partial<CreateFichaCompletaInput>);
+      reset(initialData as Partial<CreateFichaCompletaInput>);
     }
-  }, [initialData, actions, methods]);
+  }, [initialData, actions, reset]);
 
-  // Autosave cada 30 segundos
-  const performAutosave = useCallback(async () => {
-    if (!isDirty || !onSaveDraft) return;
+  // Manejar aceptación de borrador
+  const handleAcceptDraft = () => {
+    if (draft) {
+      // Reset del React Hook Form con datos del borrador
+      // keepDefaultValues: true mantiene los valores por defecto y solo actualiza los campos con datos
+      // keepDirtyValues: false asegura que todos los valores se actualicen
+      reset(draft.data, {
+        keepDefaultValues: false,
+        keepDirtyValues: false,
+        keepErrors: false,
+        keepDirty: false,
+        keepIsSubmitted: false,
+        keepTouched: false,
+        keepIsValid: false,
+        keepSubmitCount: false
+      });
 
-    try {
-      actions.setAutosaving(true);
-      const formData = methods.getValues();
-      await onSaveDraft(formData as Partial<FichaCompleta>);
-      actions.markAsSaved();
+      // Ir al step guardado
+      actions.setCurrentStep(draft.step_actual);
 
-      showToast.success("Los cambios se han guardado automáticamente");
-    } catch (err) {
-      console.error("Error en autosave:", err);
-    } finally {
-      actions.setAutosaving(false);
+      // Cerrar modal
+      acceptDraft();
+
+      showToast.success("Borrador recuperado exitosamente");
     }
-  }, [isDirty, onSaveDraft, actions, methods]);
+  };
 
-  useEffect(() => {
-    if (mode === "create" || mode === "edit") {
-      autosaveTimerRef.current = window.setInterval(performAutosave, 30000); // 30s
-    }
-
-    return () => {
-      if (autosaveTimerRef.current) {
-        window.clearInterval(autosaveTimerRef.current);
-      }
-    };
-  }, [mode, performAutosave]);
+  // Manejar rechazo de borrador
+  const handleRejectDraft = () => {
+    rejectDraft();
+  };
 
   // Handler para submit final
   const handleFormSubmit = async (data: CreateFichaCompletaInput) => {
@@ -128,21 +179,13 @@ export default function FichaMultiStepForm({
     }
   };
 
-  // Handler para guardar borrador manual
+  // Handler para guardar borrador manual (ahora usa el hook)
   const handleSaveDraft = async () => {
-    if (!onSaveDraft) return;
-
     try {
-      actions.setAutosaving(true);
-      const formData = methods.getValues();
-      await onSaveDraft(formData as Partial<FichaCompleta>);
-      actions.markAsSaved();
-
+      await manualSave();
       showToast.success("Los cambios se han guardado exitosamente");
     } catch (error) {
       showToast.error("No se pudo guardar el borrador");
-    } finally {
-      actions.setAutosaving(false);
     }
   };
 
@@ -152,14 +195,34 @@ export default function FichaMultiStepForm({
 
   return (
     <FormProvider {...methods}>
-      {/* Header del paso actual */}
-      <FichaStepHeader
-        title={currentStepConfig.title}
-        description={currentStepConfig.description}
-        stepNumber={currentStep}
-        totalSteps={STEP_CONFIGS.length}
-        isAutosaving={isAutosaving}
+      {/* Modal de recuperación de borrador */}
+      <DraftRecoveryModal
+        isOpen={!!draft}
+        codigoProductor={codigoProductor || ""}
+        gestion={gestion || new Date().getFullYear()}
+        stepActual={draft?.step_actual || 1}
+        updatedAt={draft?.updated_at || new Date().toISOString()}
+        onAccept={handleAcceptDraft}
+        onReject={handleRejectDraft}
       />
+
+      {/* Header con indicador de guardado */}
+      <div className="flex items-center justify-between mb-4">
+        <FichaStepHeader
+          title={currentStepConfig.title}
+          description={currentStepConfig.description}
+          stepNumber={currentStep}
+          totalSteps={STEP_CONFIGS.length}
+          isAutosaving={isAutosaving}
+        />
+
+        {/* Indicador de guardado */}
+        <SaveStatusIndicator
+          status={saveStatus}
+          lastSavedAt={lastSavedAt}
+          isOnline={isOnline}
+        />
+      </div>
 
       {/* Step Content */}
       <div className="flex-1 overflow-y-auto">

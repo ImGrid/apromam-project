@@ -5,7 +5,7 @@
  */
 
 import { useNavigate } from "react-router-dom";
-import { Plus, Eye, Edit, FileText } from "lucide-react";
+import { Plus, Eye, Edit, FileText, PlayCircle } from "lucide-react";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
@@ -14,12 +14,21 @@ import { usePermissions } from "@/shared/hooks/usePermissions";
 import { Button, IconButton } from "@/shared/components/ui";
 import { DataTable } from "@/shared/components/ui/DataTable";
 import { useFichas } from "../hooks/useFichas";
+import { useMyDrafts } from "../hooks/useMyDrafts";
 import { FichasFilters } from "../components/FichasFilters";
 import { EstadoFichaBadge } from "../components/Specialized";
 import { ROUTES } from "@/shared/config/routes.config";
 import { useAuthStore } from "@/features/auth/stores/authStore";
-import type { Ficha } from "../types/ficha.types";
+import type { Ficha, FichaDraftData } from "../types/ficha.types";
 import type { DataTableColumn } from "@/shared/components/ui/DataTable";
+import { useMemo } from "react";
+
+// Tipo unificado para mostrar fichas y drafts en la misma tabla
+type FichaListItem = Ficha & {
+  isDraft?: boolean;
+  draft_id?: string;
+  step_actual?: number;
+};
 
 export default function FichasListPage() {
   const navigate = useNavigate();
@@ -51,8 +60,46 @@ export default function FichasListPage() {
     changeLimit,
   } = useFichas();
 
+  // Obtener drafts si es técnico
+  const { data: drafts = [], isLoading: loadingDrafts } = useMyDrafts();
+
+  // Combinar drafts con fichas solo si es técnico
+  const combinedData: FichaListItem[] = useMemo(() => {
+    const fichasAsItems: FichaListItem[] = fichas.map((f) => ({
+      ...f,
+      isDraft: false,
+    }));
+
+    // Solo técnicos ven drafts
+    if (!isTecnico()) {
+      return fichasAsItems;
+    }
+
+    // Convertir drafts a formato FichaListItem
+    const draftsAsItems: FichaListItem[] = drafts.map((draft: FichaDraftData) => ({
+      id_ficha: draft.id_draft || "",
+      codigo_productor: draft.codigo_productor,
+      gestion: draft.gestion,
+      fecha_inspeccion: draft.updated_at || draft.created_at || "",
+      inspector_interno: user?.nombre_completo || "",
+      estado_ficha: "borrador" as const,
+      resultado_certificacion: "pendiente" as const,
+      origen_captura: "online" as const,
+      estado_sync: "pendiente" as const,
+      created_by: draft.created_by || "",
+      created_at: draft.created_at || "",
+      updated_at: draft.updated_at || "",
+      isDraft: true,
+      draft_id: draft.id_draft,
+      step_actual: draft.step_actual,
+    }));
+
+    // Combinar drafts primero (aparecen arriba)
+    return [...draftsAsItems, ...fichasAsItems];
+  }, [fichas, drafts, isTecnico, user]);
+
   // Definir columnas de la tabla
-  const columns: DataTableColumn<Ficha>[] = [
+  const columns: DataTableColumn<FichaListItem>[] = [
     {
       key: "codigo_productor",
       label: "Código Productor",
@@ -112,7 +159,16 @@ export default function FichasListPage() {
       key: "estado_ficha",
       label: "Estado",
       sortable: true,
-      render: (ficha) => <EstadoFichaBadge estado={ficha.estado_ficha} />,
+      render: (ficha) => (
+        <div className="flex items-center gap-2">
+          <EstadoFichaBadge estado={ficha.estado_ficha} />
+          {ficha.isDraft && (
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-info/10 text-info">
+              Paso {ficha.step_actual}/11
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       key: "resultado_certificacion",
@@ -140,22 +196,36 @@ export default function FichasListPage() {
       label: "Acciones",
       render: (ficha) => (
         <div className="flex items-center gap-1">
-          <IconButton
-            icon={<Eye className="w-4 h-4" />}
-            tooltip="Ver detalle"
-            variant="primary"
-            onClick={() => navigate(ROUTES.FICHAS_DETAIL(ficha.id_ficha))}
-          />
-          {(ficha.estado_ficha === "borrador" ||
-            ficha.estado_ficha === "rechazado") &&
-            canCreate && (
+          {ficha.isDraft ? (
+            // Botón "Continuar" para drafts
+            <IconButton
+              icon={<PlayCircle className="w-4 h-4" />}
+              tooltip="Continuar editando"
+              variant="primary"
+              onClick={() =>
+                navigate(
+                  `${ROUTES.FICHAS_CREATE}?productor=${ficha.codigo_productor}&gestion=${ficha.gestion}`
+                )
+              }
+            />
+          ) : (
+            <>
               <IconButton
-                icon={<Edit className="w-4 h-4" />}
-                tooltip="Editar ficha"
+                icon={<Eye className="w-4 h-4" />}
+                tooltip="Ver detalle"
                 variant="primary"
-                onClick={() => navigate(ROUTES.FICHAS_EDIT(ficha.id_ficha))}
+                onClick={() => navigate(ROUTES.FICHAS_DETAIL(ficha.id_ficha))}
               />
-            )}
+              {(ficha.estado_ficha === "rechazado") && canCreate && (
+                <IconButton
+                  icon={<Edit className="w-4 h-4" />}
+                  tooltip="Editar ficha"
+                  variant="primary"
+                  onClick={() => navigate(ROUTES.FICHAS_EDIT(ficha.id_ficha))}
+                />
+              )}
+            </>
+          )}
         </div>
       ),
     },
@@ -189,28 +259,26 @@ export default function FichasListPage() {
           {/* Estadísticas rápidas */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <StatCard
-              label="Total Fichas"
-              value={total}
+              label="Total"
+              value={combinedData.length}
               icon={<FileText className="w-5 h-5 text-primary" />}
             />
             <StatCard
-              label="En Borrador"
-              value={
-                fichas.filter((f) => f.estado_ficha === "borrador").length
-              }
+              label="Borradores"
+              value={combinedData.filter((f) => f.isDraft).length}
               icon={<FileText className="w-5 h-5 text-gray-500" />}
             />
             <StatCard
               label="En Revisión"
               value={
-                fichas.filter((f) => f.estado_ficha === "revision").length
+                combinedData.filter((f) => f.estado_ficha === "revision" && !f.isDraft).length
               }
               icon={<FileText className="w-5 h-5 text-warning" />}
             />
             <StatCard
               label="Aprobadas"
               value={
-                fichas.filter((f) => f.estado_ficha === "aprobado").length
+                combinedData.filter((f) => f.estado_ficha === "aprobado" && !f.isDraft).length
               }
               icon={<FileText className="w-5 h-5 text-success" />}
             />
@@ -218,12 +286,12 @@ export default function FichasListPage() {
 
           {/* Tabla */}
           <div className="bg-white border rounded-lg border-neutral-border">
-            <DataTable<Ficha>
+            <DataTable<FichaListItem>
               columns={columns}
-              data={fichas}
+              data={combinedData}
               rowKey="id_ficha"
-              loading={isLoading}
-              emptyMessage="No se encontraron fichas con los filtros aplicados"
+              loading={isLoading || loadingDrafts}
+              emptyMessage="No se encontraron fichas ni borradores"
             />
 
             {/* Paginación */}

@@ -74,5 +74,12 @@ export const ENDPOINTS = {
     DEVOLVER_BORRADOR: (id: string) => `/api/fichas/${id}/devolver-borrador`,
     ESTADISTICAS: "/api/fichas/estadisticas",
     ARCHIVOS: (id: string) => `/api/fichas/${id}/archivos`,
+
+    // Drafts (borradores)
+    DRAFT: "/api/fichas/draft",
+    DRAFT_MY_DRAFTS: "/api/fichas/draft/my-drafts",
+    DRAFT_BY_PRODUCTOR: (codigoProductor: string, gestion: number) =>
+      `/api/fichas/draft/${codigoProductor}/${gestion}`,
+    DRAFT_DELETE: (id: string) => `/api/fichas/draft/${id}`,
   },
 } as const;

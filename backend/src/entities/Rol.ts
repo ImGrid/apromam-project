@@ -33,7 +33,6 @@ export const ROLES_SISTEMA = {
   GERENTE: "gerente",
   TECNICO: "tecnico",
   INVITADO: "invitado",
-  PRODUCTOR: "productor",
 } as const;
 
 export type RolNombre = (typeof ROLES_SISTEMA)[keyof typeof ROLES_SISTEMA];
@@ -155,16 +154,6 @@ export class Rol {
           return {
             valid: false,
             error: "Invitado solo puede tener permisos de lectura",
-          };
-        }
-        break;
-
-      case ROLES_SISTEMA.PRODUCTOR:
-        // Productor solo lee sus propios datos
-        if (!permisos.read_own || permisos.edit_all || permisos.delete) {
-          return {
-            valid: false,
-            error: "Productor solo puede leer sus propios datos",
           };
         }
         break;
@@ -357,18 +346,6 @@ export class Rol {
       descripcion: "Solo lectura de reportes",
       permisos: {
         read_reports: true,
-      },
-      activo: true,
-    });
-  }
-
-  static createRolProductor(): Rol {
-    return new Rol({
-      id_rol: "",
-      nombre_rol: ROLES_SISTEMA.PRODUCTOR,
-      descripcion: "Vista limitada de sus datos",
-      permisos: {
-        read_own: true,
       },
       activo: true,
     });

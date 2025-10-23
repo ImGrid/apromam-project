@@ -3,7 +3,7 @@
  * Descripción fuentes de contaminación y prácticas de mitigación
  */
 
-import { useFormContext } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form";
 import { FormSection } from "@/shared/components/ui/FormSection";
 import { FormField } from "@/shared/components/ui/FormField";
 import { ComplianceRadioGroup } from "../Specialized/ComplianceRadioGroup";
@@ -35,6 +35,7 @@ interface PreguntaMitigacion {
 export default function Step5EvaluacionMitigacion() {
   const {
     register,
+    control,
     watch,
     setValue,
     formState: { errors },
@@ -150,13 +151,19 @@ export default function Step5EvaluacionMitigacion() {
 
                     {/* Columna 2: Textarea */}
                     <div className="px-4 py-3 border-l border-neutral-border">
-                      <textarea
-                        {...register(
-                          `evaluacion_mitigacion.${pregunta.campoTexto}`
+                      <Controller
+                        name={`evaluacion_mitigacion.${pregunta.campoTexto}` as const}
+                        control={control}
+                        render={({ field: fieldProps }) => (
+                          <textarea
+                            {...fieldProps}
+                            rows={pregunta.textAreaRows}
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder="Describa la práctica implementada..."
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
                         )}
-                        rows={pregunta.textAreaRows}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Describa la práctica implementada..."
                       />
                       {errors.evaluacion_mitigacion?.[pregunta.campoTexto] && (
                         <p className="mt-1 text-xs text-red-600">
@@ -212,13 +219,19 @@ export default function Step5EvaluacionMitigacion() {
                 {/* Campo de texto (solo para preguntas 1 y 2) */}
                 {pregunta.campoTexto && (
                   <FormField label="Práctica de mitigación" className="mt-4">
-                    <textarea
-                      {...register(
-                        `evaluacion_mitigacion.${pregunta.campoTexto}`
+                    <Controller
+                      name={`evaluacion_mitigacion.${pregunta.campoTexto}` as const}
+                      control={control}
+                      render={({ field: fieldProps }) => (
+                        <textarea
+                          {...fieldProps}
+                          rows={pregunta.textAreaRows}
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder="Describa la práctica implementada..."
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
                       )}
-                      rows={pregunta.textAreaRows}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Describa la práctica implementada..."
                     />
                     {errors.evaluacion_mitigacion?.[pregunta.campoTexto] && (
                       <p className="mt-1 text-xs text-red-600">

@@ -1,6 +1,7 @@
 import { FichaRepository } from "../repositories/FichaRepository.js";
 import { ProductorRepository } from "../repositories/ProductorRepository.js";
 import { ArchivoFichaRepository } from "../repositories/ArchivoFichaRepository.js";
+import { FichaDraftRepository } from "../repositories/FichaDraftRepository.js";
 import { Ficha } from "../entities/Ficha.js";
 import { RevisionDocumentacion } from "../entities/RevisionDocumentacion.js";
 import { AccionCorrectiva } from "../entities/AccionCorrectiva.js";
@@ -12,6 +13,7 @@ import { ActividadPecuaria } from "../entities/ActividadPecuaria.js";
 import { DetalleCultivoParcela } from "../entities/DetalleCultivoParcela.js";
 import { CosechaVentas } from "../entities/CosechaVentas.js";
 import { ArchivoFicha } from "../entities/ArchivoFicha.js";
+import { FichaDraft, FichaDraftEntity } from "../entities/FichaDraft.js";
 import { createAuthLogger } from "../utils/logger.js";
 import { validarSuperficiesFicha } from "../utils/superficieValidation.js";
 import type {
@@ -25,11 +27,9 @@ import type {
 } from "../schemas/fichas.schema.js";
 import type { FichaCompleta } from "../repositories/FichaRepository.js";
 import type { MultipartFile } from "@fastify/multipart";
-import path from "path";
 import fs from "fs/promises";
 import { createWriteStream } from "fs";
 import { pipeline } from "stream/promises";
-import { randomUUID } from "crypto";
 
 const logger = createAuthLogger();
 
@@ -39,18 +39,21 @@ export class FichasService {
   private fichaRepository: FichaRepository;
   private productorRepository: ProductorRepository;
   private archivoFichaRepository: ArchivoFichaRepository;
+  private fichaDraftRepository: FichaDraftRepository;
 
   constructor(
     fichaRepository: FichaRepository,
     productorRepository: ProductorRepository,
-    archivoFichaRepository: ArchivoFichaRepository
+    archivoFichaRepository: ArchivoFichaRepository,
+    fichaDraftRepository: FichaDraftRepository
   ) {
     this.fichaRepository = fichaRepository;
     this.productorRepository = productorRepository;
     this.archivoFichaRepository = archivoFichaRepository;
+    this.fichaDraftRepository = fichaDraftRepository;
   }
 
-  // Lista fichas con filtros
+  // Lista fichas con filtros y paginacion
   // Tecnico: solo su comunidad
   // Gerente/Admin: todas las comunidades
   async listFichas(
@@ -59,56 +62,38 @@ export class FichasService {
     gestion?: number,
     comunidadId?: string,
     codigoProductor?: string,
-    estado?: string
-  ): Promise<{ fichas: FichaResponse[]; total: number }> {
-    let fichas: Ficha[];
+    estado?: string,
+    estadoSync?: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ fichas: FichaResponse[]; total: number; page: number; limit: number; totalPages: number }> {
+    // Si es tecnico y no se especifica comunidad, usar su comunidad
+    const comunidadFiltro = !esAdminOGerente && usuarioComunidadId
+      ? usuarioComunidadId
+      : comunidadId;
 
-    // Si es tecnico, filtrar solo su comunidad
-    if (!esAdminOGerente && usuarioComunidadId) {
-      if (gestion) {
-        fichas = await this.fichaRepository.findByComunidadGestion(
-          usuarioComunidadId,
-          gestion
-        );
-      } else {
-        // Obtener fichas de productores de su comunidad
-        const productores = await this.productorRepository.findByComunidad(
-          usuarioComunidadId
-        );
-        fichas = [];
-        for (const productor of productores) {
-          const fichasProductor = await this.fichaRepository.findByProductor(
-            productor.codigo
-          );
-          fichas.push(...fichasProductor);
-        }
-      }
-    }
-    // Admin/gerente con filtros
-    else if (gestion && comunidadId) {
-      fichas = await this.fichaRepository.findByComunidadGestion(
-        comunidadId,
-        gestion
-      );
-    } else if (gestion) {
-      fichas = await this.fichaRepository.findByGestion(gestion);
-    } else if (codigoProductor) {
-      fichas = await this.fichaRepository.findByProductor(codigoProductor);
-    } else {
-      // Por defecto, traer fichas del año actual
-      const añoActual = new Date().getFullYear();
-      fichas = await this.fichaRepository.findByGestion(añoActual);
-    }
+    // Usar el nuevo metodo con paginacion
+    const result = await this.fichaRepository.findWithPagination({
+      gestion,
+      estado,
+      codigoProductor,
+      comunidadId: comunidadFiltro,
+      estadoSync,
+      page,
+      limit,
+    });
 
-    // Filtrar por estado si se especifica
-    if (estado) {
-      fichas = fichas.filter((f) => f.estadoFicha === estado);
-    }
+    const totalPages = Math.ceil(result.total / limit);
 
-    return {
-      fichas: fichas.map((f) => f.toJSON()),
-      total: fichas.length,
+    const response = {
+      fichas: result.fichas.map((f) => f.toJSON()),
+      total: result.total,
+      page,
+      limit,
+      totalPages,
     };
+
+    return response;
   }
 
   // Obtiene una ficha por ID con todas sus secciones
@@ -297,6 +282,25 @@ export class FichasService {
       },
       "Ficha completa created successfully"
     );
+
+    // Eliminar draft si existe
+    try {
+      await this.fichaDraftRepository.deleteDraft(
+        input.codigo_productor,
+        input.gestion,
+        usuarioId
+      );
+      logger.info(
+        {
+          codigo_productor: input.codigo_productor,
+          gestion: input.gestion
+        },
+        "Draft eliminado después de crear ficha"
+      );
+    } catch (error) {
+      // No es crítico si falla, solo loguear
+      logger.warn(error, "No se pudo eliminar draft al crear ficha");
+    }
 
     return fichaCreada;
   }
@@ -649,7 +653,7 @@ export class FichasService {
           control_hierbas: dc.controlHierbas,
           metodo_cosecha: dc.metodoCosecha,
           rotacion: dc.rotacion,
-          insumos_organicos_usados: dc.insumosOrganicosUsados,
+          situacion_actual: dc.situacionActual,
           nombre_cultivo: undefined, // No lo tenemos aquí, se enriquece en la query
         }))
       );
@@ -880,5 +884,152 @@ export class FichasService {
   // Cuenta fichas por gestion
   async countByGestion(gestion: number): Promise<number> {
     return await this.fichaRepository.countByGestion(gestion);
+  }
+
+  // METODOS PARA DRAFT
+
+  // Guarda o actualiza un borrador de ficha
+  async saveDraft(
+    codigoProductor: string,
+    gestion: number,
+    stepActual: number,
+    draftData: any,
+    userId: string
+  ): Promise<FichaDraft> {
+    try {
+      logger.info(
+        `Guardando borrador: ${codigoProductor}-${gestion} (user: ${userId})`
+      );
+
+      const draft = await this.fichaDraftRepository.upsert({
+        codigo_productor: codigoProductor,
+        gestion,
+        draft_data: draftData,
+        step_actual: stepActual,
+        created_by: userId,
+      });
+
+      return draft;
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          codigo_productor: codigoProductor,
+          gestion: gestion,
+        },
+        "Error en FichasService.saveDraft"
+      );
+      throw new Error("Error al guardar borrador de ficha");
+    }
+  }
+
+  // Obtiene un borrador por productor y gestion del usuario actual
+  async getDraft(
+    codigoProductor: string,
+    gestion: number,
+    userId: string
+  ): Promise<FichaDraft | null> {
+    try {
+      const draft = await this.fichaDraftRepository.findByProductorGestionUser(
+        codigoProductor,
+        gestion,
+        userId
+      );
+
+      return draft;
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          codigo_productor: codigoProductor,
+          gestion: gestion,
+        },
+        "Error en FichasService.getDraft"
+      );
+      throw new Error("Error al obtener borrador de ficha");
+    }
+  }
+
+  // Obtiene un borrador por ID
+  async getDraftById(idDraft: string, userId: string): Promise<FichaDraft> {
+    try {
+      const draft = await this.fichaDraftRepository.findById(idDraft);
+
+      if (!draft) {
+        throw new Error("Borrador no encontrado");
+      }
+
+      // Verificar que el borrador pertenece al usuario
+      const draftEntity = new FichaDraftEntity(draft);
+      if (!draftEntity.belongsToUser(userId)) {
+        throw new Error("No tienes permiso para acceder a este borrador");
+      }
+
+      return draft;
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          id_draft: idDraft,
+        },
+        "Error en FichasService.getDraftById"
+      );
+      throw error;
+    }
+  }
+
+  // Lista todos los borradores del usuario
+  async listMyDrafts(userId: string): Promise<FichaDraft[]> {
+    try {
+      const drafts = await this.fichaDraftRepository.findByUser(userId);
+      return drafts;
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          user_id: userId,
+        },
+        "Error en FichasService.listMyDrafts"
+      );
+      throw new Error("Error al listar borradores");
+    }
+  }
+
+  // Elimina un borrador
+  async deleteDraft(idDraft: string, userId: string): Promise<void> {
+    try {
+      // Verificar que existe y pertenece al usuario
+      void await this.getDraftById(idDraft, userId);
+
+      await this.fichaDraftRepository.delete(idDraft);
+
+      logger.info(`Borrador eliminado: ${idDraft}`);
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          id_draft: idDraft,
+        },
+        "Error en FichasService.deleteDraft"
+      );
+      throw error;
+    }
+  }
+
+  // Limpia borradores antiguos (tarea de mantenimiento)
+  async cleanOldDrafts(): Promise<number> {
+    try {
+      const count = await this.fichaDraftRepository.deleteOldDrafts();
+      logger.info(`Limpieza de borradores antiguos: ${count} eliminados`);
+      return count;
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+        "Error en FichasService.cleanOldDrafts"
+      );
+      throw new Error("Error al limpiar borradores antiguos");
+    }
   }
 }

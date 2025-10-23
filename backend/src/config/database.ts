@@ -9,7 +9,13 @@ import pg from "pg";
 pg.types.setTypeParser(1700, parseFloat); // NUMERIC
 pg.types.setTypeParser(700, parseFloat); // REAL
 pg.types.setTypeParser(701, parseFloat); // DOUBLE PRECISION
-pg.types.setTypeParser(20, parseInt);
+pg.types.setTypeParser(20, parseInt); // BIGINT
+
+// Configurar parsers para fechas/timestamps
+// Convierte timestamps de PostgreSQL a objetos Date automáticamente
+pg.types.setTypeParser(1082, (val) => new Date(val + 'T00:00:00Z')); // DATE
+pg.types.setTypeParser(1114, (val) => new Date(val + 'Z')); // TIMESTAMP sin timezone
+pg.types.setTypeParser(1184, (val) => new Date(val)); // TIMESTAMPTZ con timezone
 
 // Logger especifico para operaciones de base de datos
 const logger = createDatabaseLogger();

@@ -25,6 +25,7 @@ import { ProductorSearchInput } from "../ProductorSearchInput";
 import { FormField } from "@/shared/components/ui/FormField";
 import { GPSCaptureButton } from "../Specialized/GPSCaptureButton";
 import { useAuthStore } from "@/features/auth/stores/authStore";
+import { productoresService } from "@/features/productores/services/productores.service";
 import type {
   CreateFichaCompletaInput,
 } from "../../types/ficha.types";
@@ -34,6 +35,7 @@ export default function Step1DatosGenerales() {
   const {
     register,
     setValue,
+    watch,
     formState: { errors },
   } = useFormContext<CreateFichaCompletaInput>();
 
@@ -46,6 +48,9 @@ export default function Step1DatosGenerales() {
     altitud: 0,
   });
 
+  // Observar el codigo_productor del formulario
+  const codigoProductorFromForm = watch("ficha.codigo_productor");
+
   // Auto-rellenar inspector_interno con el usuario logueado
   useEffect(() => {
     if (user) {
@@ -54,6 +59,31 @@ export default function Step1DatosGenerales() {
       });
     }
   }, [user, setValue]);
+
+  // NUEVO: Recuperar el productor cuando el componente monta o cuando cambia el codigo
+  useEffect(() => {
+    const loadProductor = async () => {
+      if (codigoProductorFromForm && !selectedProductor) {
+        try {
+          const productor = await productoresService.getProductorByCodigo(codigoProductorFromForm);
+          setSelectedProductor(productor);
+
+          // Restaurar coordenadas si existen
+          if (productor.coordenadas) {
+            setCoordenadas({
+              latitud: productor.coordenadas.latitude,
+              longitud: productor.coordenadas.longitude,
+              altitud: productor.coordenadas.altitude || 0,
+            });
+          }
+        } catch (error) {
+          console.error('[Step1] Error recuperando productor:', error);
+        }
+      }
+    };
+
+    loadProductor();
+  }, [codigoProductorFromForm]);
 
   // Manejar selección de productor
   const handleSelectProductor = (productor: Productor | null) => {

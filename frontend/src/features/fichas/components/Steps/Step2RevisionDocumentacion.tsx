@@ -97,6 +97,7 @@ export default function Step2RevisionDocumentacion() {
                     })
                   }
                   error={errors.revision_documentacion?.[doc.campo]?.message}
+                  showParcial={false}
                 />
               </div>
             </div>
@@ -117,6 +118,7 @@ export default function Step2RevisionDocumentacion() {
                   })
                 }
                 error={errors.revision_documentacion?.[doc.campo]?.message}
+                showParcial={false}
               />
             </FormField>
           ))}
