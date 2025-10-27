@@ -189,10 +189,10 @@ export class Parcela {
       errors.push("Superficie no puede exceder 10,000 hectareas");
     }
 
-    // Validar coordenadas si existen
+    // Validar coordenadas si existen (rechaza null y undefined)
     if (
-      this.data.latitud_sud !== undefined &&
-      this.data.longitud_oeste !== undefined
+      this.data.latitud_sud != null &&
+      this.data.longitud_oeste != null
     ) {
       const coordValidation = validateBolivianCoordinates(
         this.data.latitud_sud,
@@ -214,8 +214,8 @@ export class Parcela {
     }
 
     // Validar que si tiene una coordenada, tenga la otra
-    const hasLat = this.data.latitud_sud !== undefined;
-    const hasLng = this.data.longitud_oeste !== undefined;
+    const hasLat = this.data.latitud_sud != null;
+    const hasLng = this.data.longitud_oeste != null;
 
     if (hasLat !== hasLng) {
       errors.push("Debe proporcionar tanto latitud como longitud, o ninguna");

@@ -7,34 +7,50 @@
  * - Campos de CULTIVO aparecen en cada fila de la tabla (tipo cultivo, superficie)
  */
 
-import { useFormContext, useFieldArray } from "react-hook-form";
+import { useFormContext, useFieldArray, Controller } from "react-hook-form";
 import { Plus, Trash2, MapPin } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, Alert, Button, Input, Select } from "@/shared/components/ui";
 import { TiposCultivoSelect } from "@/features/catalogos/components/TiposCultivoSelect";
 import { LocationPicker } from "@/shared/components/maps";
 import { useProductorParcelas } from "@/features/productores/hooks/useProductorParcelas";
-import { parcelasService } from "@/features/parcelas";
 import type { CreateFichaCompletaInput } from "../../types/ficha.types";
 
 export default function Step4InspeccionParcelas() {
   const { register, control, watch, setValue, formState: { errors } } = useFormContext<CreateFichaCompletaInput>();
   const { fields, append, remove } = useFieldArray({ control, name: "detalles_cultivo" });
+  const { fields: parcelasInspeccionadasFields, append: appendParcelaInspeccionada, update: updateParcelaInspeccionada } = useFieldArray({ control, name: "parcelas_inspeccionadas" });
 
   const [showLocationPicker, setShowLocationPicker] = useState<{ [key: string]: boolean }>({});
-  const [parcelaData, setParcelaData] = useState<{
-    [key: string]: {
-      latitud_sud?: number;
-      longitud_oeste?: number;
-      utiliza_riego?: boolean;
-      tipo_barrera?: "ninguna" | "viva" | "muerta";
-      insumos_organicos?: string;
-      rotacion?: boolean;
-    };
-  }>({});
 
   const codigoProductor = watch("ficha.codigo_productor");
   const { parcelas, superficieTotal, isLoading, error } = useProductorParcelas(codigoProductor);
+
+  // Inicializar parcelas_inspeccionadas cuando se cargan las parcelas
+  useEffect(() => {
+    if (parcelas && parcelas.length > 0 && parcelasInspeccionadasFields.length === 0) {
+      parcelas.forEach((parcela) => {
+        appendParcelaInspeccionada({
+          id_parcela: parcela.id_parcela,
+          rotacion: parcela.rotacion ?? false,
+          utiliza_riego: parcela.utiliza_riego ?? false,
+          tipo_barrera: parcela.tipo_barrera ?? "ninguna",
+          insumos_organicos: parcela.insumos_organicos ?? "",
+          latitud_sud: parcela.ubicacion?.latitude,
+          longitud_oeste: parcela.ubicacion?.longitude,
+        });
+      });
+    }
+  }, [parcelas]);
+
+  // Mapear id_parcela a índice en parcelas_inspeccionadas
+  const parcelaIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    parcelasInspeccionadasFields.forEach((field, index) => {
+      map.set(field.id_parcela, index);
+    });
+    return map;
+  }, [parcelasInspeccionadasFields]);
 
   // Agrupar cultivos por parcela
   const cultivosPorParcela = useMemo(() => {
@@ -79,7 +95,6 @@ export default function Step4InspeccionParcelas() {
       procedencia_semilla: undefined,
       categoria_semilla: undefined,
       tratamiento_semillas: undefined,
-      tratamiento_semillas_otro: undefined,
       tipo_abonamiento: undefined,
       tipo_abonamiento_otro: undefined,
       metodo_aporque: undefined,
@@ -91,25 +106,6 @@ export default function Step4InspeccionParcelas() {
     });
   };
 
-  const handleUpdateParcela = async (parcelaId: string) => {
-    const data = parcelaData[parcelaId];
-    if (!data) return;
-    try {
-      await parcelasService.updateParcela(parcelaId, {
-        coordenadas: data.latitud_sud && data.longitud_oeste ? {
-          latitud: data.latitud_sud,
-          longitud: data.longitud_oeste,
-        } : undefined,
-        utiliza_riego: data.utiliza_riego,
-        tipo_barrera: data.tipo_barrera,
-        insumos_organicos: data.insumos_organicos,
-        rotacion: data.rotacion,
-      });
-      window.location.reload();
-    } catch (error) {
-      console.error("Error al actualizar parcela:", error);
-    }
-  };
 
   if (!codigoProductor) {
     return (
@@ -148,7 +144,8 @@ export default function Step4InspeccionParcelas() {
       {parcelas.map((parcela) => {
         const cultivosIndices = cultivosPorParcela.get(parcela.id_parcela) || [];
         const validacion = validacionesPorParcela.get(parcela.id_parcela);
-        const currentData = parcelaData[parcela.id_parcela] || {};
+        // Obtener índice de la parcela en parcelas_inspeccionadas
+        const parcelaIdx = parcelaIndexMap.get(parcela.id_parcela);
 
         return (
           <Card key={parcela.id_parcela}>
@@ -167,6 +164,7 @@ export default function Step4InspeccionParcelas() {
               <h5 className="text-xs font-semibold text-gray-700 mb-3">Datos de la Parcela</h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
+                {/* Fila 1: Radio buttons juntos */}
                 {/* Utiliza riego */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -176,12 +174,11 @@ export default function Step4InspeccionParcelas() {
                     <label className="flex items-center text-sm">
                       <input
                         type="radio"
-                        checked={currentData.utiliza_riego ?? parcela.utiliza_riego ?? false}
+                        checked={parcelaIdx !== undefined ? (watch(`parcelas_inspeccionadas.${parcelaIdx}.utiliza_riego`) ?? false) : false}
                         onChange={() => {
-                          setParcelaData((prev) => ({
-                            ...prev,
-                            [parcela.id_parcela]: { ...prev[parcela.id_parcela], utiliza_riego: true },
-                          }));
+                          if (parcelaIdx !== undefined) {
+                            setValue(`parcelas_inspeccionadas.${parcelaIdx}.utiliza_riego`, true, { shouldDirty: true });
+                          }
                         }}
                         className="mr-2"
                       />
@@ -190,12 +187,11 @@ export default function Step4InspeccionParcelas() {
                     <label className="flex items-center text-sm">
                       <input
                         type="radio"
-                        checked={!(currentData.utiliza_riego ?? parcela.utiliza_riego ?? false)}
+                        checked={parcelaIdx !== undefined ? !(watch(`parcelas_inspeccionadas.${parcelaIdx}.utiliza_riego`) ?? false) : true}
                         onChange={() => {
-                          setParcelaData((prev) => ({
-                            ...prev,
-                            [parcela.id_parcela]: { ...prev[parcela.id_parcela], utiliza_riego: false },
-                          }));
+                          if (parcelaIdx !== undefined) {
+                            setValue(`parcelas_inspeccionadas.${parcelaIdx}.utiliza_riego`, false, { shouldDirty: true });
+                          }
                         }}
                         className="mr-2"
                       />
@@ -204,6 +200,42 @@ export default function Step4InspeccionParcelas() {
                   </div>
                 </div>
 
+                {/* Rotación */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Rotación
+                  </label>
+                  <div className="flex gap-3">
+                    <label className="flex items-center text-sm">
+                      <input
+                        type="radio"
+                        checked={parcelaIdx !== undefined ? (watch(`parcelas_inspeccionadas.${parcelaIdx}.rotacion`) ?? false) : false}
+                        onChange={() => {
+                          if (parcelaIdx !== undefined) {
+                            setValue(`parcelas_inspeccionadas.${parcelaIdx}.rotacion`, true, { shouldDirty: true });
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      Sí
+                    </label>
+                    <label className="flex items-center text-sm">
+                      <input
+                        type="radio"
+                        checked={parcelaIdx !== undefined ? !(watch(`parcelas_inspeccionadas.${parcelaIdx}.rotacion`) ?? false) : true}
+                        onChange={() => {
+                          if (parcelaIdx !== undefined) {
+                            setValue(`parcelas_inspeccionadas.${parcelaIdx}.rotacion`, false, { shouldDirty: true });
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      No
+                    </label>
+                  </div>
+                </div>
+
+                {/* Fila 2: Campos de texto */}
                 {/* Tipo de barrera */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -215,15 +247,11 @@ export default function Step4InspeccionParcelas() {
                       { value: "viva", label: "Viva" },
                       { value: "muerta", label: "Muerta" },
                     ]}
-                    value={currentData.tipo_barrera ?? parcela.tipo_barrera ?? "ninguna"}
+                    value={parcelaIdx !== undefined ? (watch(`parcelas_inspeccionadas.${parcelaIdx}.tipo_barrera`) ?? "ninguna") : "ninguna"}
                     onChange={(value) => {
-                      setParcelaData((prev) => ({
-                        ...prev,
-                        [parcela.id_parcela]: {
-                          ...prev[parcela.id_parcela],
-                          tipo_barrera: value as "ninguna" | "viva" | "muerta",
-                        },
-                      }));
+                      if (parcelaIdx !== undefined) {
+                        setValue(`parcelas_inspeccionadas.${parcelaIdx}.tipo_barrera`, value as "ninguna" | "viva" | "muerta", { shouldDirty: true });
+                      }
                     }}
                   />
                 </div>
@@ -235,59 +263,18 @@ export default function Step4InspeccionParcelas() {
                   </label>
                   <Input
                     type="text"
-                    value={currentData.insumos_organicos ?? parcela.insumos_organicos ?? ""}
+                    value={parcelaIdx !== undefined ? (watch(`parcelas_inspeccionadas.${parcelaIdx}.insumos_organicos`) ?? "") : ""}
                     onChange={(e) => {
-                      setParcelaData((prev) => ({
-                        ...prev,
-                        [parcela.id_parcela]: {
-                          ...prev[parcela.id_parcela],
-                          insumos_organicos: e.target.value,
-                        },
-                      }));
+                      if (parcelaIdx !== undefined) {
+                        setValue(`parcelas_inspeccionadas.${parcelaIdx}.insumos_organicos`, e.target.value, { shouldDirty: true });
+                      }
                     }}
                     placeholder="Ej: Compost, humus, estiércol..."
                   />
                 </div>
 
-                {/* Rotación */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">
-                    Rotación
-                  </label>
-                  <div className="flex gap-3">
-                    <label className="flex items-center text-sm">
-                      <input
-                        type="radio"
-                        checked={currentData.rotacion ?? parcela.rotacion ?? false}
-                        onChange={() => {
-                          setParcelaData((prev) => ({
-                            ...prev,
-                            [parcela.id_parcela]: { ...prev[parcela.id_parcela], rotacion: true },
-                          }));
-                        }}
-                        className="mr-2"
-                      />
-                      Sí
-                    </label>
-                    <label className="flex items-center text-sm">
-                      <input
-                        type="radio"
-                        checked={!(currentData.rotacion ?? parcela.rotacion ?? false)}
-                        onChange={() => {
-                          setParcelaData((prev) => ({
-                            ...prev,
-                            [parcela.id_parcela]: { ...prev[parcela.id_parcela], rotacion: false },
-                          }));
-                        }}
-                        className="mr-2"
-                      />
-                      No
-                    </label>
-                  </div>
-                </div>
-
-                {/* Coordenadas */}
-                <div>
+                {/* Fila 3: Coordenadas GPS (full width) */}
+                <div className="md:col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Coordenadas GPS
                   </label>
@@ -295,15 +282,12 @@ export default function Step4InspeccionParcelas() {
                     <Input
                       type="number"
                       step="0.000001"
-                      value={currentData.latitud_sud ?? parcela.latitud_sud ?? ""}
+                      value={parcelaIdx !== undefined ? (watch(`parcelas_inspeccionadas.${parcelaIdx}.latitud_sud`) ?? "") : ""}
                       onChange={(e) => {
-                        setParcelaData((prev) => ({
-                          ...prev,
-                          [parcela.id_parcela]: {
-                            ...prev[parcela.id_parcela],
-                            latitud_sud: parseFloat(e.target.value) || undefined,
-                          },
-                        }));
+                        if (parcelaIdx !== undefined) {
+                          const value = parseFloat(e.target.value);
+                          setValue(`parcelas_inspeccionadas.${parcelaIdx}.latitud_sud`, isNaN(value) ? undefined : value, { shouldDirty: true });
+                        }
                       }}
                       placeholder="Latitud"
                       className="flex-1"
@@ -311,15 +295,12 @@ export default function Step4InspeccionParcelas() {
                     <Input
                       type="number"
                       step="0.000001"
-                      value={currentData.longitud_oeste ?? parcela.longitud_oeste ?? ""}
+                      value={parcelaIdx !== undefined ? (watch(`parcelas_inspeccionadas.${parcelaIdx}.longitud_oeste`) ?? "") : ""}
                       onChange={(e) => {
-                        setParcelaData((prev) => ({
-                          ...prev,
-                          [parcela.id_parcela]: {
-                            ...prev[parcela.id_parcela],
-                            longitud_oeste: parseFloat(e.target.value) || undefined,
-                          },
-                        }));
+                        if (parcelaIdx !== undefined) {
+                          const value = parseFloat(e.target.value);
+                          setValue(`parcelas_inspeccionadas.${parcelaIdx}.longitud_oeste`, isNaN(value) ? undefined : value, { shouldDirty: true });
+                        }
                       }}
                       placeholder="Longitud"
                       className="flex-1"
@@ -342,42 +323,27 @@ export default function Step4InspeccionParcelas() {
               </div>
 
               {/* GPS Picker */}
-              {showLocationPicker[parcela.id_parcela] && (
+              {showLocationPicker[parcela.id_parcela] && parcelaIdx !== undefined && (
                 <div className="mt-3">
                   <LocationPicker
                     initialPosition={
-                      currentData.latitud_sud && currentData.longitud_oeste
-                        ? { lat: currentData.latitud_sud, lng: currentData.longitud_oeste }
-                        : parcela.coordenadas
-                        ? { lat: parcela.coordenadas.latitude, lng: parcela.coordenadas.longitude }
+                      watch(`parcelas_inspeccionadas.${parcelaIdx}.latitud_sud`) && watch(`parcelas_inspeccionadas.${parcelaIdx}.longitud_oeste`)
+                        ? {
+                            lat: watch(`parcelas_inspeccionadas.${parcelaIdx}.latitud_sud`)!,
+                            lng: watch(`parcelas_inspeccionadas.${parcelaIdx}.longitud_oeste`)!
+                          }
+                        : parcela.ubicacion
+                        ? { lat: parcela.ubicacion.latitude, lng: parcela.ubicacion.longitude }
                         : null
                     }
                     onLocationSelect={(pos) => {
-                      setParcelaData((prev) => ({
-                        ...prev,
-                        [parcela.id_parcela]: {
-                          ...prev[parcela.id_parcela],
-                          latitud_sud: pos.lat,
-                          longitud_oeste: pos.lng,
-                        },
-                      }));
+                      if (parcelaIdx !== undefined) {
+                        setValue(`parcelas_inspeccionadas.${parcelaIdx}.latitud_sud`, pos.lat, { shouldDirty: true });
+                        setValue(`parcelas_inspeccionadas.${parcelaIdx}.longitud_oeste`, pos.lng, { shouldDirty: true });
+                      }
                     }}
                     height="300px"
                   />
-                </div>
-              )}
-
-              {/* Guardar datos de parcela */}
-              {parcelaData[parcela.id_parcela] && (
-                <div className="mt-3">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="small"
-                    onClick={() => handleUpdateParcela(parcela.id_parcela)}
-                  >
-                    Guardar datos de parcela
-                  </Button>
                 </div>
               )}
             </div>
@@ -385,8 +351,10 @@ export default function Step4InspeccionParcelas() {
             {/* SECCIÓN 2: TABLA DE CULTIVOS */}
             <div>
               <h5 className="text-xs font-semibold text-gray-700 mb-2">Cultivos de la Parcela</h5>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border-collapse border">
+
+              {/* Vista Desktop: Tabla */}
+              <div className="hidden md:block">
+                <table className="w-full text-sm border-collapse border">
                   <thead>
                     <tr className="bg-gray-100 border-b">
                       <th className="px-3 py-2 text-left text-xs font-medium border-r">Cultivo</th>
@@ -416,21 +384,36 @@ export default function Step4InspeccionParcelas() {
 
                           {/* Superficie */}
                           <td className="px-3 py-2 border-r">
-                            <Input
-                              type="number"
-                              step="0.0001"
-                              min="0"
-                              {...register(`detalles_cultivo.${index}.superficie_ha`, { valueAsNumber: true })}
-                              placeholder="0.0000"
+                            <Controller
+                              name={`detalles_cultivo.${index}.superficie_ha` as const}
+                              control={control}
+                              render={({ field: fieldProps }) => (
+                                <input
+                                  {...fieldProps}
+                                  type="number"
+                                  step="0.0001"
+                                  min="0"
+                                  placeholder="0.0000"
+                                  className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                                  onChange={(e) => fieldProps.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              )}
                             />
                           </td>
 
                           {/* Situación actual */}
                           <td className="px-3 py-2 border-r">
-                            <Input
-                              type="text"
-                              {...register(`detalles_cultivo.${index}.situacion_actual`)}
-                              placeholder="Ej: Producción, Madurez..."
+                            <Controller
+                              name={`detalles_cultivo.${index}.situacion_actual` as const}
+                              control={control}
+                              render={({ field: fieldProps }) => (
+                                <input
+                                  {...fieldProps}
+                                  type="text"
+                                  placeholder="Ej: Producción, Madurez..."
+                                  className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                                />
+                              )}
                             />
                           </td>
 
@@ -450,6 +433,86 @@ export default function Step4InspeccionParcelas() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Vista Móvil: Cards */}
+              <div className="block md:hidden space-y-3">
+                {cultivosIndices.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                    No hay cultivos registrados. Agrega un cultivo para empezar.
+                  </div>
+                ) : (
+                  cultivosIndices.map((index) => (
+                    <div key={index} className="p-4 border border-gray-200 rounded-lg bg-white space-y-3">
+                      {/* Cultivo */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Cultivo
+                        </label>
+                        <TiposCultivoSelect
+                          value={watch(`detalles_cultivo.${index}.id_tipo_cultivo`) || ""}
+                          onChange={(value) => setValue(`detalles_cultivo.${index}.id_tipo_cultivo`, value)}
+                          placeholder="Seleccionar cultivo..."
+                        />
+                      </div>
+
+                      {/* Superficie */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Superficie (ha)
+                        </label>
+                        <Controller
+                          name={`detalles_cultivo.${index}.superficie_ha` as const}
+                          control={control}
+                          render={({ field: fieldProps }) => (
+                            <input
+                              {...fieldProps}
+                              type="number"
+                              step="0.0001"
+                              min="0"
+                              placeholder="0.0000"
+                              className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                              onChange={(e) => fieldProps.onChange(parseFloat(e.target.value) || 0)}
+                            />
+                          )}
+                        />
+                      </div>
+
+                      {/* Situación actual */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Situación actual
+                        </label>
+                        <Controller
+                          name={`detalles_cultivo.${index}.situacion_actual` as const}
+                          control={control}
+                          render={({ field: fieldProps }) => (
+                            <input
+                              {...fieldProps}
+                              type="text"
+                              placeholder="Ej: Producción, Madurez..."
+                              className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      {/* Eliminar */}
+                      <div className="pt-2">
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="small"
+                          onClick={() => remove(index)}
+                          className="w-full"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Eliminar cultivo
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Agregar cultivo */}

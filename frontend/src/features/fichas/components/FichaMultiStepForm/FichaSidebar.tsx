@@ -213,13 +213,6 @@ export default function FichaSidebar({
           })}
         </ul>
       </nav>
-
-      {/* Footer */}
-      <div className="flex-shrink-0 p-4 border-t border-neutral-border">
-        <p className="text-xs text-center text-text-secondary">
-          APROMAM © {new Date().getFullYear()}
-        </p>
-      </div>
     </>
   );
 

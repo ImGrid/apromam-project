@@ -1,5 +1,6 @@
 import { ProductorRepository } from "../repositories/ProductorRepository.js";
 import { ComunidadRepository } from "../repositories/ComunidadRepository.js";
+import { OrganizacionRepository } from "../repositories/OrganizacionRepository.js";
 import { Productor } from "../entities/Productor.js";
 import { createAuthLogger } from "../utils/logger.js";
 import type {
@@ -16,13 +17,16 @@ const logger = createAuthLogger();
 export class ProductoresService {
   private productorRepository: ProductorRepository;
   private comunidadRepository: ComunidadRepository;
+  private organizacionRepository: OrganizacionRepository;
 
   constructor(
     productorRepository: ProductorRepository,
-    comunidadRepository: ComunidadRepository
+    comunidadRepository: ComunidadRepository,
+    organizacionRepository: OrganizacionRepository
   ) {
     this.productorRepository = productorRepository;
     this.comunidadRepository = comunidadRepository;
+    this.organizacionRepository = organizacionRepository;
   }
 
   // Lista productores con filtros
@@ -137,6 +141,14 @@ export class ProductoresService {
       throw new Error("Comunidad no encontrada");
     }
 
+    // Verificar que la organizacion existe
+    const organizacion = await this.organizacionRepository.findById(
+      input.id_organizacion
+    );
+    if (!organizacion) {
+      throw new Error("Organización no encontrada");
+    }
+
     // Si es tecnico, validar que sea su comunidad
     if (!esAdminOGerente && usuarioComunidadId) {
       if (input.id_comunidad !== usuarioComunidadId) {
@@ -144,11 +156,12 @@ export class ProductoresService {
       }
     }
 
-    // Generar codigo automatico
+    // Generar codigo automatico con organizacion
     const codigoGenerado =
       await this.productorRepository.getNextCodigoByComunidad(
         input.id_comunidad,
-        comunidad.abreviatura
+        comunidad.abreviatura,
+        organizacion.abreviatura
       );
 
     logger.info(
@@ -164,6 +177,7 @@ export class ProductoresService {
       nombre_productor: input.nombre_productor,
       ci_documento: input.ci_documento,
       id_comunidad: input.id_comunidad,
+      id_organizacion: input.id_organizacion,
       año_ingreso_programa: input.año_ingreso_programa,
       categoria_actual: input.categoria_actual,
       superficie_total_has: input.superficie_total_has,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fichasService } from '../services/fichas.service';
 import { showToast } from '@/shared/hooks/useToast';
+import { useAuthStore } from '@/features/auth/stores/authStore';
 import type { FichaDraftData } from '../types/ficha.types';
 
 export function useMyDrafts() {
@@ -8,7 +9,16 @@ export function useMyDrafts() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Verificar rol del usuario - solo técnicos y administradores pueden ver borradores
+  const user = useAuthStore((state) => state.user);
+  const canViewDrafts = user?.role === 'tecnico' || user?.role === 'administrador';
+
   const fetchDrafts = useCallback(async () => {
+    // No hacer nada si el usuario no tiene permiso
+    if (!canViewDrafts) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -22,20 +32,25 @@ export function useMyDrafts() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [canViewDrafts]);
 
   useEffect(() => {
-    fetchDrafts();
-  }, [fetchDrafts]);
+    // Solo ejecutar si el usuario tiene permiso
+    if (canViewDrafts) {
+      fetchDrafts();
+    }
+  }, [canViewDrafts, fetchDrafts]);
 
   const refetch = useCallback(() => {
-    fetchDrafts();
-  }, [fetchDrafts]);
+    if (canViewDrafts) {
+      fetchDrafts();
+    }
+  }, [canViewDrafts, fetchDrafts]);
 
   return {
-    data,
-    isLoading,
-    error,
+    data: canViewDrafts ? data : [],
+    isLoading: canViewDrafts ? isLoading : false,
+    error: canViewDrafts ? error : null,
     refetch,
   };
 }

@@ -15,7 +15,7 @@ import {
   useIsDirty,
   useIsAutosaving,
 } from "../../stores/fichaFormStore";
-import { fichaCompletaSchema } from "../../schemas/ficha.schemas";
+import { fichaCompletaFormSchema, fichaCompletaSchema } from "../../schemas/ficha.schemas";
 import type {
   FichaCompleta,
   CreateFichaCompletaInput,
@@ -28,7 +28,6 @@ import { STEP_CONFIGS } from "./stepConfigs";
 import { useAutoSaveDraft } from "../../hooks/useAutoSaveDraft";
 import { useRecoverDraft } from "../../hooks/useRecoverDraft";
 import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
-import { SaveStatusIndicator } from "../SaveStatusIndicator";
 import { DraftRecoveryModal } from "../DraftRecoveryModal";
 
 // ============================================
@@ -66,7 +65,7 @@ export default function FichaMultiStepForm({
 
   // React Hook Form setup
   const methods = useForm<CreateFichaCompletaInput>({
-    resolver: zodResolver(fichaCompletaSchema),
+    resolver: zodResolver(fichaCompletaFormSchema),
     mode: "onChange",
     defaultValues: initialData || {
       ficha: {},
@@ -77,6 +76,7 @@ export default function FichaMultiStepForm({
       evaluacion_poscosecha: {},
       evaluacion_conocimiento: {},
       actividades_pecuarias: [],
+      parcelas_inspeccionadas: [],
       detalles_cultivo: [],
       cosecha_ventas: [],
     },
@@ -99,21 +99,26 @@ export default function FichaMultiStepForm({
   const gestion = gestionFromUrl || gestionFromForm;
 
   // Hook de recuperación de borrador (DEBE ejecutarse PRIMERO)
+  // IMPORTANTE: Solo en modo "create", NO en modo "edit" (ya tienes datos del servidor)
   const {
     isLoading: isLoadingDraft,
     draft,
     acceptDraft,
     rejectDraft,
-  } = useRecoverDraft(codigoProductor, gestion);
+  } = useRecoverDraft(
+    mode === "create" ? codigoProductor : undefined,
+    mode === "create" ? gestion : undefined
+  );
 
   // Hook de auto-save (reemplaza el setInterval anterior)
   // IMPORTANTE: Deshabilitar mientras se carga el draft o el modal está abierto
+  // IMPORTANTE: Solo auto-guardar en modo "create", NO en modo "edit"
   const { saveStatus, lastSavedAt, manualSave } = useAutoSaveDraft({
     control,
     codigoProductor,
     gestion,
     currentStep,
-    enabled: !!codigoProductor && !!gestion && !isLoadingDraft && !draft,
+    enabled: mode === "create" && !!codigoProductor && !!gestion && !isLoadingDraft && !draft,
   });
 
   // Sincronizar datos del formulario con Zustand
@@ -139,6 +144,11 @@ export default function FichaMultiStepForm({
   // Manejar aceptación de borrador
   const handleAcceptDraft = () => {
     if (draft) {
+      console.log('[RECOVER] Recuperando borrador - Productor:', codigoProductor, 'Gestion:', gestion);
+      console.log('[RECOVER] Borrador recuperado:', draft);
+      console.log('[RECOVER] Step actual:', draft.step_actual);
+      console.log('[RECOVER] Datos del formulario:', draft.data);
+
       // Reset del React Hook Form con datos del borrador
       // keepDefaultValues: true mantiene los valores por defecto y solo actualiza los campos con datos
       // keepDirtyValues: false asegura que todos los valores se actualicen
@@ -159,6 +169,7 @@ export default function FichaMultiStepForm({
       // Cerrar modal
       acceptDraft();
 
+      console.log('[RECOVER] Borrador aplicado - Navegando a step:', draft.step_actual);
       showToast.success("Borrador recuperado exitosamente");
     }
   };
@@ -170,11 +181,55 @@ export default function FichaMultiStepForm({
 
   // Handler para submit final
   const handleFormSubmit = async (data: CreateFichaCompletaInput) => {
+    console.log('[ENVIAR] ========================================');
+    console.log('[ENVIAR] Iniciando envío a revisión');
+    console.log('[ENVIAR] Datos completos de la ficha (estructura frontend):', data);
+    console.log('[ENVIAR] Parcelas inspeccionadas (NO se envían al backend):', data.parcelas_inspeccionadas);
+    console.log('[ENVIAR] Detalles de cultivo (parcelas):', data.detalles_cultivo);
+    console.log('[ENVIAR] Cosecha y ventas:', data.cosecha_ventas);
+    console.log('[ENVIAR] Errores de validación:', errors);
+
+    // Transformar de estructura frontend a estructura backend
+    const {
+      parcelas_inspeccionadas,  // NO se envía (se envían al finalizar)
+      ficha,                    // Se aplana al root
+      evaluacion_conocimiento,  // Se renombra
+      detalles_cultivo,         // Se renombra
+      ...rest
+    } = data;
+
+    const dataToSend = {
+      // Aplanar campos de ficha al root
+      ...ficha,
+
+      // Convertir fecha a ISO datetime "YYYY-MM-DDTHH:mm:ss.sssZ"
+      // Maneja tanto "YYYY-MM-DD" (create) como "YYYY-MM-DDTHH:mm:ss.sssZ" (edit)
+      fecha_inspeccion: ficha.fecha_inspeccion
+        ? new Date(ficha.fecha_inspeccion).toISOString()
+        : '',
+
+      // Renombrar campos que tienen nombres diferentes en backend
+      evaluacion_conocimiento_normas: evaluacion_conocimiento,
+      detalle_cultivos_parcelas: detalles_cultivo,
+
+      // Resto de secciones (nombres correctos)
+      ...rest
+    };
+
+    console.log('[ENVIAR] Datos transformados para backend:', dataToSend);
+    console.log('[ENVIAR] - codigo_productor:', dataToSend.codigo_productor);
+    console.log('[ENVIAR] - gestion:', dataToSend.gestion);
+    console.log('[ENVIAR] - fecha_inspeccion (ISO):', dataToSend.fecha_inspeccion);
+    console.log('[ENVIAR] - inspector_interno:', dataToSend.inspector_interno);
+    console.log('[ENVIAR] - detalle_cultivos_parcelas:', dataToSend.detalle_cultivos_parcelas);
+    console.log('[ENVIAR] ========================================');
+
     try {
-      await onSubmit(data);
+      await onSubmit(dataToSend);
+      console.log('[ENVIAR] Ficha enviada exitosamente');
       actions.resetForm();
     } catch (err) {
-      console.error("Error al enviar ficha:", err);
+      console.error("[ENVIAR] Error al enviar ficha:", err);
       showToast.error("Error al enviar la ficha");
     }
   };
@@ -206,26 +261,19 @@ export default function FichaMultiStepForm({
         onReject={handleRejectDraft}
       />
 
-      {/* Header con indicador de guardado */}
-      <div className="flex items-center justify-between mb-4">
-        <FichaStepHeader
-          title={currentStepConfig.title}
-          description={currentStepConfig.description}
-          stepNumber={currentStep}
-          totalSteps={STEP_CONFIGS.length}
-          isAutosaving={isAutosaving}
-        />
-
-        {/* Indicador de guardado */}
-        <SaveStatusIndicator
-          status={saveStatus}
-          lastSavedAt={lastSavedAt}
-          isOnline={isOnline}
-        />
-      </div>
+      {/* Header con indicador de guardado integrado */}
+      <FichaStepHeader
+        title={currentStepConfig.title}
+        description={currentStepConfig.description}
+        stepNumber={currentStep}
+        totalSteps={STEP_CONFIGS.length}
+        saveStatus={saveStatus}
+        lastSavedAt={lastSavedAt}
+        isOnline={isOnline}
+      />
 
       {/* Step Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-20">
         <div className="p-4 sm:p-6 lg:p-8">
           {/* Mostrar errores globales si existen - Solo errores con mensaje directo */}
           {Object.entries(errors).some(
@@ -262,7 +310,7 @@ export default function FichaMultiStepForm({
         onSubmit={handleSubmit(handleFormSubmit)}
         isFirstStep={currentStep === 1}
         isLastStep={currentStep === STEP_CONFIGS.length}
-        canNavigateNext={actions.canNavigateToStep(currentStep + 1)}
+        canNavigateNext={true}
       />
     </FormProvider>
   );

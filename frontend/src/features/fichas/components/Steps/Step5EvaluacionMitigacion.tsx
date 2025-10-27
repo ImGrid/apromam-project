@@ -131,6 +131,7 @@ export default function Step5EvaluacionMitigacion() {
                         errors.evaluacion_mitigacion?.[pregunta.campo]?.message
                       }
                       showParcial={pregunta.conParcial}
+                      showNoAplica={false}
                     />
                   </div>
                 </div>
@@ -213,6 +214,7 @@ export default function Step5EvaluacionMitigacion() {
                       errors.evaluacion_mitigacion?.[pregunta.campo]?.message
                     }
                     showParcial={pregunta.conParcial}
+                    showNoAplica={false}
                   />
                 </FormField>
 
@@ -247,6 +249,23 @@ export default function Step5EvaluacionMitigacion() {
             ))}
           </div>
         </div>
+      </FormSection>
+
+      {/* Comentarios sobre práctica de mitigación */}
+      <FormSection title="Comentarios extras">
+        <FormField>
+          <textarea
+            {...register("evaluacion_mitigacion.comentarios_sobre_practica_mitigacion")}
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Observaciones adicionales sobre riesgos y mitigación..."
+          />
+          {errors.evaluacion_mitigacion?.comentarios_sobre_practica_mitigacion && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.evaluacion_mitigacion.comentarios_sobre_practica_mitigacion.message}
+            </p>
+          )}
+        </FormField>
       </FormSection>
     </div>
   );

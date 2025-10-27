@@ -1,8 +1,11 @@
+// Tipo para tipo de mani
+export type TipoMani = "ecologico" | "transicion";
+
 // Interfaz para datos de CosechaVentas desde BD
 export interface CosechaVentasData {
   id_cosecha: string;
   id_ficha: string;
-  id_tipo_cultivo: string;
+  tipo_mani: TipoMani;
   superficie_actual_ha: number;
   cosecha_estimada_qq: number;
   numero_parcelas: number;
@@ -17,7 +20,7 @@ export interface CosechaVentasData {
 export interface CosechaVentasPublicData {
   id_cosecha: string;
   id_ficha: string;
-  id_tipo_cultivo: string;
+  tipo_mani: TipoMani;
   superficie_actual_ha: number;
   cosecha_estimada_qq: number;
   numero_parcelas: number;
@@ -46,8 +49,8 @@ export class CosechaVentas {
     return this.data.id_ficha;
   }
 
-  get idTipoCultivo(): string {
-    return this.data.id_tipo_cultivo;
+  get tipoMani(): TipoMani {
+    return this.data.tipo_mani;
   }
 
   get superficieActualHa(): number {
@@ -85,7 +88,7 @@ export class CosechaVentas {
   // Crea una nueva instancia
   static create(data: {
     id_ficha: string;
-    id_tipo_cultivo: string;
+    tipo_mani: TipoMani;
     superficie_actual_ha?: number;
     cosecha_estimada_qq?: number;
     numero_parcelas?: number;
@@ -97,7 +100,7 @@ export class CosechaVentas {
     return new CosechaVentas({
       id_cosecha: "",
       id_ficha: data.id_ficha,
-      id_tipo_cultivo: data.id_tipo_cultivo,
+      tipo_mani: data.tipo_mani,
       superficie_actual_ha: data.superficie_actual_ha ?? 0,
       cosecha_estimada_qq: data.cosecha_estimada_qq ?? 0,
       numero_parcelas: data.numero_parcelas ?? 0,
@@ -122,8 +125,13 @@ export class CosechaVentas {
       errors.push("ID de ficha es requerido");
     }
 
-    if (!this.data.id_tipo_cultivo) {
-      errors.push("ID de tipo cultivo es requerido");
+    if (!this.data.tipo_mani) {
+      errors.push("Tipo de mani es requerido");
+    }
+
+    const tiposManiValidos: TipoMani[] = ["ecologico", "transicion"];
+    if (!tiposManiValidos.includes(this.data.tipo_mani)) {
+      errors.push("Tipo de mani debe ser: ecologico o transicion");
     }
 
     if (this.data.superficie_actual_ha < 0) {
@@ -172,7 +180,7 @@ export class CosechaVentas {
   toDatabaseInsert(): Omit<CosechaVentasData, "id_cosecha" | "created_at"> {
     return {
       id_ficha: this.data.id_ficha,
-      id_tipo_cultivo: this.data.id_tipo_cultivo,
+      tipo_mani: this.data.tipo_mani,
       superficie_actual_ha: this.data.superficie_actual_ha,
       cosecha_estimada_qq: this.data.cosecha_estimada_qq,
       numero_parcelas: this.data.numero_parcelas,
@@ -188,7 +196,7 @@ export class CosechaVentas {
     Omit<CosechaVentasData, "id_cosecha" | "id_ficha" | "created_at">
   > {
     return {
-      id_tipo_cultivo: this.data.id_tipo_cultivo,
+      tipo_mani: this.data.tipo_mani,
       superficie_actual_ha: this.data.superficie_actual_ha,
       cosecha_estimada_qq: this.data.cosecha_estimada_qq,
       numero_parcelas: this.data.numero_parcelas,
@@ -204,7 +212,7 @@ export class CosechaVentas {
     return {
       id_cosecha: this.data.id_cosecha,
       id_ficha: this.data.id_ficha,
-      id_tipo_cultivo: this.data.id_tipo_cultivo,
+      tipo_mani: this.data.tipo_mani,
       superficie_actual_ha: this.data.superficie_actual_ha,
       cosecha_estimada_qq: this.data.cosecha_estimada_qq,
       numero_parcelas: this.data.numero_parcelas,

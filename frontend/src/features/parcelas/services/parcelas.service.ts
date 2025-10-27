@@ -101,8 +101,16 @@ export const parcelasService = {
   async createParcela(data: CreateParcelaInput): Promise<Parcela> {
     try {
       const response = await apiClient.post<{ parcela: Parcela }>(
-        ENDPOINTS.PARCELAS.BASE,
-        data
+        ENDPOINTS.PARCELAS.BY_PRODUCTOR(data.codigo_productor),
+        {
+          numero_parcela: data.numero_parcela,
+          superficie_ha: data.superficie_ha,
+          coordenadas: data.coordenadas,
+          utiliza_riego: data.utiliza_riego,
+          tipo_barrera: data.tipo_barrera,
+          insumos_organicos: data.insumos_organicos,
+          rotacion: data.rotacion,
+        }
       );
       return response.data.parcela;
     } catch (error) {

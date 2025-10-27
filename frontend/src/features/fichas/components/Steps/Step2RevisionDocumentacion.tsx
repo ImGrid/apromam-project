@@ -125,26 +125,6 @@ export default function Step2RevisionDocumentacion() {
         </div>
       </FormSection>
 
-      {/* Observaciones */}
-      <FormSection>
-        <FormField>
-          <textarea
-            {...register("revision_documentacion.observaciones_documentacion")}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Ej: El diario de campo está incompleto en los últimos 2 meses..."
-          />
-          {errors.revision_documentacion?.observaciones_documentacion && (
-            <p className="mt-1 text-sm text-red-600">
-              {
-                errors.revision_documentacion.observaciones_documentacion
-                  .message
-              }
-            </p>
-          )}
-        </FormField>
-      </FormSection>
-
     </div>
   );
 }

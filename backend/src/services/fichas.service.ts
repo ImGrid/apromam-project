@@ -1,5 +1,6 @@
 import { FichaRepository } from "../repositories/FichaRepository.js";
 import { ProductorRepository } from "../repositories/ProductorRepository.js";
+import { ParcelaRepository } from "../repositories/ParcelaRepository.js";
 import { ArchivoFichaRepository } from "../repositories/ArchivoFichaRepository.js";
 import { FichaDraftRepository } from "../repositories/FichaDraftRepository.js";
 import { Ficha } from "../entities/Ficha.js";
@@ -10,7 +11,6 @@ import { EvaluacionMitigacion } from "../entities/EvaluacionMitigacion.js";
 import { EvaluacionPoscosecha } from "../entities/EvaluacionPoscosecha.js";
 import { EvaluacionConocimientoNormas } from "../entities/EvaluacionConocimientoNormas.js";
 import { ActividadPecuaria } from "../entities/ActividadPecuaria.js";
-import { DetalleCultivoParcela } from "../entities/DetalleCultivoParcela.js";
 import { CosechaVentas } from "../entities/CosechaVentas.js";
 import { ArchivoFicha } from "../entities/ArchivoFicha.js";
 import { FichaDraft, FichaDraftEntity } from "../entities/FichaDraft.js";
@@ -19,6 +19,7 @@ import { validarSuperficiesFicha } from "../utils/superficieValidation.js";
 import type {
   CreateFichaInput,
   UpdateFichaInput,
+  UpdateFichaCompletaInput,
   FichaResponse,
   EnviarRevisionInput,
   AprobarFichaInput,
@@ -38,17 +39,20 @@ const logger = createAuthLogger();
 export class FichasService {
   private fichaRepository: FichaRepository;
   private productorRepository: ProductorRepository;
+  private parcelaRepository: ParcelaRepository;
   private archivoFichaRepository: ArchivoFichaRepository;
   private fichaDraftRepository: FichaDraftRepository;
 
   constructor(
     fichaRepository: FichaRepository,
     productorRepository: ProductorRepository,
+    parcelaRepository: ParcelaRepository,
     archivoFichaRepository: ArchivoFichaRepository,
     fichaDraftRepository: FichaDraftRepository
   ) {
     this.fichaRepository = fichaRepository;
     this.productorRepository = productorRepository;
+    this.parcelaRepository = parcelaRepository;
     this.archivoFichaRepository = archivoFichaRepository;
     this.fichaDraftRepository = fichaDraftRepository;
   }
@@ -245,18 +249,15 @@ export class FichasService {
       );
     }
 
-    // Seccion 7: Detalle cultivo parcela
+    // Seccion 4/7: Detalle cultivo parcela
+    // Pasamos los datos raw al repository que los separará en dos tablas:
+    // - detalle_cultivo_parcela (seccion 4 - todos los cultivos)
+    // - manejo_cultivo_mani (seccion 7 - solo cultivos certificables)
     if (
       input.detalle_cultivos_parcelas &&
       input.detalle_cultivos_parcelas.length > 0
     ) {
-      fichaCompleta.detalles_cultivo = input.detalle_cultivos_parcelas.map(
-        (dcp) =>
-          DetalleCultivoParcela.create({
-            id_ficha: "",
-            ...dcp,
-          })
-      );
+      fichaCompleta.detalles_cultivo = input.detalle_cultivos_parcelas;
     }
 
     // Seccion 8: Cosecha ventas
@@ -266,6 +267,17 @@ export class FichasService {
           id_ficha: "",
           ...cv,
         })
+      );
+    }
+
+    // Datos de inspeccion de parcelas (se actualizan en la tabla parcelas)
+    if (input.parcelas_inspeccionadas && input.parcelas_inspeccionadas.length > 0) {
+      fichaCompleta.parcelas_inspeccionadas = input.parcelas_inspeccionadas;
+      logger.info(
+        {
+          cantidad: input.parcelas_inspeccionadas.length,
+        },
+        "Parcelas inspeccionadas recibidas para actualizar"
       );
     }
 
@@ -353,14 +365,6 @@ export class FichasService {
       fichaActual.actualizarPersonaEntrevistada(input.persona_entrevistada);
     }
 
-    if (input.recomendaciones) {
-      fichaActual.actualizarRecomendaciones(input.recomendaciones);
-    }
-
-    if (input.firma_productor) {
-      fichaActual.actualizarFirmaProductor(input.firma_productor);
-    }
-
     // Actualizar ficha principal
     const fichaActualizada = await this.fichaRepository.updateFicha(
       id,
@@ -375,6 +379,55 @@ export class FichasService {
     );
 
     return fichaActualizada.toJSON();
+  }
+
+  // Actualiza una ficha completa con todas sus secciones
+  // Solo se puede actualizar si esta en borrador
+  // Usa estrategia DELETE + INSERT para todas las secciones
+  async updateFichaCompleta(
+    id: string,
+    input: UpdateFichaCompletaInput,
+    usuarioId: string
+  ): Promise<FichaCompleta> {
+    logger.info(
+      {
+        id_ficha: id,
+        usuario: usuarioId,
+      },
+      "Updating ficha completa"
+    );
+
+    // Verificar que la ficha existe
+    const fichaExistente = await this.fichaRepository.findById(id);
+    if (!fichaExistente) {
+      throw new Error("Ficha no encontrada");
+    }
+
+    // Verificar que esta en estado borrador
+    if (!fichaExistente.esBorrador()) {
+      throw new Error("Solo se pueden actualizar fichas en estado borrador");
+    }
+
+    // Verificar permisos: debe ser el creador
+    // Los administradores pueden usar la ruta normal de actualización o editar directamente en BD
+    if (fichaExistente.createdBy !== usuarioId) {
+      throw new Error("Solo el creador de la ficha puede actualizarla");
+    }
+
+    // Actualizar en el repository (con transaccion)
+    const fichaActualizada = await this.fichaRepository.updateFichaCompleta(
+      id,
+      input
+    );
+
+    logger.info(
+      {
+        id_ficha: id,
+      },
+      "Ficha completa updated successfully"
+    );
+
+    return fichaActualizada;
   }
 
   // Elimina (desactiva) una ficha
@@ -637,24 +690,37 @@ export class FichasService {
 
     // Validar superficies SOLO si hay cultivos registrados
     if (detallesCultivo.length > 0) {
+      // Obtener parcelas del productor para validar superficies
+      const parcelas = await this.parcelaRepository.findByProductor(
+        ficha.codigoProductor
+      );
+      const parcelasData = parcelas.map((p) => ({
+        id_parcela: p.id,
+        codigo_productor: p.codigoProductor,
+        numero_parcela: p.numeroParcela,
+        superficie_ha: p.superficieHa,
+        latitud_sud: p.latitudSud,
+        longitud_oeste: p.longitudOeste,
+        utiliza_riego: p.utilizaRiego,
+        tipo_barrera: p.tipoBarrera,
+        insumos_organicos: p.insumosOrganicos,
+        rotacion: p.rotacion,
+        activo: p.activo,
+        created_at: p.createdAt,
+        nombre_productor: p.nombreProductor,
+        nombre_comunidad: p.nombreComunidad,
+      }));
+
       const validacion = validarSuperficiesFicha(
-        productor.toDatabaseInsert(),
+        parcelasData,
         detallesCultivo.map((dc) => ({
-          id_detalle_cultivo: dc.id,
+          id_detalle: dc.id,
           id_ficha: dc.idFicha,
           id_parcela: dc.idParcela,
           id_tipo_cultivo: dc.idTipoCultivo,
           superficie_ha: dc.superficieHa,
-          procedencia_semilla: dc.procedenciaSemilla,
-          categoria_semilla: dc.categoriaSemilla,
-          tratamiento_semillas: dc.tratamientoSemillas,
-          tipo_abonamiento: dc.tipoAbonamiento,
-          metodo_aporque: dc.metodoAporque,
-          control_hierbas: dc.controlHierbas,
-          metodo_cosecha: dc.metodoCosecha,
-          rotacion: dc.rotacion,
           situacion_actual: dc.situacionActual,
-          nombre_cultivo: undefined, // No lo tenemos aquí, se enriquece en la query
+          created_at: dc.createdAt,
         }))
       );
 
@@ -678,12 +744,22 @@ export class FichasService {
 
       // Loggear detalles de la validación
       if (validacion.detalles) {
+        const superficieTotalCultivada = validacion.detalles.resumen_por_parcela.reduce(
+          (sum, p) => sum + p.superficie_cultivada,
+          0
+        );
+        const porcentajeUsoTotal =
+          validacion.detalles.superficie_total_productor > 0
+            ? (superficieTotalCultivada / validacion.detalles.superficie_total_productor) * 100
+            : 0;
+
         logger.info(
           {
             id_ficha: id,
-            superficie_total: validacion.detalles.superficie_total_productor,
-            superficie_usada: validacion.detalles.superficie_usada_en_ficha,
-            porcentaje_uso: validacion.detalles.porcentaje_uso.toFixed(1) + "%",
+            superficie_total_parcelas: validacion.detalles.superficie_total_parcelas,
+            superficie_cultivada: superficieTotalCultivada,
+            porcentaje_uso: porcentajeUsoTotal.toFixed(1) + "%",
+            num_parcelas: validacion.detalles.resumen_por_parcela.length,
           },
           "Validación de superficies exitosa"
         );
@@ -692,7 +768,7 @@ export class FichasService {
     // ===== FIN VALIDACIÓN DE SUPERFICIES =====
 
     // Enviar a revision
-    ficha.enviarRevision(input.recomendaciones, input.firma_inspector);
+    ficha.enviarRevision();
 
     // Actualizar en BD
     const fichaActualizada = await this.fichaRepository.updateFicha(id, ficha);
@@ -785,36 +861,6 @@ export class FichasService {
     return fichaActualizada.toJSON();
   }
 
-  // Devuelve ficha a borrador
-  // Solo admin puede devolver
-  async devolverBorrador(id: string): Promise<FichaResponse> {
-    logger.info(
-      {
-        id_ficha: id,
-      },
-      "Devolviendo ficha a borrador"
-    );
-
-    const ficha = await this.fichaRepository.findById(id);
-    if (!ficha) {
-      throw new Error("Ficha no encontrada");
-    }
-
-    // Devolver a borrador
-    ficha.devolverBorrador();
-
-    // Actualizar en BD
-    const fichaActualizada = await this.fichaRepository.updateFicha(id, ficha);
-
-    logger.info(
-      {
-        id_ficha: id,
-      },
-      "Ficha devuelta a borrador exitosamente"
-    );
-
-    return fichaActualizada.toJSON();
-  }
 
   // METODOS DE ESTADISTICAS
 
@@ -1013,6 +1059,32 @@ export class FichasService {
         "Error en FichasService.deleteDraft"
       );
       throw error;
+    }
+  }
+
+  // Busca una ficha por codigo_productor y gestion
+  // Usado para verificar si ya existe una ficha antes de crear una nueva
+  async findByProductorGestion(
+    codigoProductor: string,
+    gestion: number
+  ): Promise<Ficha | null> {
+    try {
+      const ficha = await this.fichaRepository.findByProductorGestion(
+        codigoProductor,
+        gestion
+      );
+
+      return ficha;
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          codigo_productor: codigoProductor,
+          gestion,
+        },
+        "Error en FichasService.findByProductorGestion"
+      );
+      throw new Error("Error al buscar ficha por productor y gestión");
     }
   }
 

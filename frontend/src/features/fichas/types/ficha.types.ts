@@ -14,7 +14,7 @@ export type EstadoFicha = "borrador" | "revision" | "aprobado" | "rechazado";
 export type ResultadoCertificacion = "aprobado" | "rechazado" | "pendiente";
 export type ComplianceStatus = "cumple" | "parcial" | "no_cumple" | "no_aplica";
 
-// Tipos para Sección 7 - Manejo del cultivo
+// Tipos para Sección 7 - Manejo del cultivo (basados en documento oficial)
 export type ProcedenciaSemilla =
   | "asociacion"
   | "propia"
@@ -28,12 +28,17 @@ export type CategoriaSemilla =
 export type TratamientoSemillas =
   | "sin_tratamiento"
   | "agroquimico"
-  | "insumos_organicos"
-  | "otro";
+  | "insumos_organicos";
 export type TipoAbonamiento = "rastrojo" | "guano" | "otro";
 export type MetodoAporque = "con_yunta" | "manual" | "otro";
 export type ControlHierbas = "con_bueyes" | "carpida_manual" | "otro";
 export type MetodoCosecha = "con_yunta" | "manual" | "otro";
+
+// Tipo para Sección 8 - Cosecha y Ventas
+export type TipoMani = "ecologico" | "transicion";
+
+// Tipo para barreras de parcelas
+export type TipoBarrera = "viva" | "muerta" | "ninguna";
 
 // ============================================
 // FICHA PRINCIPAL
@@ -58,11 +63,8 @@ export interface Ficha {
   resultado_certificacion: ResultadoCertificacion;
 
   // Contenido
-  recomendaciones?: string;
+  comentarios_actividad_pecuaria?: string;
   comentarios_evaluacion?: string;
-  firma_productor?: string;
-  firma_inspector?: string;
-  descripcion_uso_guano_general?: string;
 
   // Auditoria
   created_by: string;
@@ -82,7 +84,7 @@ export interface CreateFichaInput {
   persona_entrevistada?: string;
   categoria_gestion_anterior?: CategoriaGestion;
   origen_captura?: OrigenCaptura;
-  descripcion_uso_guano_general?: string;
+  comentarios_actividad_pecuaria?: string;
 }
 
 export interface UpdateFichaInput {
@@ -90,10 +92,8 @@ export interface UpdateFichaInput {
   inspector_interno?: string;
   persona_entrevistada?: string;
   categoria_gestion_anterior?: CategoriaGestion;
-  recomendaciones?: string;
+  comentarios_actividad_pecuaria?: string;
   comentarios_evaluacion?: string;
-  firma_productor?: string;
-  firma_inspector?: string;
 }
 
 // ============================================
@@ -110,7 +110,6 @@ export interface RevisionDocumentacion {
   diario_campo: ComplianceStatus;
   registro_cosecha: ComplianceStatus;
   recibo_pago: ComplianceStatus;
-  observaciones_documentacion?: string;
 }
 
 export interface CreateRevisionDocumentacionInput {
@@ -121,7 +120,6 @@ export interface CreateRevisionDocumentacionInput {
   diario_campo?: ComplianceStatus;
   registro_cosecha?: ComplianceStatus;
   recibo_pago?: ComplianceStatus;
-  observaciones_documentacion?: string;
 }
 
 // ============================================
@@ -151,17 +149,15 @@ export interface NoConformidad {
   id_no_conformidad: string;
   id_ficha: string;
   descripcion_no_conformidad: string;
-  accion_correctiva_propuesta: string;
+  accion_correctiva_propuesta?: string;
   fecha_limite_implementacion?: string;
-  estado_conformidad: string;
   created_at: string;
 }
 
 export interface CreateNoConformidadInput {
   descripcion_no_conformidad: string;
-  accion_correctiva_propuesta: string;
+  accion_correctiva_propuesta?: string;
   fecha_limite_implementacion?: string;
-  estado_conformidad?: string;
 }
 
 // ============================================
@@ -178,6 +174,7 @@ export interface EvaluacionMitigacion {
   evita_quema_residuos: ComplianceStatus;
   practica_mitigacion_riesgos_descripcion?: string;
   mitigacion_contaminacion_descripcion?: string;
+  comentarios_sobre_practica_mitigacion?: string;
 }
 
 export interface CreateEvaluacionMitigacionInput {
@@ -188,6 +185,7 @@ export interface CreateEvaluacionMitigacionInput {
   evita_quema_residuos?: ComplianceStatus;
   practica_mitigacion_riesgos_descripcion?: string;
   mitigacion_contaminacion_descripcion?: string;
+  comentarios_sobre_practica_mitigacion?: string;
 }
 
 // ============================================
@@ -266,7 +264,6 @@ export interface DetalleCultivoParcela {
   procedencia_semilla?: ProcedenciaSemilla;
   categoria_semilla?: CategoriaSemilla;
   tratamiento_semillas?: TratamientoSemillas;
-  tratamiento_semillas_otro?: string;
   tipo_abonamiento?: TipoAbonamiento;
   tipo_abonamiento_otro?: string;
   metodo_aporque?: MetodoAporque;
@@ -278,10 +275,17 @@ export interface DetalleCultivoParcela {
   situacion_actual?: string;
   created_at: string;
 
-  // Datos enriquecidos
+  // Datos enriquecidos (JOINs con parcelas y tipos_cultivo)
   nombre_parcela?: string;
   nombre_cultivo?: string;
   es_principal_certificable?: boolean;
+  numero_parcela?: number;
+  rotacion?: boolean;
+  utiliza_riego?: boolean;
+  tipo_barrera?: TipoBarrera;
+  insumos_organicos?: string;
+  latitud_sud?: number;
+  longitud_oeste?: number;
 }
 
 export interface CreateDetalleCultivoParcelaInput {
@@ -291,7 +295,6 @@ export interface CreateDetalleCultivoParcelaInput {
   procedencia_semilla?: ProcedenciaSemilla;
   categoria_semilla?: CategoriaSemilla;
   tratamiento_semillas?: TratamientoSemillas;
-  tratamiento_semillas_otro?: string;
   tipo_abonamiento?: TipoAbonamiento;
   tipo_abonamiento_otro?: string;
   metodo_aporque?: MetodoAporque;
@@ -304,13 +307,37 @@ export interface CreateDetalleCultivoParcelaInput {
 }
 
 // ============================================
+// PARCELAS INSPECCIONADAS (Datos actualizados en parcelas)
+// ============================================
+
+export interface ParcelaInspeccionada {
+  id_parcela: string;
+  rotacion?: boolean;
+  utiliza_riego?: boolean;
+  tipo_barrera?: TipoBarrera;
+  insumos_organicos?: string;
+  latitud_sud?: number;
+  longitud_oeste?: number;
+}
+
+export interface CreateParcelaInspeccionadaInput {
+  id_parcela: string;
+  rotacion?: boolean;
+  utiliza_riego?: boolean;
+  tipo_barrera?: TipoBarrera;
+  insumos_organicos?: string;
+  latitud_sud?: number;
+  longitud_oeste?: number;
+}
+
+// ============================================
 // COSECHA Y VENTAS (Sección 8)
 // ============================================
 
 export interface CosechaVentas {
   id_cosecha: string;
   id_ficha: string;
-  id_tipo_cultivo: string;
+  tipo_mani: TipoMani;
   superficie_actual_ha: number;
   cosecha_estimada_qq: number;
   numero_parcelas: number;
@@ -319,13 +346,10 @@ export interface CosechaVentas {
   destino_ventas_qq: number;
   observaciones?: string;
   created_at: string;
-
-  // Datos enriquecidos
-  nombre_cultivo?: string;
 }
 
 export interface CreateCosechaVentasInput {
-  id_tipo_cultivo: string;
+  tipo_mani: TipoMani;
   superficie_actual_ha: number;
   cosecha_estimada_qq: number;
   numero_parcelas: number;
@@ -377,6 +401,7 @@ export interface FichaCompleta {
   evaluacion_poscosecha?: EvaluacionPoscosecha;
   evaluacion_conocimiento?: EvaluacionConocimientoNormas;
   actividades_pecuarias: ActividadPecuaria[];
+  parcelas_inspeccionadas: ParcelaInspeccionada[];
   detalles_cultivo: DetalleCultivoParcela[];
   cosecha_ventas: CosechaVentas[];
   archivos: ArchivoFicha[];
@@ -391,6 +416,28 @@ export interface CreateFichaCompletaInput {
   evaluacion_poscosecha?: CreateEvaluacionPoscosechaInput;
   evaluacion_conocimiento?: CreateEvaluacionConocimientoInput;
   actividades_pecuarias?: CreateActividadPecuariaInput[];
+  parcelas_inspeccionadas?: CreateParcelaInspeccionadaInput[];
+  detalles_cultivo?: CreateDetalleCultivoParcelaInput[];
+  cosecha_ventas?: CreateCosechaVentasInput[];
+}
+
+// Input para actualizar ficha completa (sin codigo_productor ni gestion)
+export interface UpdateFichaCompletaInput {
+  ficha: {
+    fecha_inspeccion: string;
+    inspector_interno: string;
+    persona_entrevistada?: string;
+    categoria_gestion_anterior?: CategoriaGestion;
+    comentarios_actividad_pecuaria?: string;
+  };
+  revision_documentacion?: CreateRevisionDocumentacionInput;
+  acciones_correctivas?: CreateAccionCorrectivaInput[];
+  no_conformidades?: CreateNoConformidadInput[];
+  evaluacion_mitigacion?: CreateEvaluacionMitigacionInput;
+  evaluacion_poscosecha?: CreateEvaluacionPoscosechaInput;
+  evaluacion_conocimiento?: CreateEvaluacionConocimientoInput;
+  actividades_pecuarias?: CreateActividadPecuariaInput[];
+  parcelas_inspeccionadas?: CreateParcelaInspeccionadaInput[];
   detalles_cultivo?: CreateDetalleCultivoParcelaInput[];
   cosecha_ventas?: CreateCosechaVentasInput[];
 }
@@ -426,8 +473,7 @@ export interface FichasListResponse {
 // ============================================
 
 export interface EnviarRevisionInput {
-  recomendaciones: string;
-  firma_inspector: string;
+  // Solo cambia el estado, no requiere campos adicionales
 }
 
 export interface AprobarFichaInput {

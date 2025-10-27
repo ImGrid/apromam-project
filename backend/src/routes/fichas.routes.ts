@@ -5,6 +5,7 @@ import { FichasController } from "../controllers/fichas.controller.js";
 import { FichasService } from "../services/fichas.service.js";
 import { FichaRepository } from "../repositories/FichaRepository.js";
 import { ProductorRepository } from "../repositories/ProductorRepository.js";
+import { ParcelaRepository } from "../repositories/ParcelaRepository.js";
 import { ArchivoFichaRepository } from "../repositories/ArchivoFichaRepository.js";
 import { FichaDraftRepository } from "../repositories/FichaDraftRepository.js";
 import { authenticate } from "../middleware/authenticate.js";
@@ -12,6 +13,7 @@ import { requireRoles, requireAdmin } from "../middleware/authorize.js";
 import {
   CreateFichaSchema,
   UpdateFichaSchema,
+  UpdateFichaCompletaSchema,
   FichaParamsSchema,
   FichaQuerySchema,
   EnviarRevisionSchema,
@@ -36,11 +38,13 @@ export default async function fichasRoutes(
   // Inicializar dependencias
   const fichaRepository = new FichaRepository();
   const productorRepository = new ProductorRepository();
+  const parcelaRepository = new ParcelaRepository();
   const archivoFichaRepository = new ArchivoFichaRepository();
   const fichaDraftRepository = new FichaDraftRepository();
   const fichasService = new FichasService(
     fichaRepository,
     productorRepository,
+    parcelaRepository,
     archivoFichaRepository,
     fichaDraftRepository
   );
@@ -105,6 +109,46 @@ export default async function fichasRoutes(
       },
     },
     async (request, reply) => fichasController.getEstadisticas(request, reply)
+  );
+
+  // GET /api/fichas/check-exists
+  // Verifica si existe una ficha para un productor en una gestión
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    "/check-exists",
+    {
+      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      schema: {
+        description: "Verifica si existe una ficha para un productor en una gestión.",
+        tags: ["fichas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        querystring: z.object({
+          codigo_productor: z.string().describe("Código del productor"),
+          gestion: z.string().describe("Gestión (año)"),
+        }),
+        response: {
+          200: z.union([
+            z.object({
+              exists: z.literal(false),
+            }),
+            z.object({
+              exists: z.literal(true),
+              ficha: z.object({
+                id_ficha: z.string(),
+                estado_ficha: z.string(),
+                resultado_certificacion: z.string(),
+                fecha_inspeccion: z.string(),
+              }),
+            }),
+          ]),
+          400: FichaErrorSchema,
+          401: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.checkExists(request, reply)
   );
 
   // GET /api/fichas/:id
@@ -191,6 +235,39 @@ export default async function fichasRoutes(
       },
     },
     async (request, reply) => fichasController.update(request, reply)
+  );
+
+  // PUT /api/fichas/:id/completa
+  // Actualiza una ficha completa con todas las secciones
+  fastify.withTypeProvider<ZodTypeProvider>().put(
+    "/:id/completa",
+    {
+      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      schema: {
+        description:
+          "Actualiza una ficha completa incluyendo todas las 11 secciones. " +
+          "Solo se puede actualizar si está en estado 'borrador'. " +
+          "Usa DELETE + INSERT para todas las secciones (excepto la ficha principal).",
+        tags: ["fichas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: FichaParamsSchema,
+        body: UpdateFichaCompletaSchema,
+        response: {
+          200: z.object({
+            ficha: z.any(),
+            message: z.string(),
+          }),
+          400: FichaErrorSchema,
+          401: FichaErrorSchema,
+          403: FichaErrorSchema,
+          404: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.updateCompleta(request, reply)
   );
 
   // DELETE /api/fichas/:id
@@ -480,32 +557,4 @@ export default async function fichasRoutes(
     async (request, reply) => fichasController.rechazar(request, reply)
   );
 
-  // POST /api/fichas/:id/devolver-borrador
-  // Devuelve una ficha 'rechazada' a 'borrador'. Solo Admin.
-  fastify.withTypeProvider<ZodTypeProvider>().post(
-    "/:id/devolver-borrador",
-    {
-      onRequest: [authenticate, requireAdmin],
-      schema: {
-        description: "Devuelve una ficha rechazada al estado borrador.",
-        tags: ["fichas-workflow"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
-        }),
-        params: FichaParamsSchema,
-        response: {
-          200: z.object({
-            ficha: FichaResponseSchema,
-            message: z.string(),
-          }),
-          400: FichaErrorSchema,
-          401: FichaErrorSchema,
-          403: FichaErrorSchema,
-          404: FichaErrorSchema,
-          500: FichaErrorSchema,
-        },
-      },
-    },
-    async (request, reply) => fichasController.devolverBorrador(request, reply)
-  );
 }

@@ -9,6 +9,7 @@ import type {
   FichaCompleta,
   CreateFichaCompletaInput,
   UpdateFichaInput,
+  UpdateFichaCompletaInput,
   FichasFilters,
   FichasListResponse,
   EnviarRevisionInput,
@@ -35,16 +36,16 @@ export const fichasService = {
    * Obtiene una ficha completa por ID (con todas las secciones)
    */
   async getById(id: string): Promise<FichaCompleta> {
-    const response = await apiClient.get<FichaCompleta>(`${BASE_URL}/${id}`);
-    return response.data;
+    const response = await apiClient.get<{ ficha: FichaCompleta }>(`${BASE_URL}/${id}`);
+    return response.data.ficha;
   },
 
   /**
    * Crea una nueva ficha completa (con todas las secciones)
    */
   async create(data: CreateFichaCompletaInput): Promise<FichaCompleta> {
-    const response = await apiClient.post<FichaCompleta>(BASE_URL, data);
-    return response.data;
+    const response = await apiClient.post<{ ficha: FichaCompleta; message: string }>(BASE_URL, data);
+    return response.data.ficha;
   },
 
   /**
@@ -53,6 +54,18 @@ export const fichasService = {
   async update(id: string, data: UpdateFichaInput): Promise<Ficha> {
     const response = await apiClient.put<Ficha>(`${BASE_URL}/${id}`, data);
     return response.data;
+  },
+
+  /**
+   * Actualiza una ficha completa (con todas las secciones)
+   * Solo se puede actualizar si está en estado borrador
+   */
+  async updateCompleta(id: string, data: UpdateFichaCompletaInput): Promise<FichaCompleta> {
+    const response = await apiClient.put<{
+      ficha: FichaCompleta;
+      message: string;
+    }>(`${BASE_URL}/${id}/completa`, data);
+    return response.data.ficha;
   },
 
   /**
@@ -247,6 +260,43 @@ export const fichasService = {
       await apiClient.delete(`${BASE_URL}/draft/${draftId}`);
     } catch (error) {
       console.error('[API] Error al eliminar borrador:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Verifica si existe una ficha para un productor en una gestión
+   */
+  async checkExists(
+    codigoProductor: string,
+    gestion: number
+  ): Promise<{
+    exists: boolean;
+    ficha?: {
+      id_ficha: string;
+      estado_ficha: string;
+      resultado_certificacion: string;
+      fecha_inspeccion: string;
+    };
+  }> {
+    try {
+      const response = await apiClient.get<{
+        exists: boolean;
+        ficha?: {
+          id_ficha: string;
+          estado_ficha: string;
+          resultado_certificacion: string;
+          fecha_inspeccion: string;
+        };
+      }>(`${BASE_URL}/check-exists`, {
+        params: {
+          codigo_productor: codigoProductor,
+          gestion: gestion.toString(),
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[API] Error al verificar si ficha existe:', error);
       throw error;
     }
   },

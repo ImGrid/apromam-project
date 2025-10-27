@@ -14,7 +14,7 @@ export interface ProductorData {
   nombre_productor: string;
   ci_documento?: string;
   id_comunidad: string;
-  id_organizacion?: string;
+  id_organizacion: string;
   año_ingreso_programa: number;
   // Coordenadas decimales
   latitud_domicilio?: number;
@@ -169,6 +169,7 @@ export class Productor {
     nombre_productor: string;
     ci_documento?: string;
     id_comunidad: string;
+    id_organizacion: string;
     año_ingreso_programa: number;
     categoria_actual?: CategoriaProductor;
     superficie_total_has?: number;
@@ -182,6 +183,7 @@ export class Productor {
       nombre_productor: data.nombre_productor,
       ci_documento: data.ci_documento,
       id_comunidad: data.id_comunidad,
+      id_organizacion: data.id_organizacion,
       año_ingreso_programa: data.año_ingreso_programa,
       categoria_actual: data.categoria_actual || "E",
       superficie_total_has: data.superficie_total_has || 0,
@@ -253,6 +255,11 @@ export class Productor {
       errors.push("ID de comunidad es requerido");
     }
 
+    // Validar organizacion
+    if (!this.data.id_organizacion) {
+      errors.push("ID de organizacion es requerido");
+    }
+
     // Validar año ingreso
     const currentYear = new Date().getFullYear();
     if (
@@ -286,10 +293,10 @@ export class Productor {
       errors.push("Numero de parcelas no puede exceder 100");
     }
 
-    // Validar coordenadas si existen
+    // Validar coordenadas si existen (rechaza null y undefined)
     if (
-      this.data.latitud_domicilio !== undefined &&
-      this.data.longitud_domicilio !== undefined
+      this.data.latitud_domicilio != null &&
+      this.data.longitud_domicilio != null
     ) {
       const coordValidation = validateBolivianCoordinates(
         this.data.latitud_domicilio,
@@ -311,8 +318,8 @@ export class Productor {
     }
 
     // Validar que si tiene una coordenada, tenga la otra
-    const hasLat = this.data.latitud_domicilio !== undefined;
-    const hasLng = this.data.longitud_domicilio !== undefined;
+    const hasLat = this.data.latitud_domicilio != null;
+    const hasLng = this.data.longitud_domicilio != null;
 
     if (hasLat !== hasLng) {
       errors.push("Debe proporcionar tanto latitud como longitud, o ninguna");
@@ -330,6 +337,7 @@ export class Productor {
     nombre_productor: string;
     ci_documento?: string;
     id_comunidad: string;
+    id_organizacion: string;
     año_ingreso_programa: number;
     latitud_domicilio?: number;
     longitud_domicilio?: number;
@@ -345,6 +353,7 @@ export class Productor {
       nombre_productor: this.data.nombre_productor.trim(),
       ci_documento: this.data.ci_documento?.trim(),
       id_comunidad: this.data.id_comunidad,
+      id_organizacion: this.data.id_organizacion,
       año_ingreso_programa: this.data.año_ingreso_programa,
       latitud_domicilio: this.data.latitud_domicilio,
       longitud_domicilio: this.data.longitud_domicilio,

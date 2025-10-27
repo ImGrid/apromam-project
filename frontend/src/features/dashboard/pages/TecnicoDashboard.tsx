@@ -1,36 +1,17 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { PlusCircle, Leaf, Map, FileText, Clock, CheckCircle, FileEdit } from "lucide-react";
+import { PlusCircle, Map, FileText, Clock, CheckCircle, FileEdit } from "lucide-react";
 import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
 import { StatCard } from "../components/StatCard";
 import { MisFichasTabs } from "../components/MisFichasTabs";
-import { CreateProductorModal } from "@/features/productores/components/CreateProductorModal";
 import { useMisFichas } from "../hooks/useMisFichas";
 import { ROUTES } from "@/shared/config/routes.config";
 import { useAuth } from "@/shared/hooks/useAuth";
-import type { Productor } from "@/features/productores/types/productor.types";
 
 export function TecnicoDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { borradores, enRevision, aprobadas, isLoading, refetch } =
-    useMisFichas();
-  const [productorModalOpen, setProductorModalOpen] = useState(false);
-
-  const handleProductorCreated = (productor: Productor) => {
-    // Refrescar fichas
-    refetch();
-
-    // Preguntar si quiere agregar parcelas
-    const agregarParcelas = window.confirm(
-      `Productor ${productor.codigo_productor} creado exitosamente. ¿Deseas agregar parcelas ahora?`
-    );
-
-    if (agregarParcelas) {
-      navigate(ROUTES.PARCELAS_BY_PRODUCTOR(productor.codigo_productor));
-    }
-  };
+  const { borradores, enRevision, aprobadas, isLoading } = useMisFichas();
 
   return (
     <TecnicoLayout title="Inicio">
@@ -40,21 +21,13 @@ export function TecnicoDashboard() {
       >
         <div className="space-y-6">
           {/* Botones de accion principales */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <button
               onClick={() => navigate(ROUTES.FICHAS_CREATE)}
               className="flex flex-col items-center justify-center gap-3 p-8 text-white transition-colors rounded-lg bg-primary hover:bg-primary-dark"
             >
               <PlusCircle className="w-10 h-10" />
               <span className="text-base font-semibold">Nueva Ficha</span>
-            </button>
-
-            <button
-              onClick={() => setProductorModalOpen(true)}
-              className="flex flex-col items-center justify-center gap-3 p-8 text-white transition-colors rounded-lg bg-success hover:bg-green-700"
-            >
-              <Leaf className="w-10 h-10" />
-              <span className="text-base font-semibold">Nuevo Productor</span>
             </button>
 
             <button
@@ -117,13 +90,6 @@ export function TecnicoDashboard() {
             />
           </div>
         </div>
-
-        {/* Modal de crear productor */}
-        <CreateProductorModal
-          isOpen={productorModalOpen}
-          onClose={() => setProductorModalOpen(false)}
-          onSuccess={handleProductorCreated}
-        />
       </PageContainer>
     </TecnicoLayout>
   );

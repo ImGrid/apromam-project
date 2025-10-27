@@ -5,7 +5,6 @@ export interface NoConformidadData {
   descripcion_no_conformidad: string;
   accion_correctiva_propuesta?: string | null;
   fecha_limite_implementacion?: Date | null;
-  estado_conformidad: string;
   created_at: Date;
 }
 
@@ -16,7 +15,6 @@ export interface NoConformidadPublicData {
   descripcion_no_conformidad: string;
   accion_correctiva_propuesta?: string | null;
   fecha_limite_implementacion?: string | null;
-  estado_conformidad: string;
   created_at: string;
 }
 
@@ -50,10 +48,6 @@ export class NoConformidad {
     return this.data.fecha_limite_implementacion ?? null;
   }
 
-  get estado(): string {
-    return this.data.estado_conformidad;
-  }
-
   get createdAt(): Date {
     return this.data.created_at;
   }
@@ -64,7 +58,6 @@ export class NoConformidad {
     descripcion_no_conformidad: string;
     accion_correctiva_propuesta?: string;
     fecha_limite_implementacion?: Date;
-    estado_conformidad?: string;
   }): NoConformidad {
     return new NoConformidad({
       id_no_conformidad: "",
@@ -72,7 +65,6 @@ export class NoConformidad {
       descripcion_no_conformidad: data.descripcion_no_conformidad,
       accion_correctiva_propuesta: data.accion_correctiva_propuesta,
       fecha_limite_implementacion: data.fecha_limite_implementacion,
-      estado_conformidad: data.estado_conformidad ?? "pendiente",
       created_at: new Date(),
     });
   }
@@ -125,7 +117,6 @@ export class NoConformidad {
       accion_correctiva_propuesta:
         this.data.accion_correctiva_propuesta?.trim() || null,
       fecha_limite_implementacion: this.data.fecha_limite_implementacion,
-      estado_conformidad: this.data.estado_conformidad,
     };
   }
 
@@ -138,7 +129,6 @@ export class NoConformidad {
       accion_correctiva_propuesta:
         this.data.accion_correctiva_propuesta?.trim() || null,
       fecha_limite_implementacion: this.data.fecha_limite_implementacion,
-      estado_conformidad: this.data.estado_conformidad,
     };
   }
 
@@ -152,14 +142,8 @@ export class NoConformidad {
         this.data.accion_correctiva_propuesta ?? null,
       fecha_limite_implementacion:
         this.data.fecha_limite_implementacion?.toISOString() ?? null,
-      estado_conformidad: this.data.estado_conformidad,
       created_at: this.data.created_at.toISOString(),
     };
-  }
-
-  // Verifica si esta pendiente
-  estaPendiente(): boolean {
-    return this.data.estado_conformidad === "pendiente";
   }
 
   // Verifica si tiene fecha limite
@@ -192,15 +176,5 @@ export class NoConformidad {
   // Actualiza fecha limite
   actualizarFechaLimite(fecha: Date): void {
     this.data.fecha_limite_implementacion = fecha;
-  }
-
-  // Actualiza estado
-  actualizarEstado(estado: string): void {
-    this.data.estado_conformidad = estado;
-  }
-
-  // Marca como resuelta
-  marcarResuelta(): void {
-    this.data.estado_conformidad = "resuelta";
   }
 }

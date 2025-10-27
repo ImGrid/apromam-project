@@ -23,9 +23,13 @@ import { useFormContext } from "react-hook-form";
 import { MapPin, User, Calendar } from "lucide-react";
 import { ProductorSearchInput } from "../ProductorSearchInput";
 import { FormField } from "@/shared/components/ui/FormField";
-import { GPSCaptureButton } from "../Specialized/GPSCaptureButton";
+import { LocationPicker } from "@/shared/components/maps/LocationPicker";
+import { Tooltip } from "@/shared/components/ui/Tooltip";
+import { Button } from "@/shared/components/ui/Button";
 import { useAuthStore } from "@/features/auth/stores/authStore";
 import { productoresService } from "@/features/productores/services/productores.service";
+import { fichasService } from "../../services/fichas.service";
+import { showToast } from "@/shared/hooks/useToast";
 import type {
   CreateFichaCompletaInput,
 } from "../../types/ficha.types";
@@ -47,9 +51,13 @@ export default function Step1DatosGenerales() {
     longitud: 0,
     altitud: 0,
   });
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   // Observar el codigo_productor del formulario
   const codigoProductorFromForm = watch("ficha.codigo_productor");
+  // Detectar modo edit: si hay código de productor inicial, estamos editando
+  const [isEditMode] = useState(() => !!codigoProductorFromForm);
+
 
   // Auto-rellenar inspector_interno con el usuario logueado
   useEffect(() => {
@@ -86,7 +94,7 @@ export default function Step1DatosGenerales() {
   }, [codigoProductorFromForm]);
 
   // Manejar selección de productor
-  const handleSelectProductor = (productor: Productor | null) => {
+  const handleSelectProductor = async (productor: Productor | null) => {
     if (!productor) {
       setSelectedProductor(null);
       // Limpiar campos autorellenados
@@ -95,42 +103,64 @@ export default function Step1DatosGenerales() {
       return;
     }
 
-    setSelectedProductor(productor);
-
-    // Auto-rellenar código de productor
-    setValue("ficha.codigo_productor", productor.codigo_productor, {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-
-    // Auto-rellenar gestión (año actual)
     const currentYear = new Date().getFullYear();
-    setValue("ficha.gestion", currentYear, {
-      shouldValidate: true,
-    });
 
-    // Auto-rellenar coordenadas si existen
-    if (productor.coordenadas) {
-      setCoordenadas({
-        latitud: productor.coordenadas.latitude,
-        longitud: productor.coordenadas.longitude,
-        altitud: productor.coordenadas.altitude || 0,
+    // Validar si ya existe una ficha para este productor en la gestión actual
+    try {
+      const exists = await fichasService.checkExists(
+        productor.codigo_productor,
+        currentYear
+      );
+
+      if (exists.exists && exists.ficha) {
+        const { estado_ficha, resultado_certificacion } = exists.ficha;
+
+        // Mostrar advertencia según el estado, SIN redirigir
+        let mensaje = '';
+        if (estado_ficha === "borrador") {
+          mensaje = `El productor ${productor.nombre_productor} ya tiene una ficha en borrador para ${currentYear}. No puede crear una nueva ficha.`;
+        } else if (resultado_certificacion === "rechazado" || estado_ficha === "rechazado") {
+          mensaje = `El productor ${productor.nombre_productor} tiene una ficha rechazada para ${currentYear}. No puede crear una nueva ficha.`;
+        } else if (estado_ficha === "revision") {
+          mensaje = `El productor ${productor.nombre_productor} ya tiene una ficha en revisión para ${currentYear}. No puede crear una nueva ficha.`;
+        } else if (estado_ficha === "aprobado") {
+          mensaje = `El productor ${productor.nombre_productor} ya tiene una ficha aprobada para ${currentYear}. No puede crear una nueva ficha.`;
+        } else {
+          mensaje = `El productor ${productor.nombre_productor} ya tiene una ficha para ${currentYear} (estado: ${estado_ficha}). No puede crear una nueva ficha.`;
+        }
+
+        showToast.error(mensaje, { duration: 6000 });
+        return;
+      }
+
+      // No existe ficha, continuar normalmente
+      setSelectedProductor(productor);
+
+      // Auto-rellenar código de productor
+      setValue("ficha.codigo_productor", productor.codigo_productor, {
+        shouldValidate: true,
+        shouldDirty: true,
       });
+
+      // Auto-rellenar gestión (año actual)
+      setValue("ficha.gestion", currentYear, {
+        shouldValidate: true,
+      });
+
+      // Auto-rellenar coordenadas si existen
+      if (productor.coordenadas) {
+        setCoordenadas({
+          latitud: productor.coordenadas.latitude,
+          longitud: productor.coordenadas.longitude,
+          altitud: productor.coordenadas.altitude || 0,
+        });
+      }
+    } catch (error) {
+      console.error('[Step1] Error verificando ficha existente:', error);
+      showToast.error('Error al verificar si el productor ya tiene ficha');
     }
   };
 
-  // Manejar captura de GPS
-  const handleGPSCapture = (coords: {
-    latitude: number;
-    longitude: number;
-    altitude?: number;
-  }) => {
-    setCoordenadas({
-      latitud: coords.latitude,
-      longitud: coords.longitude,
-      altitud: coords.altitude || 0,
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -148,6 +178,7 @@ export default function Step1DatosGenerales() {
         <ProductorSearchInput
           onSelectProductor={handleSelectProductor}
           selectedProductor={selectedProductor}
+          disabled={isEditMode}
         />
       </div>
 
@@ -346,10 +377,13 @@ export default function Step1DatosGenerales() {
           </div>
 
           <div className="space-y-4">
-            {/* Campos de coordenadas */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {/* Latitud */}
-              <FormField label="Latitud Sud-Domicilio (°)">
+            {/* Campos de coordenadas en una sola fila compacta */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Coordenadas del Domicilio
+              </label>
+              <div className="flex gap-2">
+                {/* Latitud */}
                 <input
                   type="number"
                   step="0.000001"
@@ -360,13 +394,11 @@ export default function Step1DatosGenerales() {
                       latitud: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="-17.123456"
+                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Latitud (°)"
                 />
-              </FormField>
 
-              {/* Longitud */}
-              <FormField label="Longitud Oeste-Dom. (°)">
+                {/* Longitud */}
                 <input
                   type="number"
                   step="0.000001"
@@ -377,13 +409,11 @@ export default function Step1DatosGenerales() {
                       longitud: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="-64.123456"
+                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Longitud (°)"
                 />
-              </FormField>
 
-              {/* Altitud */}
-              <FormField label="Altitud Domicilio (msnm)">
+                {/* Altitud */}
                 <input
                   type="number"
                   step="1"
@@ -394,20 +424,49 @@ export default function Step1DatosGenerales() {
                       altitud: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="2500"
+                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Altitud (msnm)"
                 />
-              </FormField>
+
+                {/* Botón para abrir mapa */}
+                <Tooltip content="Seleccionar ubicación en mapa" position="top">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="small"
+                    onClick={() => setShowLocationPicker(!showLocationPicker)}
+                  >
+                    <MapPin className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+              </div>
             </div>
 
-            {/* Botón para capturar GPS del dispositivo */}
-            <div className="flex justify-end">
-              <GPSCaptureButton
-                onCapture={handleGPSCapture}
-                label="Capturar GPS"
-                showCoordinates={false}
-              />
-            </div>
+            {/* Mapa para seleccionar ubicación */}
+            {showLocationPicker && (
+              <div className="mt-3">
+                <LocationPicker
+                  initialPosition={
+                    coordenadas.latitud && coordenadas.longitud
+                      ? { lat: coordenadas.latitud, lng: coordenadas.longitud }
+                      : selectedProductor?.coordenadas
+                      ? {
+                          lat: selectedProductor.coordenadas.latitude,
+                          lng: selectedProductor.coordenadas.longitude,
+                        }
+                      : null
+                  }
+                  onLocationSelect={(pos) => {
+                    setCoordenadas({
+                      ...coordenadas,
+                      latitud: pos.lat,
+                      longitud: pos.lng,
+                    });
+                  }}
+                  height="400px"
+                />
+              </div>
+            )}
           </div>
         </div>
       )}

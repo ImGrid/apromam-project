@@ -82,6 +82,9 @@ export function useAutoSaveDraft({
       return;
     }
 
+    console.log('[DRAFT] Guardando borrador - Productor:', codigoProductor, 'Gestion:', gestion, 'Step:', currentStep);
+    console.log('[DRAFT] Datos del formulario:', debouncedFormData);
+
     try {
       isSaving.current = true;
       setSaveStatus('saving');
@@ -113,6 +116,7 @@ export function useAutoSaveDraft({
 
       // CAPA 3: Si hay internet, guardar en servidor
       if (isOnline) {
+        console.log('[DRAFT] Guardando en servidor (online)...');
         const result = await fichasService.saveDraft(
           codigoProductor,
           gestion,
@@ -121,12 +125,18 @@ export function useAutoSaveDraft({
         );
 
         if (result.success) {
+          console.log('[DRAFT] Guardado en servidor exitoso - ID:', result.data?.id_draft);
           // Marcar como sincronizado en IndexedDB
           await markDraftAsSynced(codigoProductor, gestion);
+        } else {
+          console.warn('[DRAFT] Error al guardar en servidor:', result.error);
         }
+      } else {
+        console.log('[DRAFT] Modo offline - Guardado solo en IndexedDB');
       }
 
       // Actualizar estado exitoso
+      console.log('[DRAFT] Borrador guardado exitosamente');
       setSaveStatus('saved');
       setLastSavedAt(new Date());
       lastSavedData.current = currentDataString;

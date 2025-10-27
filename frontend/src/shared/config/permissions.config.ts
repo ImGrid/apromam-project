@@ -53,7 +53,6 @@ export const PERMISSIONS: PermissionsMap = {
     create: true,
     editOwn: true,
     limitedToComunidad: true,
-    createProductor: true,
   },
 
   invitado: {
@@ -81,7 +80,7 @@ export const RESOURCE_PERMISSIONS = {
   },
   productores: {
     create: ["create", "createProductor", "all"],
-    edit: ["edit", "editOwn", "all"],
+    edit: ["edit", "all"],
     delete: ["delete", "all"],
     read: ["read", "readOwn", "all"],
   },

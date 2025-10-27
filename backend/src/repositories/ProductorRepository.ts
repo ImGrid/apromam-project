@@ -45,24 +45,26 @@ export class ProductorRepository {
     const result = await ReadQuery.findOne<ProductorData>(query);
     return result ? Productor.fromDatabase(result) : null;
   }
-  // Genera el siguiente codigo de productor para una comunidad
-  // Formato: VS + ABREVIATURA + NUMERO (ej: VSSLP01, VSSLP02)
+  // Genera el siguiente codigo de productor para una comunidad y organizacion
+  // Formato: ABREVIATURA_ORG + ABREVIATURA_COM + NUMERO (ej: VSSLP01, MZSLP02)
   async getNextCodigoByComunidad(
     comunidadId: string,
-    abreviaturaComunidad: string
+    abreviaturaComunidad: string,
+    abreviaturaOrganizacion: string
   ): Promise<string> {
-    // Normalizar abreviatura
-    const abreviatura = abreviaturaComunidad.trim().toUpperCase();
-    const prefijo = `VS${abreviatura}`;
+    // Normalizar abreviaturas
+    const abrevOrg = abreviaturaOrganizacion.trim().toUpperCase();
+    const abrevCom = abreviaturaComunidad.trim().toUpperCase();
+    const prefijo = `${abrevOrg}${abrevCom}`;
 
-    // Obtener el ultimo codigo de esta comunidad
+    // Obtener el ultimo codigo con este prefijo (org + comunidad)
     const query = {
       text: `
-        SELECT codigo_productor 
-        FROM productores 
-        WHERE id_comunidad = $1 
+        SELECT codigo_productor
+        FROM productores
+        WHERE id_comunidad = $1
           AND codigo_productor LIKE $2
-        ORDER BY codigo_productor DESC 
+        ORDER BY codigo_productor DESC
         LIMIT 1
       `,
       values: [comunidadId, `${prefijo}%`],
@@ -84,14 +86,14 @@ export class ProductorRepository {
       }
     }
 
-    // Validar que no exceda 99
-    if (numeroSiguiente > 99) {
+    // Validar que no exceda 999
+    if (numeroSiguiente > 999) {
       throw new Error(
-        `La comunidad ${abreviatura} ha alcanzado el limite de 99 productores`
+        `La combinación ${abrevOrg}${abrevCom} ha alcanzado el limite de 999 productores`
       );
     }
 
-    // Formatear con padding de 2 digitos
+    // Formatear con padding de 2 digitos (o 3 si supera 99)
     const numeroFormateado = numeroSiguiente.toString().padStart(2, "0");
     const codigoGenerado = `${prefijo}${numeroFormateado}`;
 
@@ -288,6 +290,7 @@ export class ProductorRepository {
         nombre_productor,
         ci_documento,
         id_comunidad,
+        id_organizacion,
         año_ingreso_programa,
         latitud_domicilio,
         longitud_domicilio,
@@ -298,13 +301,14 @@ export class ProductorRepository {
         numero_parcelas_total,
         inicio_conversion_organica,
         activo
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ST_GeomFromText($9, 4326), $10, $11, $12, $13, $14)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ST_GeomFromText($10, 4326), $11, $12, $13, $14, $15)
       `,
       values: [
         insertData.codigo_productor,
         insertData.nombre_productor,
         insertData.ci_documento || null,
         insertData.id_comunidad,
+        insertData.id_organizacion,
         insertData.año_ingreso_programa,
         insertData.latitud_domicilio || null,
         insertData.longitud_domicilio || null,

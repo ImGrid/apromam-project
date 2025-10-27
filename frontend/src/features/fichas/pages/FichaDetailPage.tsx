@@ -5,17 +5,15 @@
  */
 
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Edit,
-  FileText,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Clock,
-} from "lucide-react";
+import { Edit, AlertCircle } from "lucide-react";
+import { AdminLayout } from "@/shared/components/layout/AdminLayout";
+import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
+import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
+import { PageContainer } from "@/shared/components/layout/PageContainer";
+import { Card } from "@/shared/components/ui/Card";
 import { Button } from "@/shared/components/ui/Button";
 import { Alert } from "@/shared/components/ui/Alert";
+import { usePermissions } from "@/shared/hooks/usePermissions";
 import { useFichaCompleta } from "../hooks/useFichaCompleta";
 import { ROUTES } from "@/shared/config/routes.config";
 import {
@@ -24,30 +22,44 @@ import {
   FichaWorkflowActions,
   FichaArchivosSection,
 } from "../components/Specialized";
-import type { EstadoFicha } from "../types/ficha.types";
+import type { ComplianceStatus } from "../types/ficha.types";
 
 export default function FichaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const permissions = usePermissions();
   const { ficha, isLoading, error, refetch } = useFichaCompleta(id);
+
+  // Determinar layout según rol
+  const Layout = permissions.isAdmin()
+    ? AdminLayout
+    : permissions.isGerente()
+    ? GerenteLayout
+    : permissions.isTecnico()
+    ? TecnicoLayout
+    : AdminLayout;
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-bg">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 border-4 border-t-4 rounded-full animate-spin border-primary border-t-transparent"></div>
-          <p className="text-text-secondary">Cargando ficha...</p>
-        </div>
-      </div>
+      <Layout title="Detalle de Ficha">
+        <PageContainer>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 border-4 border-t-4 rounded-full animate-spin border-primary border-t-transparent"></div>
+              <p className="text-text-secondary">Cargando ficha...</p>
+            </div>
+          </div>
+        </PageContainer>
+      </Layout>
     );
   }
 
   // Error state
   if (error || !ficha) {
     return (
-      <div className="min-h-screen bg-neutral-bg">
-        <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <Layout title="Detalle de Ficha">
+        <PageContainer>
           <Alert
             type="error"
             message={
@@ -62,79 +74,38 @@ export default function FichaDetailPage() {
           />
           <div className="mt-4">
             <Button onClick={() => navigate(ROUTES.FICHAS)}>
-              <ArrowLeft className="w-4 h-4" />
               Volver a Fichas
             </Button>
           </div>
-        </div>
-      </div>
+        </PageContainer>
+      </Layout>
     );
   }
 
   const canEdit = isEditable(ficha.ficha.estado_ficha);
 
-  const getEstadoIcon = (estado: EstadoFicha) => {
-    switch (estado) {
-      case "borrador":
-        return <FileText className="w-5 h-5" />;
-      case "revision":
-        return <Clock className="w-5 h-5" />;
-      case "aprobado":
-        return <CheckCircle className="w-5 h-5" />;
-      case "rechazado":
-        return <XCircle className="w-5 h-5" />;
-      default:
-        return <FileText className="w-5 h-5" />;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-neutral-bg">
-      {/* Header */}
-      <div className="bg-white border-b border-neutral-border">
-        <div className="px-4 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+    <Layout title="Detalle de Ficha">
+      <PageContainer
+        title="Ficha de Inspección"
+        description={`${ficha.ficha.nombre_productor || ficha.ficha.codigo_productor} | Gestión: ${ficha.ficha.gestion} | Inspector: ${ficha.ficha.inspector_interno}`}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {canEdit && (
               <Button
-                variant="ghost"
-                onClick={() => navigate(ROUTES.FICHAS)}
+                variant="secondary"
+                onClick={() => navigate(ROUTES.FICHAS_EDIT(id!))}
               >
-                <ArrowLeft className="w-4 h-4" />
-                Volver
+                <Edit className="w-4 h-4" />
+                Editar
               </Button>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-text-primary">
-                    Ficha de Inspección
-                  </h1>
-                  <EstadoFichaBadge estado={ficha.ficha.estado_ficha} />
-                </div>
-                <p className="mt-1 text-sm text-text-secondary">
-                  {ficha.ficha.nombre_productor || ficha.ficha.codigo_productor}{" "}
-                  | Gestión: {ficha.ficha.gestion} | Inspector:{" "}
-                  {ficha.ficha.inspector_interno}
-                </p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-2">
-              {canEdit && (
-                <Button
-                  variant="secondary"
-                  onClick={() => navigate(ROUTES.FICHAS_EDIT(id!))}
-                >
-                  <Edit className="w-4 h-4" />
-                  Editar
-                </Button>
-              )}
-            </div>
+            )}
+            <Button variant="ghost" onClick={() => navigate(ROUTES.FICHAS)}>
+              Volver
+            </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        }
+      >
         <div className="space-y-6">
           {/* Estado Alert */}
           <Alert
@@ -146,9 +117,9 @@ export default function FichaDetailPage() {
                 : "info"
             }
             message={
-              <div className="flex items-start">
-                {getEstadoIcon(ficha.ficha.estado_ficha)}
-                <div className="ml-2">
+              <div className="flex items-center gap-2">
+                <EstadoFichaBadge estado={ficha.ficha.estado_ficha} />
+                <div>
                   <p className="text-sm font-medium">
                     Estado: {ficha.ficha.estado_ficha.toUpperCase()}
                   </p>
@@ -163,10 +134,7 @@ export default function FichaDetailPage() {
           />
 
           {/* Datos Generales */}
-          <div className="p-6 bg-white border rounded-lg border-neutral-border">
-            <h2 className="mb-4 text-lg font-semibold text-text-primary">
-              Datos Generales
-            </h2>
+          <Card title="Datos Generales">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <DetailField
                 label="Código Productor"
@@ -178,7 +146,11 @@ export default function FichaDetailPage() {
               />
               <DetailField
                 label="Fecha de Inspección"
-                value={new Date(ficha.ficha.fecha_inspeccion).toLocaleDateString()}
+                value={new Date(ficha.ficha.fecha_inspeccion).toLocaleDateString("es-BO", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric"
+                })}
               />
               <DetailField
                 label="Inspector Interno"
@@ -197,41 +169,55 @@ export default function FichaDetailPage() {
                 />
               )}
             </div>
-          </div>
+          </Card>
 
           {/* Revisión Documentación */}
           {ficha.revision_documentacion && (
-            <div className="p-6 bg-white border rounded-lg border-neutral-border">
-              <h2 className="mb-4 text-lg font-semibold text-text-primary">
-                Revisión de Documentación
-              </h2>
+            <Card title="Revisión de Documentación">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <DetailField
+                <ComplianceField
                   label="Solicitud de Ingreso"
                   value={ficha.revision_documentacion.solicitud_ingreso}
                 />
-                <DetailField
+                <ComplianceField
                   label="Normas y Reglamentos"
                   value={ficha.revision_documentacion.normas_reglamentos}
                 />
-                <DetailField
+                <ComplianceField
                   label="Contrato de Producción"
                   value={ficha.revision_documentacion.contrato_produccion}
                 />
-                <DetailField
+                <ComplianceField
                   label="Croquis de Unidad"
                   value={ficha.revision_documentacion.croquis_unidad}
                 />
+                <ComplianceField
+                  label="Diario de Campo"
+                  value={ficha.revision_documentacion.diario_campo}
+                />
+                <ComplianceField
+                  label="Registro de Cosecha"
+                  value={ficha.revision_documentacion.registro_cosecha}
+                />
+                <ComplianceField
+                  label="Recibo de Pago"
+                  value={ficha.revision_documentacion.recibo_pago}
+                />
               </div>
-            </div>
+              {ficha.revision_documentacion.observaciones_documentacion && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-text-secondary">Observaciones</p>
+                  <p className="mt-1 text-text-primary">
+                    {ficha.revision_documentacion.observaciones_documentacion}
+                  </p>
+                </div>
+              )}
+            </Card>
           )}
 
           {/* Acciones Correctivas */}
           {ficha.acciones_correctivas && ficha.acciones_correctivas.length > 0 && (
-            <div className="p-6 bg-white border rounded-lg border-neutral-border">
-              <h2 className="mb-4 text-lg font-semibold text-text-primary">
-                Acciones Correctivas ({ficha.acciones_correctivas.length})
-              </h2>
+            <Card title={`Acciones Correctivas (${ficha.acciones_correctivas.length})`}>
               <div className="space-y-3">
                 {ficha.acciones_correctivas.map((accion, index) => (
                   <div
@@ -249,101 +235,463 @@ export default function FichaDetailPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
-          {/* Detalles de Cultivo */}
-          {ficha.detalles_cultivo && ficha.detalles_cultivo.length > 0 && (
-            <div className="p-6 bg-white border rounded-lg border-neutral-border">
-              <h2 className="mb-4 text-lg font-semibold text-text-primary">
-                Inspección de Parcelas ({ficha.detalles_cultivo.length})
-              </h2>
+          {/* Inspección de Parcelas (Sección 4) */}
+          {(() => {
+            // Agrupar cultivos por parcela
+            const parcelasMap = new Map<string, typeof ficha.detalles_cultivo>();
+            ficha.detalles_cultivo.forEach((detalle) => {
+              const key = detalle.id_parcela;
+              if (!parcelasMap.has(key)) {
+                parcelasMap.set(key, []);
+              }
+              parcelasMap.get(key)!.push(detalle);
+            });
+
+            if (parcelasMap.size === 0) return null;
+
+            return (
+              <Card title={`Inspección de Parcelas (${parcelasMap.size})`}>
+                <div className="space-y-6">
+                  {Array.from(parcelasMap.entries()).map(([idParcela, cultivos], indexParcela) => {
+                    const primerDetalle = cultivos[0];
+                    return (
+                      <div
+                        key={idParcela}
+                        className="p-5 border-2 rounded-lg border-primary/20 bg-primary/5"
+                      >
+                        {/* Header de Parcela */}
+                        <h4 className="mb-4 text-lg font-bold text-primary">
+                          Parcela {primerDetalle.numero_parcela !== undefined ? primerDetalle.numero_parcela : `ID: ${idParcela}`}
+                        </h4>
+
+                        {/* Datos de Inspección de la Parcela */}
+                        <div className="p-4 mb-4 rounded-lg bg-white">
+                          <p className="mb-3 text-sm font-semibold text-text-secondary">
+                            DATOS DE INSPECCIÓN
+                          </p>
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                            {primerDetalle.rotacion !== undefined && (
+                              <DetailField
+                                label="Rotación de Cultivos"
+                                value={primerDetalle.rotacion ? "Sí" : "No"}
+                              />
+                            )}
+                            {primerDetalle.utiliza_riego !== undefined && (
+                              <DetailField
+                                label="Utiliza Riego"
+                                value={primerDetalle.utiliza_riego ? "Sí" : "No"}
+                              />
+                            )}
+                            {primerDetalle.tipo_barrera && (
+                              <DetailField
+                                label="Tipo de Barrera"
+                                value={formatEnumValue(primerDetalle.tipo_barrera)}
+                              />
+                            )}
+                            {primerDetalle.insumos_organicos && (
+                              <div className="md:col-span-2 lg:col-span-3">
+                                <DetailField
+                                  label="Insumos Orgánicos"
+                                  value={primerDetalle.insumos_organicos}
+                                />
+                              </div>
+                            )}
+                            {primerDetalle.latitud_sud && primerDetalle.longitud_oeste && (
+                              <DetailField
+                                label="Coordenadas GPS"
+                                value={`${primerDetalle.latitud_sud.toFixed(6)}°S, ${primerDetalle.longitud_oeste.toFixed(6)}°O`}
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Cultivos en esta Parcela */}
+                        <div>
+                          <p className="mb-3 text-sm font-semibold text-text-secondary">
+                            CULTIVOS ({cultivos.length})
+                          </p>
+                          <div className="space-y-3">
+                            {cultivos.map((cultivo, indexCultivo) => (
+                              <div
+                                key={cultivo.id_detalle || indexCultivo}
+                                className="p-4 border rounded-lg bg-white border-neutral-border"
+                              >
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                                  <DetailField
+                                    label="Cultivo"
+                                    value={cultivo.nombre_cultivo || `ID: ${cultivo.id_tipo_cultivo}`}
+                                  />
+                                  <DetailField
+                                    label="Superficie (ha)"
+                                    value={cultivo.superficie_ha.toString()}
+                                  />
+                                  {cultivo.situacion_actual && (
+                                    <DetailField
+                                      label="Situación Actual"
+                                      value={cultivo.situacion_actual}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            );
+          })()}
+
+          {/* Evaluación de Mitigación */}
+          {ficha.evaluacion_mitigacion && (
+            <Card title="Evaluación de Mitigación de Riesgos">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ComplianceField
+                  label="Práctica de Mitigación de Riesgos"
+                  value={ficha.evaluacion_mitigacion.practica_mitigacion_riesgos}
+                />
+                <ComplianceField
+                  label="Mitigación de Contaminación"
+                  value={ficha.evaluacion_mitigacion.mitigacion_contaminacion}
+                />
+                <ComplianceField
+                  label="Depósito de Herramientas"
+                  value={ficha.evaluacion_mitigacion.deposito_herramientas}
+                />
+                <ComplianceField
+                  label="Depósito de Insumos Orgánicos"
+                  value={ficha.evaluacion_mitigacion.deposito_insumos_organicos}
+                />
+                <ComplianceField
+                  label="Evita Quema de Residuos"
+                  value={ficha.evaluacion_mitigacion.evita_quema_residuos}
+                />
+              </div>
+              {ficha.evaluacion_mitigacion.comentarios_mitigacion && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-text-secondary">Comentarios</p>
+                  <p className="mt-1 text-text-primary">
+                    {ficha.evaluacion_mitigacion.comentarios_mitigacion}
+                  </p>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Actividades Pecuarias */}
+          {ficha.actividades_pecuarias && ficha.actividades_pecuarias.length > 0 && (
+            <Card title={`Actividades Pecuarias (${ficha.actividades_pecuarias.length})`}>
               <div className="space-y-3">
-                {ficha.detalles_cultivo.map((detalle, index) => (
+                {ficha.actividades_pecuarias.map((actividad, index) => (
                   <div
-                    key={detalle.id_detalle || index}
+                    key={actividad.id_actividad || index}
                     className="p-4 rounded-lg bg-neutral-bg"
                   >
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                      <div>
+                        <p className="text-sm font-medium text-text-secondary">Tipo de Ganado</p>
+                        <p className="mt-1 font-medium text-text-primary">
+                          {actividad.tipo_ganado}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-text-secondary">Cantidad</p>
+                        <p className="mt-1 font-medium text-text-primary">
+                          {actividad.cantidad}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-text-secondary">Uso de Guano</p>
+                        <p className="mt-1 text-text-primary">
+                          {actividad.uso_guano}
+                        </p>
+                      </div>
+                    </div>
+                    {actividad.sistema_manejo && (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium text-text-secondary">Sistema de Manejo</p>
+                        <p className="mt-1 text-sm text-text-primary">
+                          {actividad.sistema_manejo}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {ficha.ficha.comentarios_actividad_pecuaria && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-text-secondary">Comentarios</p>
+                  <p className="mt-1 text-text-primary">
+                    {ficha.ficha.comentarios_actividad_pecuaria}
+                  </p>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Manejo del Cultivo de Maní (Step 7) */}
+          {(() => {
+            // Filtrar solo cultivos que tengan datos de manejo
+            const cultivosConManejo = ficha.detalles_cultivo.filter(
+              (detalle) =>
+                detalle.procedencia_semilla ||
+                detalle.categoria_semilla ||
+                detalle.tratamiento_semillas ||
+                detalle.tipo_abonamiento ||
+                detalle.metodo_aporque ||
+                detalle.control_hierbas ||
+                detalle.metodo_cosecha
+            );
+
+            if (cultivosConManejo.length === 0) return null;
+
+            return (
+              <Card title={`Manejo del Cultivo de Maní (${cultivosConManejo.length})`}>
+                <div className="space-y-4">
+                  {cultivosConManejo.map((detalle, index) => (
+                    <div
+                      key={detalle.id_detalle || index}
+                      className="p-4 border rounded-lg border-neutral-border"
+                    >
+                      <div className="mb-3">
+                        <p className="font-medium text-text-primary">
+                          Parcela: {detalle.id_parcela} | Cultivo: {detalle.nombre_cultivo || detalle.id_tipo_cultivo}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {detalle.procedencia_semilla && (
+                          <DetailField
+                            label="Procedencia de Semilla"
+                            value={formatEnumValue(detalle.procedencia_semilla)}
+                          />
+                        )}
+                        {detalle.categoria_semilla && (
+                          <DetailField
+                            label="Categoría de Semilla"
+                            value={formatEnumValue(detalle.categoria_semilla)}
+                          />
+                        )}
+                        {detalle.tratamiento_semillas && (
+                          <DetailField
+                            label="Tratamiento de Semillas"
+                            value={formatEnumValue(detalle.tratamiento_semillas)}
+                          />
+                        )}
+                        {detalle.tipo_abonamiento && (
+                          <DetailField
+                            label="Tipo de Abonamiento"
+                            value={
+                              detalle.tipo_abonamiento === "otro" && detalle.tipo_abonamiento_otro
+                                ? detalle.tipo_abonamiento_otro
+                                : formatEnumValue(detalle.tipo_abonamiento)
+                            }
+                          />
+                        )}
+                        {detalle.metodo_aporque && (
+                          <DetailField
+                            label="Método de Aporque"
+                            value={
+                              detalle.metodo_aporque === "otro" && detalle.metodo_aporque_otro
+                                ? detalle.metodo_aporque_otro
+                                : formatEnumValue(detalle.metodo_aporque)
+                            }
+                          />
+                        )}
+                        {detalle.control_hierbas && (
+                          <DetailField
+                            label="Control de Hierbas"
+                            value={
+                              detalle.control_hierbas === "otro" && detalle.control_hierbas_otro
+                                ? detalle.control_hierbas_otro
+                                : formatEnumValue(detalle.control_hierbas)
+                            }
+                          />
+                        )}
+                        {detalle.metodo_cosecha && (
+                          <DetailField
+                            label="Método de Cosecha"
+                            value={
+                              detalle.metodo_cosecha === "otro" && detalle.metodo_cosecha_otro
+                                ? detalle.metodo_cosecha_otro
+                                : formatEnumValue(detalle.metodo_cosecha)
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            );
+          })()}
+
+          {/* Cosecha y Ventas */}
+          {ficha.cosecha_ventas && ficha.cosecha_ventas.length > 0 && (
+            <Card title={`Cosecha y Ventas (${ficha.cosecha_ventas.length})`}>
+              <div className="space-y-3">
+                {ficha.cosecha_ventas.map((cosecha, index) => (
+                  <div
+                    key={cosecha.id_cosecha || index}
+                    className="p-4 border rounded-lg border-neutral-border"
+                  >
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <DetailField
+                        label="Tipo de Maní"
+                        value={cosecha.tipo_mani}
+                      />
+                      <DetailField
+                        label="Superficie Actual (ha)"
+                        value={cosecha.superficie_actual_ha?.toString() || "N/A"}
+                      />
+                      <DetailField
+                        label="Cosecha Estimada (qq)"
+                        value={cosecha.cosecha_estimada_qq?.toString() || "N/A"}
+                      />
+                      <DetailField
+                        label="Número de Parcelas"
+                        value={cosecha.numero_parcelas?.toString() || "N/A"}
+                      />
+                      <DetailField
+                        label="Destino Consumo (qq)"
+                        value={cosecha.destino_consumo_qq?.toString() || "0"}
+                      />
+                      <DetailField
+                        label="Destino Semilla (qq)"
+                        value={cosecha.destino_semilla_qq?.toString() || "0"}
+                      />
+                      <DetailField
+                        label="Destino Ventas (qq)"
+                        value={cosecha.destino_ventas_qq?.toString() || "0"}
+                      />
+                    </div>
+                    {cosecha.observaciones && (
+                      <div className="mt-3">
+                        <p className="text-sm font-medium text-text-secondary">Observaciones</p>
+                        <p className="mt-1 text-sm text-text-primary">
+                          {cosecha.observaciones}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Evaluación Poscosecha */}
+          {ficha.evaluacion_poscosecha && (
+            <Card title="Evaluación de Poscosecha">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ComplianceField
+                  label="Secado en Tendal"
+                  value={ficha.evaluacion_poscosecha.secado_tendal}
+                />
+                <ComplianceField
+                  label="Envases Limpios"
+                  value={ficha.evaluacion_poscosecha.envases_limpios}
+                />
+                <ComplianceField
+                  label="Almacén Protegido"
+                  value={ficha.evaluacion_poscosecha.almacen_protegido}
+                />
+                <ComplianceField
+                  label="Evidencia de Comercialización"
+                  value={ficha.evaluacion_poscosecha.evidencia_comercializacion}
+                />
+              </div>
+              {ficha.evaluacion_poscosecha.comentarios_poscosecha && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-text-secondary">Comentarios</p>
+                  <p className="mt-1 text-text-primary">
+                    {ficha.evaluacion_poscosecha.comentarios_poscosecha}
+                  </p>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Evaluación de Conocimiento de Normas */}
+          {ficha.evaluacion_conocimiento && (
+            <Card title="Conocimiento de Normas">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ComplianceField
+                  label="Conoce Normas Orgánicas"
+                  value={ficha.evaluacion_conocimiento.conoce_normas_organicas}
+                />
+                <ComplianceField
+                  label="Recibió Capacitación"
+                  value={ficha.evaluacion_conocimiento.recibio_capacitacion}
+                />
+              </div>
+              {ficha.evaluacion_conocimiento.comentarios_conocimiento && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-text-secondary">Comentarios</p>
+                  <p className="mt-1 text-text-primary">
+                    {ficha.evaluacion_conocimiento.comentarios_conocimiento}
+                  </p>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* No Conformidades */}
+          {ficha.no_conformidades && ficha.no_conformidades.length > 0 && (
+            <Card title={`No Conformidades (${ficha.no_conformidades.length})`}>
+              <div className="space-y-3">
+                {ficha.no_conformidades.map((nc, index) => (
+                  <div
+                    key={nc.id_no_conformidad || index}
+                    className="p-4 border-l-4 rounded-lg bg-error/5 border-error"
+                  >
                     <p className="font-medium text-text-primary">
-                      Parcela: {detalle.id_parcela} | Cultivo:{" "}
-                      {detalle.nombre_cultivo || `ID ${detalle.id_tipo_cultivo}`}
+                      {nc.descripcion_no_conformidad}
                     </p>
-                    {detalle.procedencia_semilla && (
+                    {nc.accion_correctiva_propuesta && (
+                      <p className="mt-2 text-sm text-text-secondary">
+                        Acción correctiva: {nc.accion_correctiva_propuesta}
+                      </p>
+                    )}
+                    {nc.fecha_limite_implementacion && (
                       <p className="mt-1 text-sm text-text-secondary">
-                        Semilla: {detalle.procedencia_semilla}
+                        Fecha límite: {new Date(nc.fecha_limite_implementacion).toLocaleDateString("es-BO")}
                       </p>
                     )}
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
-          {/* Actividades Pecuarias */}
-          {ficha.actividades_pecuarias &&
-            ficha.actividades_pecuarias.length > 0 && (
-              <div className="p-6 bg-white border rounded-lg border-neutral-border">
-                <h2 className="mb-4 text-lg font-semibold text-text-primary">
-                  Actividades Pecuarias ({ficha.actividades_pecuarias.length})
-                </h2>
-                <div className="space-y-3">
-                  {ficha.actividades_pecuarias.map((actividad, index) => (
-                    <div
-                      key={actividad.id_actividad || index}
-                      className="p-4 rounded-lg bg-neutral-bg"
-                    >
-                      <p className="font-medium text-text-primary">
-                        {actividad.tipo_ganado} - Cantidad: {actividad.cantidad}
-                      </p>
-                      <p className="mt-1 text-sm text-text-secondary">
-                        Uso de guano: {actividad.uso_guano}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
           {/* Workflow Actions */}
-          <div className="p-6 bg-white border rounded-lg border-neutral-border">
-            <h2 className="mb-4 text-lg font-semibold text-text-primary">
-              Acciones de Workflow
-            </h2>
+          <Card title="Acciones de Workflow">
             <FichaWorkflowActions
               idFicha={id!}
               estadoFicha={ficha.ficha.estado_ficha}
               onSuccess={refetch}
             />
-          </div>
+          </Card>
 
           {/* Archivos Adjuntos */}
-          <div className="p-6 bg-white border rounded-lg border-neutral-border">
+          <Card title="Archivos Adjuntos">
             <FichaArchivosSection
               idFicha={id!}
               archivos={ficha.archivos}
               canEdit={canEdit}
               onArchivosChange={refetch}
             />
-          </div>
-
-          {/* Recomendaciones */}
-          {ficha.ficha.recomendaciones && (
-            <div className="p-6 bg-white border rounded-lg border-neutral-border">
-              <h2 className="mb-4 text-lg font-semibold text-text-primary">
-                Recomendaciones
-              </h2>
-              <p className="text-text-secondary whitespace-pre-wrap">
-                {ficha.ficha.recomendaciones}
-              </p>
-            </div>
-          )}
+          </Card>
         </div>
-      </div>
-    </div>
+      </PageContainer>
+    </Layout>
   );
 }
 
-// Helper component for displaying field details
+// Helper component para mostrar campos detalle
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -351,4 +699,59 @@ function DetailField({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-text-primary">{value}</p>
     </div>
   );
+}
+
+// Helper component para mostrar campos de compliance con badge
+function ComplianceField({ label, value }: { label: string; value: ComplianceStatus }) {
+  const getComplianceColor = (status: ComplianceStatus) => {
+    switch (status) {
+      case "cumple":
+        return "bg-success/10 text-success";
+      case "parcial":
+        return "bg-warning/10 text-warning";
+      case "no_cumple":
+        return "bg-error/10 text-error";
+      case "no_aplica":
+        return "bg-neutral-bg text-text-secondary";
+      default:
+        return "bg-neutral-bg text-text-secondary";
+    }
+  };
+
+  const getComplianceLabel = (status: ComplianceStatus) => {
+    switch (status) {
+      case "cumple":
+        return "Cumple";
+      case "parcial":
+        return "Parcial";
+      case "no_cumple":
+        return "No Cumple";
+      case "no_aplica":
+        return "No Aplica";
+      default:
+        return status;
+    }
+  };
+
+  return (
+    <div>
+      <p className="text-sm font-medium text-text-secondary">{label}</p>
+      <span
+        className={`inline-flex items-center px-2 py-1 mt-1 text-xs font-medium rounded-full ${getComplianceColor(value)}`}
+      >
+        {getComplianceLabel(value)}
+      </span>
+    </div>
+  );
+}
+
+// Helper function para formatear valores enum de manera legible
+function formatEnumValue(value: string): string {
+  if (!value) return "N/A";
+
+  // Convertir snake_case a Title Case
+  return value
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }

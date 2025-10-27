@@ -63,6 +63,7 @@ interface ComplianceRadioGroupProps {
   disabled?: boolean;
   helperText?: string;
   showParcial?: boolean; // Controla si se muestra la opción "Parcial"
+  showNoAplica?: boolean; // Controla si se muestra la opción "No Aplica"
 }
 
 export const ComplianceRadioGroup = forwardRef<
@@ -80,13 +81,28 @@ export const ComplianceRadioGroup = forwardRef<
       disabled = false,
       helperText,
       showParcial = true,
+      showNoAplica = true,
     },
     ref
   ) => {
-    // Filtrar opciones según showParcial
-    const availableOptions = showParcial
-      ? COMPLIANCE_OPTIONS
-      : COMPLIANCE_OPTIONS.filter((opt) => opt.value !== "parcial");
+    // Filtrar opciones según showParcial y showNoAplica
+    let availableOptions = COMPLIANCE_OPTIONS;
+
+    if (!showParcial) {
+      availableOptions = availableOptions.filter((opt) => opt.value !== "parcial");
+    }
+
+    if (!showNoAplica) {
+      availableOptions = availableOptions.filter((opt) => opt.value !== "no_aplica");
+    }
+
+    // Calcular clases del grid según número de opciones
+    const optionsCount = availableOptions.length;
+    const gridColsClass = optionsCount === 2
+      ? "grid-cols-2"
+      : optionsCount === 3
+      ? "grid-cols-2 sm:grid-cols-3"
+      : "grid-cols-2 sm:grid-cols-4";
 
     return (
       <div ref={ref} className="space-y-3">
@@ -104,7 +120,7 @@ export const ComplianceRadioGroup = forwardRef<
 
         {/* Radio buttons grid */}
         <div
-          className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+          className={`grid ${gridColsClass} gap-3`}
           role="radiogroup"
           aria-label={label}
         >

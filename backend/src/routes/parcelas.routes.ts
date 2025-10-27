@@ -76,12 +76,13 @@ export default async function parcelasRoutes(
    * POST /api/productores/:codigo/parcelas
    * Crea una nueva parcela para un productor
    * Técnico: solo para productores de su comunidad
+   * Gerente: para cualquier productor
    * Admin: para cualquier productor
    */
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/productores/:codigo/parcelas",
     {
-      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      onRequest: [authenticate, requireRoles("tecnico", "gerente", "administrador")],
       schema: {
         description: "Crea una nueva parcela para un productor",
         tags: ["parcelas"],

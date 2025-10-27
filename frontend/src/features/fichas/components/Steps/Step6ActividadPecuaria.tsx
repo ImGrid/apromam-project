@@ -402,13 +402,13 @@ export default function Step6ActividadPecuaria() {
         </div>
       </FormSection>
 
-      {/* Campo general: Descripción uso guano */}
-      <FormSection>
+      {/* Comentarios generales sobre actividad pecuaria */}
+      <FormSection title="Comentarios extras">
         <FormField
-          error={errors.ficha?.descripcion_uso_guano_general?.message}
+          error={errors.ficha?.comentarios_actividad_pecuaria?.message}
         >
           <textarea
-            {...register("ficha.descripcion_uso_guano_general")}
+            {...register("ficha.comentarios_actividad_pecuaria")}
             rows={4}
             autoComplete="off"
             spellCheck="false"

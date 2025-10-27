@@ -60,6 +60,7 @@ export const CreateProductorSchema = z.object({
     .trim()
     .optional(),
   id_comunidad: UUIDSchema,
+  id_organizacion: UUIDSchema,
   año_ingreso_programa: z
     .number()
     .int()

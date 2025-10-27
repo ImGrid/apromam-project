@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import { FormField } from "@/shared/components/ui/FormField";
+import { FormSection } from "@/shared/components/ui/FormSection";
 import { Alert } from "@/shared/components/ui/Alert";
+import { SimpleRadioGroup } from "../Specialized/SimpleRadioGroup";
 import type { CreateFichaCompletaInput } from "../../types/ficha.types";
 
 export default function Step8CosechaVentas() {
@@ -22,6 +24,7 @@ export default function Step8CosechaVentas() {
     control,
     register,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<CreateFichaCompletaInput>();
 
@@ -32,7 +35,7 @@ export default function Step8CosechaVentas() {
 
   const handleAddCosecha = () => {
     append({
-      id_tipo_cultivo: "",
+      tipo_mani: "ecologico",
       superficie_actual_ha: 0,
       cosecha_estimada_qq: 0,
       numero_parcelas: 0,
@@ -49,11 +52,10 @@ export default function Step8CosechaVentas() {
       <div className="space-y-6">
         {fields.length === 0 ? (
           <Alert
-            type="info"
+            type="warning"
             message={
               <p className="text-sm">
-                No hay registros de cosecha. Agrega al menos un cultivo para
-                continuar.
+                Debe registrar la información de cosecha y ventas de maní. Haga clic en "Agregar Cultivo" para continuar.
               </p>
             }
           />
@@ -96,36 +98,45 @@ export default function Step8CosechaVentas() {
                     variant="danger"
                     size="small"
                     onClick={() => remove(index)}
+                    disabled={fields.length === 1}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Eliminar
                   </Button>
+                  {fields.length === 1 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Debe haber al menos 1 registro
+                    </p>
+                  )}
                 </div>
 
                 {/* Información del cultivo */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {/* ID tipo cultivo */}
+                  {/* Tipo de Maní */}
                   <FormField
-                    label="Tipo de Cultivo"
+                    label="Tipo de Maní"
                     required
-                    helperText="Selecciona el cultivo de la lista de cultivos registrados"
                     error={
-                      errors.cosecha_ventas?.[index]?.id_tipo_cultivo?.message
+                      errors.cosecha_ventas?.[index]?.tipo_mani?.message
                     }
                   >
-                    <input
-                      type="number"
-                      min="1"
-                      {...register(`cosecha_ventas.${index}.id_tipo_cultivo`, {
-                        valueAsNumber: true,
-                      })}
-                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="ID del cultivo"
+                    <SimpleRadioGroup
+                      name={`cosecha_ventas.${index}.tipo_mani`}
+                      value={watch(`cosecha_ventas.${index}.tipo_mani`) || "ecologico"}
+                      onChange={(value) =>
+                        setValue(`cosecha_ventas.${index}.tipo_mani`, value as "ecologico" | "transicion", {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                      }
+                      options={[
+                        { value: "ecologico", label: "Ecológico" },
+                        { value: "transicion", label: "En Transición" },
+                      ]}
+                      required
+                      error={errors.cosecha_ventas?.[index]?.tipo_mani?.message}
+                      layout="horizontal"
                     />
-                    <p className="mt-1 text-xs text-text-secondary">
-                      Nota: En una versión futura esto será un selector
-                      automático
-                    </p>
                   </FormField>
 
                   {/* Número de parcelas */}
@@ -390,16 +401,24 @@ export default function Step8CosechaVentas() {
       </div>
 
       {/* Botón agregar cosecha */}
-      <div className="flex justify-center pt-4">
+      <div className="flex flex-col items-center pt-4">
         <Button
           type="button"
           variant="secondary"
           onClick={handleAddCosecha}
           className="w-full sm:w-auto"
+          disabled={fields.length >= 1}
         >
           <Plus className="w-5 h-5 mr-2" />
           Agregar Cultivo
         </Button>
+        {fields.length >= 1 && (
+          <Alert
+            type="info"
+            message="Solo se permite 1 registro de cosecha y ventas por ficha"
+            className="mt-4"
+          />
+        )}
       </div>
     </div>
   );

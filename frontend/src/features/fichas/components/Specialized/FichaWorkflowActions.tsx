@@ -38,8 +38,6 @@ export function FichaWorkflowActions({
   const [showAprobarModal, setShowAprobarModal] = useState(false);
   const [showRechazarModal, setShowRechazarModal] = useState(false);
 
-  const [recomendaciones, setRecomendaciones] = useState("");
-  const [firmaInspector, setFirmaInspector] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [motivo, setMotivo] = useState("");
 
@@ -47,18 +45,9 @@ export function FichaWorkflowActions({
 
   // Handler para enviar a revisión
   const handleEnviarRevision = async () => {
-    if (!recomendaciones.trim() || !firmaInspector.trim()) {
-      return;
-    }
-
     try {
-      await enviarRevision(idFicha, {
-        recomendaciones: recomendaciones.trim(),
-        firma_inspector: firmaInspector.trim(),
-      });
+      await enviarRevision(idFicha, {});
       setShowEnviarModal(false);
-      setRecomendaciones("");
-      setFirmaInspector("");
       onSuccess?.();
     } catch (err) {
       // El error ya se muestra en el hook
@@ -144,53 +133,16 @@ export function FichaWorkflowActions({
       {/* Modal: Enviar a Revisión */}
       {showEnviarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-2xl p-6 bg-white rounded-lg shadow-xl">
+          <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl">
             <h2 className="mb-4 text-xl font-bold text-text-primary">
               Enviar Ficha a Revisión
             </h2>
-            <p className="mb-4 text-sm text-text-secondary">
-              La ficha será enviada al gerente para su aprobación. Completa los
-              siguientes campos:
+            <p className="mb-6 text-sm text-text-secondary">
+              ¿Estás seguro de que deseas enviar esta ficha a revisión?
+              La ficha será enviada al gerente para su aprobación.
             </p>
 
-            <div className="space-y-4">
-              {/* Recomendaciones */}
-              <div>
-                <label className="block mb-2 text-sm font-medium text-text-primary">
-                  Recomendaciones <span className="text-error">*</span>
-                </label>
-                <textarea
-                  value={recomendaciones}
-                  onChange={(e) => setRecomendaciones(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="Escribe tus recomendaciones finales..."
-                  rows={4}
-                  minLength={10}
-                  maxLength={2000}
-                />
-                <p className="mt-1 text-xs text-text-secondary">
-                  Mínimo 10 caracteres, máximo 2000
-                </p>
-              </div>
-
-              {/* Firma Inspector */}
-              <div>
-                <label className="block mb-2 text-sm font-medium text-text-primary">
-                  Firma del Inspector <span className="text-error">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={firmaInspector}
-                  onChange={(e) => setFirmaInspector(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="Escribe tu nombre completo"
-                  minLength={3}
-                  maxLength={100}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-2">
               <Button
                 variant="ghost"
                 onClick={() => setShowEnviarModal(false)}
@@ -201,13 +153,7 @@ export function FichaWorkflowActions({
               <Button
                 variant="primary"
                 onClick={handleEnviarRevision}
-                disabled={
-                  isEnviando ||
-                  !recomendaciones.trim() ||
-                  recomendaciones.trim().length < 10 ||
-                  !firmaInspector.trim() ||
-                  firmaInspector.trim().length < 3
-                }
+                disabled={isEnviando}
               >
                 {isEnviando ? "Enviando..." : "Enviar a Revisión"}
               </Button>

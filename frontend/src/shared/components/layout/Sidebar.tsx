@@ -66,12 +66,6 @@ export function Sidebar() {
       permission: () => permissions.canAccess("productores", "read"),
     },
     {
-      label: "Parcelas",
-      path: ROUTES.PARCELAS,
-      icon: MapPin,
-      permission: () => permissions.canAccess("parcelas", "read"),
-    },
-    {
       label: "Fichas",
       path: ROUTES.FICHAS,
       icon: ClipboardList,

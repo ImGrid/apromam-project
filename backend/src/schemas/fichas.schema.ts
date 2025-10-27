@@ -51,7 +51,7 @@ export const ProcedenciaSemillaSchema = z.enum(
 );
 
 export const CategoriaSemillaSchema = z.enum(
-  ["organica", "transicion", "convencional"],
+  ["organica", "transicion", "convencional", "ninguna"],
   {
     message: "Categoria de semilla invalida",
   }
@@ -59,6 +59,41 @@ export const CategoriaSemillaSchema = z.enum(
 
 export const TipoGanadoSchema = z.enum(["mayor", "menor", "aves"], {
   message: "Tipo de ganado debe ser: mayor, menor o aves",
+});
+
+// Seccion 7: Enums para manejo de cultivos
+export const TratamientoSemillasSchema = z.enum(
+  ["sin_tratamiento", "agroquimico", "insumos_organicos"],
+  {
+    message: "Tratamiento debe ser: sin_tratamiento, agroquimico o insumos_organicos",
+  }
+);
+
+export const TipoAbonamientoSchema = z.enum(
+  ["rastrojo", "guano", "otro"],
+  {
+    message: "Tipo de abonamiento debe ser: rastrojo, guano u otro",
+  }
+);
+
+export const MetodoAporqueSchema = z.enum(["con_yunta", "manual", "otro"], {
+  message: "Metodo de aporque debe ser: con_yunta, manual u otro",
+});
+
+export const ControlHierbasSchema = z.enum(
+  ["con_bueyes", "carpida_manual", "otro"],
+  {
+    message: "Control de hierbas debe ser: con_bueyes, carpida_manual u otro",
+  }
+);
+
+export const MetodoCosechaSchema = z.enum(["con_yunta", "manual", "otro"], {
+  message: "Metodo de cosecha debe ser: con_yunta, manual u otro",
+});
+
+// Seccion 8: Tipo de mani
+export const TipoManiSchema = z.enum(["ecologico", "transicion"], {
+  message: "Tipo de mani debe ser: ecologico o transicion",
 });
 
 export const TipoArchivoSchema = z.enum(
@@ -81,10 +116,6 @@ export const RevisionDocumentacionSchema = z.object({
   diario_campo: ComplianceStatusSchema,
   registro_cosecha: ComplianceStatusSchema,
   recibo_pago: ComplianceStatusSchema,
-  observaciones_documentacion: z
-    .string()
-    .max(1000, "Observaciones no pueden exceder 1000 caracteres")
-    .optional(),
 });
 
 export type RevisionDocumentacionInput = z.infer<
@@ -117,7 +148,6 @@ export const NoConformidadSchema = z.object({
     .max(500, "Accion correctiva no puede exceder 500 caracteres")
     .optional(),
   fecha_limite_implementacion: z.string().datetime().optional(),
-  estado_conformidad: z.string().default("pendiente"),
 });
 
 export type NoConformidadInput = z.infer<typeof NoConformidadSchema>;
@@ -137,6 +167,10 @@ export const EvaluacionMitigacionSchema = z.object({
     .string()
     .max(1000, "Descripcion no puede exceder 1000 caracteres")
     .optional(),
+  comentarios_sobre_practica_mitigacion: z
+    .string()
+    .max(1000, "Comentarios no pueden exceder 1000 caracteres")
+    .optional(),
 });
 
 export type EvaluacionMitigacionInput = z.infer<
@@ -152,6 +186,7 @@ export const EvaluacionPoscosechaSchema = z.object({
   comentarios_poscosecha: z
     .string()
     .max(1000, "Comentarios no pueden exceder 1000 caracteres")
+    .nullable()
     .optional(),
 });
 
@@ -166,6 +201,7 @@ export const EvaluacionConocimientoNormasSchema = z.object({
   comentarios_conocimiento: z
     .string()
     .max(1000, "Comentarios no pueden exceder 1000 caracteres")
+    .nullable()
     .optional(),
 });
 
@@ -198,38 +234,44 @@ export const ActividadPecuariaSchema = z.object({
 export type ActividadPecuariaInput = z.infer<typeof ActividadPecuariaSchema>;
 
 // Seccion 4/7: Detalle cultivo por parcela
+// Seccion 4 (todos los cultivos): id_parcela, id_tipo_cultivo, superficie_ha, situacion_actual
+// Seccion 7 (solo cultivos certificables): procedencia_semilla, categoria_semilla, etc.
 export const DetalleCultivoParcelaSchema = z.object({
+  // Seccion 4 - Inspeccion de parcelas (obligatorio para todos)
   id_parcela: UUIDSchema,
   id_tipo_cultivo: UUIDSchema,
   superficie_ha: z
     .number()
     .positive("Superficie debe ser mayor a 0")
     .max(10000, "Superficie no puede exceder 10,000 hectareas"),
-  procedencia_semilla: ProcedenciaSemillaSchema,
-  categoria_semilla: CategoriaSemillaSchema,
-  tratamiento_semillas: z
-    .string()
-    .max(200, "Tratamiento no puede exceder 200 caracteres")
-    .optional(),
-  tipo_abonamiento: z
-    .string()
-    .max(200, "Tipo de abonamiento no puede exceder 200 caracteres")
-    .optional(),
-  metodo_aporque: z
-    .string()
-    .max(200, "Metodo de aporque no puede exceder 200 caracteres")
-    .optional(),
-  control_hierbas: z
-    .string()
-    .max(200, "Control de hierbas no puede exceder 200 caracteres")
-    .optional(),
-  metodo_cosecha: z
-    .string()
-    .max(200, "Metodo de cosecha no puede exceder 200 caracteres")
-    .optional(),
   situacion_actual: z
     .string()
     .max(100, "Situacion actual no puede exceder 100 caracteres")
+    .optional(),
+
+  // Seccion 7 - Manejo del cultivo (opcional - solo para cultivos certificables)
+  procedencia_semilla: ProcedenciaSemillaSchema.optional(),
+  categoria_semilla: CategoriaSemillaSchema.optional(),
+  tratamiento_semillas: TratamientoSemillasSchema.optional(),
+  tipo_abonamiento: TipoAbonamientoSchema.optional(),
+  tipo_abonamiento_otro: z
+    .string()
+    .max(200, "Abonamiento otro no puede exceder 200 caracteres")
+    .optional(),
+  metodo_aporque: MetodoAporqueSchema.optional(),
+  metodo_aporque_otro: z
+    .string()
+    .max(200, "Aporque otro no puede exceder 200 caracteres")
+    .optional(),
+  control_hierbas: ControlHierbasSchema.optional(),
+  control_hierbas_otro: z
+    .string()
+    .max(200, "Control hierbas otro no puede exceder 200 caracteres")
+    .optional(),
+  metodo_cosecha: MetodoCosechaSchema.optional(),
+  metodo_cosecha_otro: z
+    .string()
+    .max(200, "Cosecha otro no puede exceder 200 caracteres")
     .optional(),
 });
 
@@ -237,10 +279,10 @@ export type DetalleCultivoParcelaInput = z.infer<
   typeof DetalleCultivoParcelaSchema
 >;
 
-// Seccion 8: Cosecha y ventas
+// Seccion 8: Cosecha y ventas (2 filas fijas: ecologico y transicion)
 export const CosechaVentasSchema = z
   .object({
-    id_tipo_cultivo: UUIDSchema,
+    tipo_mani: TipoManiSchema,
     superficie_actual_ha: z
       .number()
       .min(0, "Superficie no puede ser negativa")
@@ -301,6 +343,36 @@ export const ArchivoFichaSchema = z.object({
 
 export type ArchivoFichaInput = z.infer<typeof ArchivoFichaSchema>;
 
+// Schema para datos de inspeccion de parcelas
+// Estos datos se actualizan en la tabla parcelas al crear la ficha
+export const ParcelaInspeccionadaSchema = z.object({
+  id_parcela: UUIDSchema,
+  rotacion: z.boolean().optional(),
+  utiliza_riego: z.boolean().optional(),
+  tipo_barrera: z
+    .string()
+    .max(100, "Tipo barrera no puede exceder 100 caracteres")
+    .optional(),
+  insumos_organicos: z
+    .string()
+    .max(500, "Insumos organicos no puede exceder 500 caracteres")
+    .optional(),
+  latitud_sud: z
+    .number()
+    .min(-90, "Latitud debe estar entre -90 y 90")
+    .max(90, "Latitud debe estar entre -90 y 90")
+    .optional(),
+  longitud_oeste: z
+    .number()
+    .min(-180, "Longitud debe estar entre -180 y 180")
+    .max(180, "Longitud debe estar entre -180 y 180")
+    .optional(),
+});
+
+export type ParcelaInspeccionadaInput = z.infer<
+  typeof ParcelaInspeccionadaSchema
+>;
+
 // Schema principal: Crear ficha completa
 export const CreateFichaSchema = z.object({
   // Datos basicos (obligatorios)
@@ -337,23 +409,16 @@ export const CreateFichaSchema = z.object({
   actividades_pecuarias: z.array(ActividadPecuariaSchema).optional(),
   detalle_cultivos_parcelas: z.array(DetalleCultivoParcelaSchema).optional(),
   cosecha_ventas: z.array(CosechaVentasSchema).optional(),
+  parcelas_inspeccionadas: z.array(ParcelaInspeccionadaSchema).optional(),
 
-  // Contenido final (opcional)
-  recomendaciones: z
+  // Comentarios adicionales (opcional)
+  comentarios_actividad_pecuaria: z
     .string()
-    .max(2000, "Recomendaciones no pueden exceder 2000 caracteres")
+    .max(1000, "Comentarios actividad pecuaria no pueden exceder 1000 caracteres")
     .optional(),
   comentarios_evaluacion: z
     .string()
     .max(2000, "Comentarios no pueden exceder 2000 caracteres")
-    .optional(),
-  firma_productor: z
-    .string()
-    .max(100, "Firma no puede exceder 100 caracteres")
-    .optional(),
-  firma_inspector: z
-    .string()
-    .max(100, "Firma no puede exceder 100 caracteres")
     .optional(),
 });
 
@@ -381,25 +446,59 @@ export const UpdateFichaSchema = z.object({
   actividades_pecuarias: z.array(ActividadPecuariaSchema).optional(),
   detalle_cultivos_parcelas: z.array(DetalleCultivoParcelaSchema).optional(),
   cosecha_ventas: z.array(CosechaVentasSchema).optional(),
-  recomendaciones: z
+  parcelas_inspeccionadas: z.array(ParcelaInspeccionadaSchema).optional(),
+  comentarios_actividad_pecuaria: z
     .string()
-    .max(2000, "Recomendaciones no pueden exceder 2000 caracteres")
+    .max(1000, "Comentarios actividad pecuaria no pueden exceder 1000 caracteres")
     .optional(),
   comentarios_evaluacion: z
     .string()
     .max(2000, "Comentarios no pueden exceder 2000 caracteres")
     .optional(),
-  firma_productor: z
-    .string()
-    .max(100, "Firma no puede exceder 100 caracteres")
-    .optional(),
-  firma_inspector: z
-    .string()
-    .max(100, "Firma no puede exceder 100 caracteres")
-    .optional(),
 });
 
 export type UpdateFichaInput = z.infer<typeof UpdateFichaSchema>;
+
+// Schema para actualizar ficha completa (todas las secciones)
+// Similar a CreateFichaCompletaSchema pero sin codigo_productor ni gestion
+export const UpdateFichaCompletaSchema = z.object({
+  ficha: z.object({
+    fecha_inspeccion: z.string().datetime(),
+    inspector_interno: z
+      .string()
+      .min(3, "Inspector debe tener al menos 3 caracteres")
+      .max(100, "Inspector no puede exceder 100 caracteres"),
+    persona_entrevistada: z
+      .string()
+      .max(100, "Persona entrevistada no puede exceder 100 caracteres")
+      .optional(),
+    categoria_gestion_anterior: CategoriaProductorSchema.optional(),
+    comentarios_actividad_pecuaria: z
+      .string()
+      .max(1000, "Comentarios no pueden exceder 1000 caracteres")
+      .optional(),
+  }),
+  revision_documentacion: RevisionDocumentacionSchema.optional(),
+  acciones_correctivas: z.array(AccionCorrectivaSchema).default([]),
+  no_conformidades: z.array(NoConformidadSchema).default([]),
+  evaluacion_mitigacion: EvaluacionMitigacionSchema.optional(),
+  evaluacion_poscosecha: EvaluacionPoscosechaSchema.optional(),
+  evaluacion_conocimiento: EvaluacionConocimientoNormasSchema.optional(),
+  actividades_pecuarias: z.array(ActividadPecuariaSchema).default([]),
+  detalles_cultivo: z.array(DetalleCultivoParcelaSchema).default([]),
+  cosecha_ventas: z
+    .array(CosechaVentasSchema)
+    .refine((data) => data.length === 1, {
+      message: "Debe haber exactamente 1 registro de cosecha y ventas",
+    }),
+  parcelas_inspeccionadas: z
+    .array(ParcelaInspeccionadaSchema)
+    .default([]),
+});
+
+export type UpdateFichaCompletaInput = z.infer<
+  typeof UpdateFichaCompletaSchema
+>;
 
 // Schema para parametros de URL
 export const FichaParamsSchema = z.object({
@@ -436,16 +535,8 @@ export const FichaQuerySchema = z.object({
 export type FichaQuery = z.infer<typeof FichaQuerySchema>;
 
 // Schema para workflow: enviar a revision
-export const EnviarRevisionSchema = z.object({
-  recomendaciones: z
-    .string()
-    .min(10, "Recomendaciones deben tener al menos 10 caracteres")
-    .max(2000, "Recomendaciones no pueden exceder 2000 caracteres"),
-  firma_inspector: z
-    .string()
-    .min(3, "Firma de inspector es requerida")
-    .max(100, "Firma no puede exceder 100 caracteres"),
-});
+// Solo cambia el estado, no requiere campos adicionales
+export const EnviarRevisionSchema = z.object({});
 
 export type EnviarRevisionInput = z.infer<typeof EnviarRevisionSchema>;
 
@@ -485,10 +576,8 @@ export const FichaResponseSchema = z.object({
   estado_sync: EstadoSyncSchema,
   estado_ficha: EstadoFichaSchema,
   resultado_certificacion: ResultadoCertificacionSchema,
-  recomendaciones: z.string().optional(),
+  comentarios_actividad_pecuaria: z.string().optional(),
   comentarios_evaluacion: z.string().optional(),
-  firma_productor: z.string().optional(),
-  firma_inspector: z.string().optional(),
   created_by: UUIDSchema,
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),

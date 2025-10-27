@@ -58,7 +58,6 @@ export const tratamientoSemillasSchema = z.enum([
   "sin_tratamiento",
   "agroquimico",
   "insumos_organicos",
-  "otro",
 ]);
 
 export const tipoAbonamientoSchema = z.enum(["rastrojo", "guano", "otro"]);
@@ -72,6 +71,12 @@ export const controlHierbasSchema = z.enum([
 ]);
 
 export const metodoCosechaSchema = z.enum(["con_yunta", "manual", "otro"]);
+
+// Schema para Sección 8 - Cosecha y Ventas
+export const tipoManiSchema = z.enum(["ecologico", "transicion"]);
+
+// Tipo para barreras de parcelas
+export const tipoBarreraSchema = z.enum(["viva", "muerta", "ninguna"]);
 
 // ============================================
 // FICHA PRINCIPAL
@@ -113,29 +118,14 @@ export const fichaSchema = z.object({
   estado_sync: estadoSyncSchema.default("pendiente"),
   estado_ficha: estadoFichaSchema.default("borrador"),
   resultado_certificacion: resultadoCertificacionSchema.default("pendiente"),
-  recomendaciones: z
-    .string()
-    .max(2000, "Las recomendaciones no pueden exceder 2000 caracteres")
-    .trim()
-    .optional(),
   comentarios_evaluacion: z
     .string()
     .max(2000, "Los comentarios no pueden exceder 2000 caracteres")
     .trim()
     .optional(),
-  firma_productor: z
+  comentarios_actividad_pecuaria: z
     .string()
-    .max(100, "La firma no puede exceder 100 caracteres")
-    .trim()
-    .optional(),
-  firma_inspector: z
-    .string()
-    .max(100, "La firma no puede exceder 100 caracteres")
-    .trim()
-    .optional(),
-  descripcion_uso_guano_general: z
-    .string()
-    .max(1000, "La descripción no puede exceder 1000 caracteres")
+    .max(1000, "Los comentarios no pueden exceder 1000 caracteres")
     .trim()
     .optional(),
   nombre_productor: z.string().optional(),
@@ -158,10 +148,7 @@ export const updateFichaSchema = fichaSchema
     inspector_interno: true,
     persona_entrevistada: true,
     categoria_gestion_anterior: true,
-    recomendaciones: true,
     comentarios_evaluacion: true,
-    firma_productor: true,
-    firma_inspector: true,
   })
   .partial();
 
@@ -289,6 +276,7 @@ export const evaluacionPoscosechaSchema = z.object({
     .string()
     .max(1000, "Los comentarios no pueden exceder 1000 caracteres")
     .trim()
+    .nullable()
     .optional(),
 });
 
@@ -312,6 +300,7 @@ export const evaluacionConocimientoSchema = z.object({
     .string()
     .max(1000, "Los comentarios no pueden exceder 1000 caracteres")
     .trim()
+    .nullable()
     .optional(),
 });
 
@@ -376,11 +365,6 @@ export const detalleCultivoParcelaSchema = z
     procedencia_semilla: procedenciaSemillaSchema.optional(),
     categoria_semilla: categoriaSemillaSchema.optional(),
     tratamiento_semillas: tratamientoSemillasSchema.optional(),
-    tratamiento_semillas_otro: z
-      .string()
-      .max(200, "La descripción no puede exceder 200 caracteres")
-      .trim()
-      .optional(),
     tipo_abonamiento: tipoAbonamientoSchema.optional(),
     tipo_abonamiento_otro: z
       .string()
@@ -405,31 +389,16 @@ export const detalleCultivoParcelaSchema = z
       .max(200, "La descripción no puede exceder 200 caracteres")
       .trim()
       .optional(),
-    insumos_organicos_usados: z
+    situacion_actual: z
       .string()
-      .max(500, "Los insumos no pueden exceder 500 caracteres")
+      .max(100, "La situación actual no puede exceder 100 caracteres")
       .trim()
       .optional(),
+    // Campos enriquecidos (solo lectura)
     nombre_parcela: z.string().optional(),
     nombre_cultivo: z.string().optional(),
     es_principal_certificable: z.boolean().optional(),
   })
-  .refine(
-    (data) => {
-      if (data.tratamiento_semillas === "otro") {
-        return (
-          data.tratamiento_semillas_otro &&
-          data.tratamiento_semillas_otro.trim().length > 0
-        );
-      }
-      return true;
-    },
-    {
-      message:
-        "Debe especificar el tratamiento cuando selecciona 'otro'",
-      path: ["tratamiento_semillas_otro"],
-    }
-  )
   .refine(
     (data) => {
       if (data.tipo_abonamiento === "otro") {
@@ -502,6 +471,34 @@ export const createDetalleCultivoParcelaSchema =
   });
 
 // ============================================
+// PARCELAS INSPECCIONADAS (Seccion 4)
+// ============================================
+
+export const parcelaInspeccionadaSchema = z.object({
+  id_parcela: z.string().min(1, "La parcela es requerida"),
+  rotacion: z.boolean().optional(),
+  utiliza_riego: z.boolean().optional(),
+  tipo_barrera: tipoBarreraSchema.optional(),
+  insumos_organicos: z
+    .string()
+    .max(500, "Los insumos no pueden exceder 500 caracteres")
+    .trim()
+    .optional(),
+  latitud_sud: z
+    .number()
+    .min(-90, "Latitud inválida")
+    .max(90, "Latitud inválida")
+    .optional(),
+  longitud_oeste: z
+    .number()
+    .min(-180, "Longitud inválida")
+    .max(180, "Longitud inválida")
+    .optional(),
+});
+
+export const createParcelaInspeccionadaSchema = parcelaInspeccionadaSchema;
+
+// ============================================
 // COSECHA Y VENTAS
 // ============================================
 
@@ -509,7 +506,7 @@ export const cosechaVentasSchema = z
   .object({
     id_cosecha: z.string().optional(),
     id_ficha: z.string().optional(),
-    id_tipo_cultivo: z.string().min(1, "El cultivo es requerido"),
+    tipo_mani: tipoManiSchema,
     superficie_actual_ha: z
       .number()
       .positive("La superficie debe ser mayor a 0"),
@@ -534,7 +531,6 @@ export const cosechaVentasSchema = z
       .max(500, "Las observaciones no pueden exceder 500 caracteres")
       .trim()
       .optional(),
-    nombre_cultivo: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -554,42 +550,49 @@ export const cosechaVentasSchema = z
 export const createCosechaVentasSchema = cosechaVentasSchema.omit({
   id_cosecha: true,
   id_ficha: true,
-  nombre_cultivo: true,
 });
 
 // ============================================
 // FICHA COMPLETA
 // ============================================
 
-export const fichaCompletaSchema = z.object({
-  ficha: createFichaSchema,
-  revision_documentacion: createRevisionDocumentacionSchema.optional(),
-  acciones_correctivas: z.array(createAccionCorrectivaSchema).default([]),
-  no_conformidades: z.array(createNoConformidadSchema).default([]),
-  evaluacion_mitigacion: createEvaluacionMitigacionSchema.optional(),
-  evaluacion_poscosecha: createEvaluacionPoscosechaSchema.optional(),
-  evaluacion_conocimiento: createEvaluacionConocimientoSchema.optional(),
-  actividades_pecuarias: z.array(createActividadPecuariaSchema).default([]),
-  detalles_cultivo: z.array(createDetalleCultivoParcelaSchema).default([]),
-  cosecha_ventas: z.array(createCosechaVentasSchema).default([]),
+// Schema completo del formulario (incluye parcelas_inspeccionadas para draft)
+export const fichaCompletaFormSchema = z
+  .object({
+    ficha: createFichaSchema,
+    revision_documentacion: createRevisionDocumentacionSchema.optional(),
+    acciones_correctivas: z.array(createAccionCorrectivaSchema).default([]),
+    no_conformidades: z.array(createNoConformidadSchema).default([]),
+    evaluacion_mitigacion: createEvaluacionMitigacionSchema.optional(),
+    evaluacion_poscosecha: createEvaluacionPoscosechaSchema.optional(),
+    evaluacion_conocimiento: createEvaluacionConocimientoSchema.optional(),
+    actividades_pecuarias: z.array(createActividadPecuariaSchema).default([]),
+    parcelas_inspeccionadas: z
+      .array(createParcelaInspeccionadaSchema)
+      .default([]),
+    detalles_cultivo: z.array(createDetalleCultivoParcelaSchema).default([]),
+    cosecha_ventas: z.array(createCosechaVentasSchema).default([]),
+  })
+  .refine(
+    (data) => {
+      return data.cosecha_ventas.length === 1;
+    },
+    {
+      message: "Debe haber exactamente 1 registro de cosecha y ventas",
+      path: ["cosecha_ventas"],
+    }
+  );
+
+// Schema para enviar al backend (sin parcelas_inspeccionadas - se envían al finalizar)
+export const fichaCompletaSchema = fichaCompletaFormSchema.omit({
+  parcelas_inspeccionadas: true,
 });
 
 // ============================================
 // WORKFLOW ACTIONS
 // ============================================
 
-export const enviarRevisionSchema = z.object({
-  recomendaciones: z
-    .string()
-    .min(10, "Las recomendaciones deben tener al menos 10 caracteres")
-    .max(2000, "Las recomendaciones no pueden exceder 2000 caracteres")
-    .trim(),
-  firma_inspector: z
-    .string()
-    .min(3, "La firma debe tener al menos 3 caracteres")
-    .max(100, "La firma no puede exceder 100 caracteres")
-    .trim(),
-});
+export const enviarRevisionSchema = z.object({});
 
 export const aprobarFichaSchema = z.object({
   comentarios: z

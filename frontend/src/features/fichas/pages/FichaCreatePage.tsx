@@ -37,7 +37,7 @@ export default function FichaCreatePage() {
   const handleSubmit = async (data: CreateFichaCompletaInput) => {
     const ficha = await createFicha(data);
     // Redirigir al detalle de la ficha creada
-    navigate(ROUTES.FICHAS_DETAIL(ficha.ficha.id_ficha));
+    navigate(ROUTES.FICHAS_DETAIL(ficha.id_ficha));
   };
 
   const handleMobileMenuToggle = useCallback(() => {

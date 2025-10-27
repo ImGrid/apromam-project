@@ -4,6 +4,7 @@ import { ProductoresController } from "../controllers/productores.controller.js"
 import { ProductoresService } from "../services/productores.service.js";
 import { ProductorRepository } from "../repositories/ProductorRepository.js";
 import { ComunidadRepository } from "../repositories/ComunidadRepository.js";
+import { OrganizacionRepository } from "../repositories/OrganizacionRepository.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { requireRoles, requireAdmin } from "../middleware/authorize.js";
 import {
@@ -27,9 +28,11 @@ export default async function productoresRoutes(
   // Inicializar dependencias
   const productorRepository = new ProductorRepository();
   const comunidadRepository = new ComunidadRepository();
+  const organizacionRepository = new OrganizacionRepository();
   const productoresService = new ProductoresService(
     productorRepository,
-    comunidadRepository
+    comunidadRepository,
+    organizacionRepository
   );
   const productoresController = new ProductoresController(productoresService);
 
@@ -157,14 +160,13 @@ export default async function productoresRoutes(
 
   // POST /api/productores
   // Crea un nuevo productor
-  // Tecnico: solo en su comunidad
-  // Gerente y Admin: en cualquier comunidad
+  // Solo Gerente y Admin pueden crear
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/",
     {
       onRequest: [
         authenticate,
-        requireRoles("tecnico", "gerente", "administrador"),
+        requireRoles("gerente", "administrador"),
       ],
       schema: {
         description: "Crea un nuevo productor",
@@ -191,14 +193,13 @@ export default async function productoresRoutes(
 
   // PUT /api/productores/:codigo
   // Actualiza un productor existente
-  // Tecnico: solo de su comunidad
-  // Gerente y Admin: cualquier productor
+  // Solo Gerente y Admin pueden actualizar
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/:codigo",
     {
       onRequest: [
         authenticate,
-        requireRoles("tecnico", "gerente", "administrador"),
+        requireRoles("gerente", "administrador"),
       ],
       schema: {
         description: "Actualiza un productor existente",

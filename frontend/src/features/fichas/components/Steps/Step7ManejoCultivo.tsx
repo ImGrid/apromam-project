@@ -27,7 +27,6 @@ interface CampoSeccion7 {
   opciones: Array<{ value: string; label: string }>;
   tieneOtro: boolean;
   campoOtro?:
-    | "tratamiento_semillas_otro"
     | "tipo_abonamiento_otro"
     | "metodo_aporque_otro"
     | "control_hierbas_otro"
@@ -93,10 +92,8 @@ export default function Step7ManejoCultivo() {
         { value: "sin_tratamiento", label: "Sin tratamiento" },
         { value: "agroquimico", label: "Agroquímico" },
         { value: "insumos_organicos", label: "Insumos orgánicos" },
-        { value: "otro", label: "Otro" },
       ],
-      tieneOtro: true,
-      campoOtro: "tratamiento_semillas_otro",
+      tieneOtro: false,
     },
     {
       campo: "tipo_abonamiento",

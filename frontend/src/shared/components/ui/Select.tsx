@@ -1,6 +1,8 @@
-import { useState, useRef, forwardRef } from "react";
+import { useState, useRef, forwardRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Search, Check } from "lucide-react";
 import { useClickOutside } from "@/shared/hooks/useClickOutside";
+import { usePortalPosition } from "@/shared/hooks/usePortalPosition";
 
 export interface SelectOption {
   value: string;
@@ -41,8 +43,29 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const containerRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
-    useClickOutside(containerRef, () => setIsOpen(false), isOpen);
+    // Calcular posición dinámica para el portal
+    const portalPosition = usePortalPosition({
+      triggerRef: buttonRef,
+      contentRef: dropdownRef,
+      isOpen,
+      offset: 8,
+      position: "bottom",
+    });
+
+    // Cerrar cuando se hace clic fuera
+    useClickOutside(dropdownRef, () => setIsOpen(false), isOpen);
+
+    // Focus en el input de búsqueda sin causar scroll
+    useEffect(() => {
+      if (isOpen && searchable && searchInputRef.current) {
+        // Usar preventScroll para evitar el salto de página
+        searchInputRef.current.focus({ preventScroll: true });
+      }
+    }, [isOpen, searchable]);
 
     const selectedOption = options.find((opt) => opt.value === value);
 
@@ -74,7 +97,14 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
 
         {/* Select trigger */}
         <button
-          ref={ref}
+          ref={(node) => {
+            buttonRef.current = node;
+            if (typeof ref === "function") {
+              ref(node);
+            } else if (ref) {
+              ref.current = node;
+            }
+          }}
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
@@ -110,78 +140,90 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
           />
         </button>
 
-        {/* Dropdown */}
-        {isOpen && (
-          <div className="absolute z-50 w-full mt-2 overflow-hidden bg-white border rounded-md shadow-lg border-neutral-border max-h-64">
-            {/* Search input */}
-            {searchable && (
-              <div className="p-2 border-b border-neutral-border">
-                <div className="relative">
-                  <Search className="absolute w-4 h-4 transform -translate-y-1/2 left-3 top-1/2 text-text-secondary" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar..."
-                    className="w-full py-2 pl-10 pr-3 text-sm border rounded-md border-neutral-border focus:outline-none focus:ring-2 focus:ring-primary"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Options list */}
-            <ul
-              role="listbox"
-              className="overflow-y-auto max-h-52"
-              style={{ WebkitOverflowScrolling: "touch" }}
+        {/* Dropdown - Renderizado en Portal */}
+        {isOpen &&
+          createPortal(
+            <div
+              ref={dropdownRef}
+              style={{
+                position: "absolute",
+                top: `${portalPosition.top}px`,
+                left: `${portalPosition.left}px`,
+                width: `${portalPosition.width}px`,
+                zIndex: 9999,
+              }}
+              className="overflow-hidden bg-white border rounded-md shadow-lg border-neutral-border max-h-64 animate-in fade-in-0 zoom-in-95 duration-100"
             >
-              {filteredOptions.length === 0 ? (
-                <li className="px-4 py-3 text-sm text-center text-text-secondary">
-                  No hay opciones disponibles
-                </li>
-              ) : (
-                filteredOptions.map((option) => {
-                  const isSelected = option.value === value;
-
-                  return (
-                    <li key={option.value}>
-                      <button
-                        type="button"
-                        onClick={() => handleSelect(option.value)}
-                        disabled={option.disabled}
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`
-                          w-full px-4 py-3 text-left text-sm
-                          flex items-center justify-between gap-2
-                          transition-colors touch-target
-                          ${
-                            isSelected
-                              ? "bg-primary/10 text-primary font-medium"
-                              : "text-text-primary hover:bg-neutral-bg"
-                          }
-                          ${
-                            option.disabled
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                          }
-                        `}
-                      >
-                        <span className="flex items-center gap-2">
-                          {option.icon && <span>{option.icon}</span>}
-                          {option.label}
-                        </span>
-
-                        {isSelected && <Check className="w-4 h-4" />}
-                      </button>
-                    </li>
-                  );
-                })
+              {/* Search input */}
+              {searchable && (
+                <div className="p-2 border-b border-neutral-border">
+                  <div className="relative">
+                    <Search className="absolute w-4 h-4 transform -translate-y-1/2 left-3 top-1/2 text-text-secondary" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar..."
+                      className="w-full py-2 pl-10 pr-3 text-sm border rounded-md border-neutral-border focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
               )}
-            </ul>
-          </div>
-        )}
+
+              {/* Options list */}
+              <ul
+                role="listbox"
+                className="overflow-y-auto max-h-52"
+                style={{ WebkitOverflowScrolling: "touch" }}
+              >
+                {filteredOptions.length === 0 ? (
+                  <li className="px-4 py-3 text-sm text-center text-text-secondary">
+                    No hay opciones disponibles
+                  </li>
+                ) : (
+                  filteredOptions.map((option) => {
+                    const isSelected = option.value === value;
+
+                    return (
+                      <li key={option.value}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelect(option.value)}
+                          disabled={option.disabled}
+                          role="option"
+                          aria-selected={isSelected}
+                          className={`
+                            w-full px-4 py-3 text-left text-sm
+                            flex items-center justify-between gap-2
+                            transition-colors touch-target
+                            ${
+                              isSelected
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-text-primary hover:bg-neutral-bg"
+                            }
+                            ${
+                              option.disabled
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }
+                          `}
+                        >
+                          <span className="flex items-center gap-2">
+                            {option.icon && <span>{option.icon}</span>}
+                            {option.label}
+                          </span>
+
+                          {isSelected && <Check className="w-4 h-4" />}
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            </div>,
+            document.body
+          )}
 
         {/* Error message */}
         {error && (

@@ -24,6 +24,7 @@ const productorSchema = z.object({
   nombre_productor: z.string().min(3, "Mínimo 3 caracteres"),
   ci_documento: z.string().min(5, "CI inválido"),
   id_comunidad: z.string().min(1, "Selecciona una comunidad"),
+  id_organizacion: z.string().min(1, "Selecciona una organización"),
   año_ingreso_programa: z
     .number()
     .min(2000, "Año inválido")
@@ -51,6 +52,7 @@ export function CreateProductorModal({
   const { user } = useAuth();
   const { createProductor, isLoading } = useCreateProductor();
   const [comunidades, setComunidades] = useState<SelectOption[]>([]);
+  const [organizaciones, setOrganizaciones] = useState<SelectOption[]>([]);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [parcelas, setParcelas] = useState<ParcelaSuperficie[]>([]);
   const [parcelasError, setParcelasError] = useState<string>("");
@@ -97,16 +99,38 @@ export function CreateProductorModal({
     }
   }, [user]);
 
-  // Cargar comunidades al abrir modal
+  // Cargar organizaciones
+  const loadOrganizaciones = useCallback(async () => {
+    try {
+      const response = await apiClient.get<{
+        organizaciones: Array<{
+          id_organizacion: string;
+          nombre_organizacion: string;
+        }>;
+      }>(ENDPOINTS.ORGANIZACIONES.BASE);
+
+      setOrganizaciones(
+        response.data.organizaciones.map((o) => ({
+          value: o.id_organizacion,
+          label: o.nombre_organizacion,
+        }))
+      );
+    } catch {
+      console.error("Error cargando organizaciones");
+    }
+  }, []);
+
+  // Cargar comunidades y organizaciones al abrir modal
   useEffect(() => {
     if (isOpen) {
       loadComunidades();
+      loadOrganizaciones();
       // Si es tecnico, preseleccionar su comunidad
       if (user?.nombre_rol.toLowerCase() === "técnico" && user.id_comunidad) {
         setValue("id_comunidad", user.id_comunidad);
       }
     }
-  }, [isOpen, user, setValue, loadComunidades]);
+  }, [isOpen, user, setValue, loadComunidades, loadOrganizaciones]);
 
   // Handler para cuando se selecciona una ubicación en el mapa
   const handleLocationSelect = useCallback(
@@ -148,6 +172,7 @@ export function CreateProductorModal({
         nombre_productor: data.nombre_productor,
         ci_documento: data.ci_documento,
         id_comunidad: data.id_comunidad,
+        id_organizacion: data.id_organizacion,
         año_ingreso_programa: data.año_ingreso_programa,
         categoria_actual: data.categoria_actual,
         superficie_total_has: data.superficie_total_has,
@@ -231,6 +256,12 @@ export function CreateProductorModal({
         </FormSection>
 
         <FormSection title="Información del Programa">
+          <div className="p-3 mb-4 rounded-lg bg-warning/10 border border-warning/20">
+            <p className="text-sm font-medium text-warning">
+              El código se genera automáticamente y es permanente
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               label="Comunidad"
@@ -250,6 +281,21 @@ export function CreateProductorModal({
             </FormField>
 
             <FormField
+              label="Organización"
+              required
+              error={errors.id_organizacion?.message}
+            >
+              <Select
+                options={organizaciones}
+                value={watch("id_organizacion") || ""}
+                onChange={(value) => setValue("id_organizacion", value)}
+                placeholder="Selecciona una organización"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
               label="Categoría"
               required
               error={errors.categoria_actual?.message}
@@ -266,21 +312,21 @@ export function CreateProductorModal({
                 placeholder="Selecciona categoría"
               />
             </FormField>
-          </div>
 
-          <FormField
-            label="Año de Ingreso"
-            required
-            error={errors.año_ingreso_programa?.message}
-          >
-            <Input
-              {...register("año_ingreso_programa", { valueAsNumber: true })}
-              type="number"
-              min={2000}
-              max={new Date().getFullYear()}
-              placeholder={new Date().getFullYear().toString()}
-            />
-          </FormField>
+            <FormField
+              label="Año de Ingreso"
+              required
+              error={errors.año_ingreso_programa?.message}
+            >
+              <Input
+                {...register("año_ingreso_programa", { valueAsNumber: true })}
+                type="number"
+                min={2000}
+                max={new Date().getFullYear()}
+                placeholder={new Date().getFullYear().toString()}
+              />
+            </FormField>
+          </div>
         </FormSection>
 
         <FormSection

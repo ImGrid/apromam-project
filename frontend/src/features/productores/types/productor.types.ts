@@ -35,6 +35,7 @@ export interface CreateProductorInput {
   nombre_productor: string;
   ci_documento?: string;
   id_comunidad: string;
+  id_organizacion: string;
   año_ingreso_programa: number;
   categoria_actual?: CategoriaProductor;
   superficie_total_has?: number;

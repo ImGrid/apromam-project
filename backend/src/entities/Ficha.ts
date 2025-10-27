@@ -25,10 +25,8 @@ export interface FichaData {
   resultado_certificacion: ResultadoCertificacion;
 
   // Contenido
-  recomendaciones?: string | null;
+  comentarios_actividad_pecuaria?: string | null;
   comentarios_evaluacion?: string | null;
-  firma_productor?: string | null;
-  firma_inspector?: string | null;
 
   // Auditoria
   created_by: string;
@@ -56,10 +54,8 @@ export interface FichaPublicData {
   estado_sync: EstadoSync;
   estado_ficha: EstadoFicha;
   resultado_certificacion: ResultadoCertificacion;
-  recomendaciones?: string;
+  comentarios_actividad_pecuaria?: string;
   comentarios_evaluacion?: string;
-  firma_productor?: string;
-  firma_inspector?: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -126,20 +122,12 @@ export class Ficha {
   }
 
   // Getters Contenido
-  get recomendaciones(): string | null {
-    return this.data.recomendaciones ?? null;
+  get comentariosActividadPecuaria(): string | null {
+    return this.data.comentarios_actividad_pecuaria ?? null;
   }
 
   get comentariosEvaluacion(): string | null {
     return this.data.comentarios_evaluacion ?? null;
-  }
-
-  get firmaProductor(): string | null {
-    return this.data.firma_productor ?? null;
-  }
-
-  get firmaInspector(): string | null {
-    return this.data.firma_inspector ?? null;
   }
 
   // Getters Auditoria
@@ -275,8 +263,11 @@ export class Ficha {
       errors.push("Resultado certificacion invalido");
     }
 
-    if (this.data.recomendaciones && this.data.recomendaciones.length > 2000) {
-      errors.push("Recomendaciones no pueden exceder 2000 caracteres");
+    if (
+      this.data.comentarios_actividad_pecuaria &&
+      this.data.comentarios_actividad_pecuaria.length > 1000
+    ) {
+      errors.push("Comentarios actividad pecuaria no pueden exceder 1000 caracteres");
     }
 
     if (
@@ -284,14 +275,6 @@ export class Ficha {
       this.data.comentarios_evaluacion.length > 2000
     ) {
       errors.push("Comentarios evaluacion no pueden exceder 2000 caracteres");
-    }
-
-    if (this.data.firma_productor && this.data.firma_productor.length > 100) {
-      errors.push("Firma productor no puede exceder 100 caracteres");
-    }
-
-    if (this.data.firma_inspector && this.data.firma_inspector.length > 100) {
-      errors.push("Firma inspector no puede exceder 100 caracteres");
     }
 
     if (!this.data.created_by) {
@@ -325,10 +308,8 @@ export class Ficha {
       estado_sync: this.data.estado_sync,
       estado_ficha: this.data.estado_ficha,
       resultado_certificacion: this.data.resultado_certificacion,
-      recomendaciones: this.data.recomendaciones?.trim() || null,
+      comentarios_actividad_pecuaria: this.data.comentarios_actividad_pecuaria?.trim() || null,
       comentarios_evaluacion: this.data.comentarios_evaluacion?.trim() || null,
-      firma_productor: this.data.firma_productor?.trim() || null,
-      firma_inspector: this.data.firma_inspector?.trim() || null,
       created_by: this.data.created_by,
     };
   }
@@ -356,10 +337,8 @@ export class Ficha {
       estado_sync: this.data.estado_sync,
       estado_ficha: this.data.estado_ficha,
       resultado_certificacion: this.data.resultado_certificacion,
-      recomendaciones: this.data.recomendaciones?.trim() || null,
+      comentarios_actividad_pecuaria: this.data.comentarios_actividad_pecuaria?.trim() || null,
       comentarios_evaluacion: this.data.comentarios_evaluacion?.trim() || null,
-      firma_productor: this.data.firma_productor?.trim() || null,
-      firma_inspector: this.data.firma_inspector?.trim() || null,
       updated_at: new Date(),
     };
   }
@@ -382,10 +361,8 @@ export class Ficha {
       estado_sync: this.data.estado_sync,
       estado_ficha: this.data.estado_ficha,
       resultado_certificacion: this.data.resultado_certificacion,
-      recomendaciones: this.data.recomendaciones ?? undefined,
+      comentarios_actividad_pecuaria: this.data.comentarios_actividad_pecuaria ?? undefined,
       comentarios_evaluacion: this.data.comentarios_evaluacion ?? undefined,
-      firma_productor: this.data.firma_productor ?? undefined,
-      firma_inspector: this.data.firma_inspector ?? undefined,
       created_by: this.data.created_by,
       created_at: this.data.created_at.toISOString(),
       updated_at: this.data.updated_at.toISOString(),
@@ -430,21 +407,11 @@ export class Ficha {
   }
 
   // Envia a revision
-  enviarRevision(recomendaciones: string, firmaInspector: string): void {
+  enviarRevision(): void {
     if (!this.puedeEnviarRevision()) {
       throw new Error("Solo se puede enviar a revision una ficha en borrador");
     }
 
-    if (!recomendaciones || recomendaciones.trim().length < 10) {
-      throw new Error("Recomendaciones son requeridas (minimo 10 caracteres)");
-    }
-
-    if (!firmaInspector || firmaInspector.trim().length < 3) {
-      throw new Error("Firma del inspector es requerida");
-    }
-
-    this.data.recomendaciones = recomendaciones.trim();
-    this.data.firma_inspector = firmaInspector.trim();
     this.data.estado_ficha = "revision";
     this.data.updated_at = new Date();
   }
@@ -464,7 +431,7 @@ export class Ficha {
     this.data.updated_at = new Date();
   }
 
-  // Rechaza la ficha
+  // Rechaza la ficha y la devuelve automaticamente a borrador
   rechazar(motivo: string): void {
     if (!this.puedeRechazar()) {
       throw new Error("Solo se puede rechazar una ficha en revision");
@@ -474,22 +441,18 @@ export class Ficha {
       throw new Error("Motivo de rechazo es requerido (minimo 10 caracteres)");
     }
 
+    // Guardar motivo del rechazo
     this.data.comentarios_evaluacion = motivo.trim();
-    this.data.estado_ficha = "rechazado";
-    this.data.resultado_certificacion = "rechazado";
-    this.data.updated_at = new Date();
-  }
 
-  // Devuelve a borrador (para correccion)
-  devolverBorrador(): void {
-    if (this.data.estado_ficha !== "rechazado") {
-      throw new Error("Solo se puede devolver a borrador una ficha rechazada");
-    }
-
+    // Cambiar DIRECTAMENTE a borrador (no quedarse en "rechazado")
     this.data.estado_ficha = "borrador";
-    this.data.resultado_certificacion = "pendiente";
+
+    // Marcar el resultado como rechazado (para historial)
+    this.data.resultado_certificacion = "rechazado";
+
     this.data.updated_at = new Date();
   }
+
 
   // METODOS DE CONTROL PWA
 
@@ -547,23 +510,13 @@ export class Ficha {
     this.data.updated_at = new Date();
   }
 
-  // Actualiza recomendaciones
-  actualizarRecomendaciones(recomendaciones: string): void {
-    if (recomendaciones.length > 2000) {
-      throw new Error("Recomendaciones no pueden exceder 2000 caracteres");
+  // Actualiza comentarios actividad pecuaria
+  actualizarComentariosActividadPecuaria(comentarios: string): void {
+    if (comentarios.length > 1000) {
+      throw new Error("Comentarios actividad pecuaria no pueden exceder 1000 caracteres");
     }
 
-    this.data.recomendaciones = recomendaciones.trim();
-    this.data.updated_at = new Date();
-  }
-
-  // Actualiza firma productor
-  actualizarFirmaProductor(firma: string): void {
-    if (firma.length > 100) {
-      throw new Error("Firma productor no puede exceder 100 caracteres");
-    }
-
-    this.data.firma_productor = firma.trim();
+    this.data.comentarios_actividad_pecuaria = comentarios.trim();
     this.data.updated_at = new Date();
   }
 }

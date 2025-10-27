@@ -130,31 +130,9 @@ export interface ActividadPecuariaData {
 }
 
 // Sección 4/7: Detalle cultivo por parcela
-export interface DetalleCultivoParcelaData {
-  id_detalle: string;
-  id_ficha: string;
-  id_parcela: string;
-  id_tipo_cultivo: string;
-  superficie_ha: number;
-  procedencia_semilla: ProcedenciaSemilla;
-  categoria_semilla: CategoriaSemilla;
-  tratamiento_semillas?: TratamientoSemillas;
-  tratamiento_semillas_otro?: string;
-  tipo_abonamiento?: TipoAbonamiento;
-  tipo_abonamiento_otro?: string;
-  metodo_aporque?: MetodoAporque;
-  metodo_aporque_otro?: string;
-  control_hierbas?: ControlHierbas;
-  control_hierbas_otro?: string;
-  metodo_cosecha?: MetodoCosecha;
-  metodo_cosecha_otro?: string;
-  rotacion: boolean;
-  insumos_organicos_usados?: string;
-  created_at: Date;
-  // Datos enriquecidos por JOINs
-  nombre_cultivo?: string;
-  numero_parcela?: number;
-}
+// IMPORTAR desde entities/DetalleCultivoParcela.ts - NO duplicar aquí
+import type { DetalleCultivoParcelaData } from "../entities/DetalleCultivoParcela.js";
+export type { DetalleCultivoParcelaData };
 
 // Sección 8: Cosecha y ventas
 export interface CosechaVentasData {
@@ -208,10 +186,7 @@ export interface FichaData {
   resultado_certificacion: ResultadoCertificacion;
 
   // Contenido final
-  recomendaciones?: string;
   comentarios_evaluacion?: string;
-  firma_productor?: string;
-  firma_inspector?: string;
 
   // Auditoría
   created_by: string;
@@ -278,10 +253,7 @@ export interface CreateFichaCompletaInput {
   >[];
 
   // Contenido final (solo en envío a revisión)
-  recomendaciones?: string;
   comentarios_evaluacion?: string;
-  firma_productor?: string;
-  firma_inspector?: string;
 }
 
 // Input para actualizar ficha (similar pero todo opcional)
@@ -322,10 +294,7 @@ export interface UpdateFichaCompletaInput {
     CosechaVentasData,
     "id_cosecha" | "id_ficha" | "created_at"
   >[];
-  recomendaciones?: string;
   comentarios_evaluacion?: string;
-  firma_productor?: string;
-  firma_inspector?: string;
 }
 
 // Response público para API

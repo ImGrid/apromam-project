@@ -77,6 +77,7 @@ export default function Step10ConocimientoNormas() {
                     })
                   }
                   error={errors.evaluacion_conocimiento?.[pregunta.campo]?.message}
+                  showNoAplica={false}
                 />
               </div>
             </div>
@@ -97,6 +98,7 @@ export default function Step10ConocimientoNormas() {
                   })
                 }
                 error={errors.evaluacion_conocimiento?.[pregunta.campo]?.message}
+                showNoAplica={false}
               />
             </FormField>
           ))}
@@ -104,7 +106,7 @@ export default function Step10ConocimientoNormas() {
       </FormSection>
 
       {/* Comentarios */}
-      <FormSection>
+      <FormSection title="Comentarios extras">
         <FormField>
           <textarea
             {...register("evaluacion_conocimiento.comentarios_conocimiento")}

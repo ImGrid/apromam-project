@@ -21,7 +21,8 @@ export function ProductoresList({
   onEdit,
   onDelete,
 }: ProductoresListProps) {
-  const columns: DataTableColumn<Productor>[] = [
+  // Columnas base sin acciones
+  const baseColumns: DataTableColumn<Productor>[] = [
     {
       key: 'codigo_productor',
       label: 'Código',
@@ -130,31 +131,39 @@ export function ProductoresList({
         </Badge>
       ),
     },
-    {
-      key: 'acciones',
-      label: 'Acciones',
-      render: (productor) => (
-        <div className="flex items-center gap-1">
-          {onEdit && (
-            <IconButton
-              icon={<Edit className="w-4 h-4" />}
-              tooltip="Editar productor"
-              variant="primary"
-              onClick={() => onEdit(productor)}
-            />
-          )}
-          {onDelete && (
-            <IconButton
-              icon={<Trash2 className="w-4 h-4" />}
-              tooltip="Eliminar productor"
-              variant="danger"
-              onClick={() => onDelete(productor)}
-            />
-          )}
-        </div>
-      ),
-    },
   ];
+
+  // Solo agregar columna de acciones si hay handlers disponibles
+  const columns: DataTableColumn<Productor>[] =
+    onEdit || onDelete
+      ? [
+          ...baseColumns,
+          {
+            key: 'acciones',
+            label: 'Acciones',
+            render: (productor) => (
+              <div className="flex items-center gap-1">
+                {onEdit && (
+                  <IconButton
+                    icon={<Edit className="w-4 h-4" />}
+                    tooltip="Editar productor"
+                    variant="primary"
+                    onClick={() => onEdit(productor)}
+                  />
+                )}
+                {onDelete && (
+                  <IconButton
+                    icon={<Trash2 className="w-4 h-4" />}
+                    tooltip="Eliminar productor"
+                    variant="danger"
+                    onClick={() => onDelete(productor)}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : baseColumns;
 
   return (
     <DataTable

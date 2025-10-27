@@ -40,11 +40,6 @@ const tecnicoNavItems = [
     path: ROUTES.PRODUCTORES,
     icon: Leaf,
   },
-  {
-    label: "Parcelas",
-    path: ROUTES.PARCELAS,
-    icon: MapPin,
-  },
 ];
 
 function TecnicoSidebar() {

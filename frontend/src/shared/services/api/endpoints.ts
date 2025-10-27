@@ -39,6 +39,12 @@ export const ENDPOINTS = {
     MUNICIPIOS_BY_ID: (id: string) => `/api/geograficas/municipios/${id}`,
   },
 
+  // Organizaciones
+  ORGANIZACIONES: {
+    BASE: "/api/organizaciones",
+    BY_ID: (id: string) => `/api/organizaciones/${id}`,
+  },
+
   // Productores
   PRODUCTORES: {
     BASE: "/api/productores",

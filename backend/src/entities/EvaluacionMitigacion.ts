@@ -12,6 +12,7 @@ export interface EvaluacionMitigacionData {
   evita_quema_residuos: ComplianceStatus;
   practica_mitigacion_riesgos_descripcion?: string | null;
   mitigacion_contaminacion_descripcion?: string | null;
+  comentarios_sobre_practica_mitigacion?: string | null;
 }
 
 // Interfaz para datos publicos (response)
@@ -25,6 +26,7 @@ export interface EvaluacionMitigacionPublicData {
   evita_quema_residuos: ComplianceStatus;
   practica_mitigacion_riesgos_descripcion?: string | null;
   mitigacion_contaminacion_descripcion?: string | null;
+  comentarios_sobre_practica_mitigacion?: string | null;
 }
 
 // Entity EvaluacionMitigacion
@@ -73,6 +75,10 @@ export class EvaluacionMitigacion {
     return this.data.mitigacion_contaminacion_descripcion ?? null;
   }
 
+  get comentariosSobrePracticaMitigacion(): string | null {
+    return this.data.comentarios_sobre_practica_mitigacion ?? null;
+  }
+
   // Crea una nueva instancia de EvaluacionMitigacion
   static create(data: {
     id_ficha: string;
@@ -83,6 +89,7 @@ export class EvaluacionMitigacion {
     evita_quema_residuos?: ComplianceStatus;
     practica_mitigacion_riesgos_descripcion?: string;
     mitigacion_contaminacion_descripcion?: string;
+    comentarios_sobre_practica_mitigacion?: string;
   }): EvaluacionMitigacion {
     return new EvaluacionMitigacion({
       id_evaluacion: "",
@@ -96,6 +103,7 @@ export class EvaluacionMitigacion {
       evita_quema_residuos: data.evita_quema_residuos ?? "no_cumple",
       practica_mitigacion_riesgos_descripcion: data.practica_mitigacion_riesgos_descripcion,
       mitigacion_contaminacion_descripcion: data.mitigacion_contaminacion_descripcion,
+      comentarios_sobre_practica_mitigacion: data.comentarios_sobre_practica_mitigacion,
     });
   }
 
@@ -163,6 +171,13 @@ export class EvaluacionMitigacion {
       errors.push("Descripcion de mitigacion contaminacion no puede exceder 1000 caracteres");
     }
 
+    if (
+      this.data.comentarios_sobre_practica_mitigacion &&
+      this.data.comentarios_sobre_practica_mitigacion.length > 1000
+    ) {
+      errors.push("Comentarios sobre practica mitigacion no pueden exceder 1000 caracteres");
+    }
+
     return {
       valid: errors.length === 0,
       errors,
@@ -180,6 +195,7 @@ export class EvaluacionMitigacion {
       evita_quema_residuos: this.data.evita_quema_residuos,
       practica_mitigacion_riesgos_descripcion: this.data.practica_mitigacion_riesgos_descripcion?.trim() || null,
       mitigacion_contaminacion_descripcion: this.data.mitigacion_contaminacion_descripcion?.trim() || null,
+      comentarios_sobre_practica_mitigacion: this.data.comentarios_sobre_practica_mitigacion?.trim() || null,
     };
   }
 
@@ -195,6 +211,7 @@ export class EvaluacionMitigacion {
       evita_quema_residuos: this.data.evita_quema_residuos,
       practica_mitigacion_riesgos_descripcion: this.data.practica_mitigacion_riesgos_descripcion?.trim() || null,
       mitigacion_contaminacion_descripcion: this.data.mitigacion_contaminacion_descripcion?.trim() || null,
+      comentarios_sobre_practica_mitigacion: this.data.comentarios_sobre_practica_mitigacion?.trim() || null,
     };
   }
 
@@ -210,6 +227,7 @@ export class EvaluacionMitigacion {
       evita_quema_residuos: this.data.evita_quema_residuos,
       practica_mitigacion_riesgos_descripcion: this.data.practica_mitigacion_riesgos_descripcion ?? null,
       mitigacion_contaminacion_descripcion: this.data.mitigacion_contaminacion_descripcion ?? null,
+      comentarios_sobre_practica_mitigacion: this.data.comentarios_sobre_practica_mitigacion ?? null,
     };
   }
 

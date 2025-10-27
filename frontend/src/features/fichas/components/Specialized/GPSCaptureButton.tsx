@@ -25,7 +25,9 @@ interface GPSCaptureButtonProps {
   disabled?: boolean;
   label?: string;
   showCoordinates?: boolean;
+  showHelp?: boolean;
   size?: "small" | "medium" | "large";
+  className?: string;
 }
 
 export function GPSCaptureButton({
@@ -33,7 +35,9 @@ export function GPSCaptureButton({
   disabled = false,
   label = "Capturar Ubicación GPS",
   showCoordinates = true,
+  showHelp = true,
   size = "medium",
+  className = "",
 }: GPSCaptureButtonProps) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [lastCapture, setLastCapture] = useState<Coordinates | null>(null);
@@ -95,6 +99,8 @@ export function GPSCaptureButton({
     }
   };
 
+  const hasLabel = label && label.trim().length > 0;
+
   return (
     <div className="space-y-3">
       {/* Botón de captura */}
@@ -105,14 +111,18 @@ export function GPSCaptureButton({
         onClick={handleCapture}
         disabled={disabled || isCapturing}
         isLoading={isCapturing}
-        className="w-full sm:w-auto"
+        className={className || "w-full sm:w-auto"}
       >
-        {!isCapturing && !lastCapture && <MapPin className="w-5 h-5 mr-2" />}
-        {isCapturing && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-        {!isCapturing && lastCapture && (
-          <CheckCircle className="w-5 h-5 mr-2 text-success" />
+        {!isCapturing && !lastCapture && (
+          <MapPin className={`w-5 h-5 ${hasLabel ? "mr-2" : ""}`} />
         )}
-        {isCapturing ? "Capturando..." : label}
+        {isCapturing && (
+          <Loader2 className={`w-5 h-5 animate-spin ${hasLabel ? "mr-2" : ""}`} />
+        )}
+        {!isCapturing && lastCapture && (
+          <CheckCircle className={`w-5 h-5 text-success ${hasLabel ? "mr-2" : ""}`} />
+        )}
+        {hasLabel && (isCapturing ? "Capturando..." : label)}
       </Button>
 
       {/* Información de coordenadas capturadas */}
@@ -166,7 +176,7 @@ export function GPSCaptureButton({
       )}
 
       {/* Ayuda contextual */}
-      {!lastCapture && !error && !isCapturing && (
+      {showHelp && !lastCapture && !error && !isCapturing && (
         <p className="text-xs text-text-secondary">
           GPS: Presiona el botón para obtener coordenadas automáticamente.
           Asegúrate de tener GPS activado y permisos otorgados.

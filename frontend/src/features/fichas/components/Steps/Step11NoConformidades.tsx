@@ -28,7 +28,6 @@ export default function Step11NoConformidades() {
       descripcion_no_conformidad: "",
       accion_correctiva_propuesta: "",
       fecha_limite_implementacion: "",
-      estado_conformidad: "Detectado",
     });
   };
 
@@ -111,46 +110,23 @@ export default function Step11NoConformidades() {
                 />
               </FormField>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {/* Fecha límite */}
-                <FormField
-                  label="Fecha Límite de Implementación"
-                  helperText="Fecha máxima para resolver la no conformidad"
-                  error={
-                    errors.no_conformidades?.[index]
-                      ?.fecha_limite_implementacion?.message
-                  }
-                >
-                  <input
-                    type="date"
-                    {...register(
-                      `no_conformidades.${index}.fecha_limite_implementacion`
-                    )}
-                    className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </FormField>
-
-                {/* Estado de conformidad */}
-                <FormField
-                  label="Estado"
-                  error={
-                    errors.no_conformidades?.[index]?.estado_conformidad
-                      ?.message
-                  }
-                >
-                  <select
-                    {...register(
-                      `no_conformidades.${index}.estado_conformidad`
-                    )}
-                    className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    <option value="Detectado">Detectado</option>
-                    <option value="En Proceso">En Proceso</option>
-                    <option value="Resuelto">Resuelto</option>
-                    <option value="Pendiente">Pendiente</option>
-                  </select>
-                </FormField>
-              </div>
+              {/* Fecha límite */}
+              <FormField
+                label="Fecha Límite de Implementación"
+                helperText="Fecha máxima para resolver la no conformidad"
+                error={
+                  errors.no_conformidades?.[index]
+                    ?.fecha_limite_implementacion?.message
+                }
+              >
+                <input
+                  type="date"
+                  {...register(
+                    `no_conformidades.${index}.fecha_limite_implementacion`
+                  )}
+                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </FormField>
             </div>
           ))
         )}

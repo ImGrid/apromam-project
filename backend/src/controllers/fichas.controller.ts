@@ -4,6 +4,7 @@ import { FichaDraftEntity } from "../entities/FichaDraft.js";
 import type {
   CreateFichaInput,
   UpdateFichaInput,
+  UpdateFichaCompletaInput,
   FichaParams,
   FichaQuery,
   EnviarRevisionInput,
@@ -236,6 +237,63 @@ export class FichasController {
     }
   }
 
+  // PUT /api/fichas/:id/completa
+  // Actualiza una ficha completa con todas las secciones
+  // Solo se puede actualizar si esta en borrador
+  async updateCompleta(
+    request: FastifyRequest<{
+      Params: FichaParams;
+      Body: UpdateFichaCompletaInput;
+    }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      const usuarioId = request.user.userId;
+
+      const fichaActualizada = await this.fichasService.updateFichaCompleta(
+        id,
+        request.body,
+        usuarioId
+      );
+
+      return reply.status(200).send({
+        ficha: fichaActualizada,
+        message: "Ficha completa actualizada exitosamente",
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Ficha no encontrada") {
+          return reply.status(404).send({
+            error: "not_found",
+            message: "Ficha no encontrada",
+            timestamp: new Date().toISOString(),
+          });
+        }
+        if (error.message.includes("No tienes permiso")) {
+          return reply.status(403).send({
+            error: "forbidden",
+            message: error.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        if (error.message.includes("Solo se pueden actualizar")) {
+          return reply.status(400).send({
+            error: "bad_request",
+            message: error.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+      request.log.error(error, "Error updating ficha completa");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al actualizar ficha completa",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   // DELETE /api/fichas/:id
   // Elimina (desactiva) una ficha
   // Solo admin puede eliminar
@@ -428,47 +486,6 @@ export class FichasController {
     }
   }
 
-  // POST /api/fichas/:id/devolver-borrador
-  // Devuelve una ficha rechazada a borrador
-  // Solo admin puede devolver
-  async devolverBorrador(
-    request: FastifyRequest<{ Params: FichaParams }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const { id } = request.params;
-
-      const ficha = await this.fichasService.devolverBorrador(id);
-
-      return reply.status(200).send({
-        ficha,
-        message: "Ficha devuelta a borrador exitosamente",
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "Ficha no encontrada") {
-          return reply.status(404).send({
-            error: "not_found",
-            message: "Ficha no encontrada",
-            timestamp: new Date().toISOString(),
-          });
-        }
-        if (error.message.includes("Solo se puede devolver")) {
-          return reply.status(400).send({
-            error: "bad_request",
-            message: error.message,
-            timestamp: new Date().toISOString(),
-          });
-        }
-      }
-      request.log.error(error, "Error devolviendo ficha a borrador");
-      return reply.status(500).send({
-        error: "internal_server_error",
-        message: "Error al devolver ficha a borrador",
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
 
   // GET /api/fichas/estadisticas
   // Obtiene estadisticas de fichas
@@ -796,6 +813,59 @@ export class FichasController {
       return reply.status(500).send({
         error: "internal_server_error",
         message: "Error al eliminar borrador",
+      });
+    }
+  }
+
+  // GET /api/fichas/check-exists
+  // Verifica si existe una ficha para un productor en una gestion
+  async checkExists(
+    request: FastifyRequest<{
+      Querystring: { codigo_productor: string; gestion: string };
+    }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { codigo_productor, gestion } = request.query;
+      const gestionNum = parseInt(gestion, 10);
+
+      if (!codigo_productor || !gestion) {
+        return reply.status(400).send({
+          error: "bad_request",
+          message: "codigo_productor y gestion son requeridos",
+        });
+      }
+
+      if (isNaN(gestionNum)) {
+        return reply.status(400).send({
+          error: "bad_request",
+          message: "gestion debe ser un número válido",
+        });
+      }
+
+      const ficha = await this.fichasService.findByProductorGestion(
+        codigo_productor,
+        gestionNum
+      );
+
+      if (!ficha) {
+        return reply.status(200).send({ exists: false });
+      }
+
+      return reply.status(200).send({
+        exists: true,
+        ficha: {
+          id_ficha: ficha.id,
+          estado_ficha: ficha.estadoFicha,
+          resultado_certificacion: ficha.resultadoCertificacion,
+          fecha_inspeccion: ficha.fechaInspeccion.toISOString(),
+        },
+      });
+    } catch (error: any) {
+      request.log.error(error, "Error checking if ficha exists");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: error.message || "Error al verificar ficha",
       });
     }
   }

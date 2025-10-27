@@ -12,22 +12,58 @@ import { Button } from "@/shared/components/ui/Button";
 import { Alert } from "@/shared/components/ui/Alert";
 import { FichaMultiStepForm, FichaSidebar, STEP_CONFIGS } from "../components/FichaMultiStepForm";
 import { useFichaCompleta } from "../hooks/useFichaCompleta";
-import { fichasService } from "../services/fichas.service";
 import { ROUTES } from "@/shared/config/routes.config";
 import { isEditable } from "../components/Specialized";
-import type { CreateFichaCompletaInput } from "../types/ficha.types";
+import { useUpdateFicha } from "../hooks/useUpdateFicha";
+import { useEnviarRevision } from "../hooks/useEnviarRevision";
+import type { CreateFichaCompletaInput, UpdateFichaCompletaInput } from "../types/ficha.types";
 
 export default function FichaEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { ficha, isLoading, error } = useFichaCompleta(id);
+  const { updateCompleta, isLoading: isUpdating } = useUpdateFicha();
+  const { enviarRevision, isLoading: isEnviando } = useEnviarRevision();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  const handleSubmit = async (data: CreateFichaCompletaInput) => {
+  const handleSubmit = async (data: any) => {
     if (!id) return;
-    await fichasService.updateCompleta(id, data);
-    // Redirigir al detalle de la ficha
-    navigate(ROUTES.FICHAS_DETAIL(id));
+
+    console.log('[EDIT] Datos recibidos del formulario:', data);
+
+    // Los datos vienen PLANOS del FichaMultiStepForm (ya transformados)
+    // Necesitamos re-estructurarlos al formato que espera el backend
+    const updateData: UpdateFichaCompletaInput = {
+      ficha: {
+        fecha_inspeccion: data.fecha_inspeccion,
+        inspector_interno: data.inspector_interno,
+        persona_entrevistada: data.persona_entrevistada,
+        categoria_gestion_anterior: data.categoria_gestion_anterior,
+        comentarios_actividad_pecuaria: data.comentarios_actividad_pecuaria,
+      },
+      revision_documentacion: data.revision_documentacion,
+      acciones_correctivas: data.acciones_correctivas,
+      no_conformidades: data.no_conformidades,
+      evaluacion_mitigacion: data.evaluacion_mitigacion,
+      evaluacion_poscosecha: data.evaluacion_poscosecha,
+      evaluacion_conocimiento: data.evaluacion_conocimiento_normas || data.evaluacion_conocimiento,
+      actividades_pecuarias: data.actividades_pecuarias,
+      parcelas_inspeccionadas: data.parcelas_inspeccionadas || [],
+      detalles_cultivo: data.detalle_cultivos_parcelas || data.detalles_cultivo,
+      cosecha_ventas: data.cosecha_ventas,
+    };
+
+    console.log('[EDIT] Datos transformados para backend:', updateData);
+
+    // 1. Primero actualizar el contenido
+    await updateCompleta(id, updateData);
+
+    // 2. Luego enviar a revisión automáticamente
+    console.log('[EDIT] Enviando ficha a revisión...');
+    await enviarRevision(id, {});
+
+    // 3. Navegar a la lista de fichas
+    navigate(ROUTES.FICHAS);
   };
 
   const handleMobileMenuToggle = useCallback(() => {
@@ -130,15 +166,34 @@ export default function FichaEditPage() {
 
   return (
     <FichaLayout
-      title={`Editar Ficha - ${ficha.ficha.codigo_productor}`}
+      title={`Editar Ficha - ${ficha.ficha.codigo_productor} (${ficha.ficha.gestion})`}
       onMobileMenuToggle={handleMobileMenuToggle}
       sidebar={sidebar}
     >
+      {/* Alerta si la ficha fue rechazada */}
+      {ficha.ficha.resultado_certificacion === "rechazado" && (
+        <div className="mb-4 p-4 sm:p-6">
+          <Alert
+            type="info"
+            message={
+              <div>
+                <p className="text-sm font-medium mb-2">Esta ficha fue rechazada</p>
+                <p className="text-sm">
+                  <strong>Motivo:</strong>{" "}
+                  {ficha.ficha.comentarios_evaluacion || "Sin motivo especificado"}
+                </p>
+              </div>
+            }
+          />
+        </div>
+      )}
+
       <FichaMultiStepForm
         initialData={initialData}
         onSubmit={handleSubmit}
         mode="edit"
         fichaId={id}
+        isSubmitting={isUpdating || isEnviando}
       />
     </FichaLayout>
   );

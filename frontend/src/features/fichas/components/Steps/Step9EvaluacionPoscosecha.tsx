@@ -90,6 +90,7 @@ export default function Step9EvaluacionPoscosecha() {
                   }
                   error={errors.evaluacion_poscosecha?.[pregunta.campo]?.message}
                   showParcial={pregunta.showParcial}
+                  showNoAplica={false}
                 />
               </div>
             </div>
@@ -111,6 +112,7 @@ export default function Step9EvaluacionPoscosecha() {
                 }
                 error={errors.evaluacion_poscosecha?.[pregunta.campo]?.message}
                 showParcial={pregunta.showParcial}
+                showNoAplica={false}
               />
             </FormField>
           ))}
@@ -118,7 +120,7 @@ export default function Step9EvaluacionPoscosecha() {
       </FormSection>
 
       {/* Comentarios */}
-      <FormSection>
+      <FormSection title="Comentarios extras">
         <FormField>
           <textarea
             {...register("evaluacion_poscosecha.comentarios_poscosecha")}

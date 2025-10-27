@@ -1,12 +1,14 @@
 /**
  * useUpdateFicha Hook
  * Hook para actualizar una ficha (solo borrador)
+ * IMPORTANTE: Limpia los borradores guardados después de actualizar exitosamente
  */
 
 import { useState } from "react";
 import { fichasService } from "../services/fichas.service";
 import { showToast } from "@/shared/hooks/useToast";
-import type { UpdateFichaInput, Ficha, CreateFichaCompletaInput, FichaCompleta } from "../types/ficha.types";
+import { deleteDraftFromIndexedDB } from "../services/draftStorage.service";
+import type { UpdateFichaInput, Ficha, UpdateFichaCompletaInput, FichaCompleta } from "../types/ficha.types";
 
 export function useUpdateFicha() {
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +42,7 @@ export function useUpdateFicha() {
 
   const updateCompleta = async (
     id: string,
-    data: Partial<CreateFichaCompletaInput>
+    data: UpdateFichaCompletaInput
   ): Promise<FichaCompleta> => {
     try {
       setIsLoading(true);
@@ -48,12 +50,36 @@ export function useUpdateFicha() {
 
       const ficha = await fichasService.updateCompleta(id, data);
 
-      showToast.success("Todos los cambios se han guardado");
+      // Limpiar borradores guardados después de actualizar exitosamente
+      // Usar los datos de la ficha devuelta por el servidor
+      if (ficha.ficha.codigo_productor && ficha.ficha.gestion) {
+        console.log('[UPDATE_FICHA] Limpiando borradores - Productor:', ficha.ficha.codigo_productor, 'Gestion:', ficha.ficha.gestion);
+
+        // Limpiar localStorage
+        const localStorageKey = `apromam-ficha-draft-${ficha.ficha.codigo_productor}-${ficha.ficha.gestion}`;
+        try {
+          localStorage.removeItem(localStorageKey);
+        } catch (e) {
+          console.warn('[UPDATE_FICHA] Error al limpiar localStorage:', e);
+        }
+
+        // Limpiar IndexedDB
+        try {
+          await deleteDraftFromIndexedDB(ficha.ficha.codigo_productor, ficha.ficha.gestion);
+        } catch (e) {
+          console.warn('[UPDATE_FICHA] Error al limpiar IndexedDB:', e);
+        }
+
+        // TODO: Limpiar borrador del servidor si existe
+        // Esto requeriría un endpoint DELETE /api/fichas/drafts/:codigoProductor/:gestion
+      }
+
+      showToast.success("Ficha actualizada exitosamente");
 
       return ficha;
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Error al actualizar ficha";
+        err instanceof Error ? err.message : "Error al actualizar la ficha";
       setError(errorMessage);
 
       showToast.error(errorMessage);

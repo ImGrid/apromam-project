@@ -12,7 +12,6 @@ export interface RevisionDocumentacionData {
   diario_campo: ComplianceStatus;
   registro_cosecha: ComplianceStatus;
   recibo_pago: ComplianceStatus;
-  observaciones_documentacion?: string | null;
 }
 
 // Interfaz para datos publicos (response)
@@ -26,7 +25,6 @@ export interface RevisionDocumentacionPublicData {
   diario_campo: ComplianceStatus;
   registro_cosecha: ComplianceStatus;
   recibo_pago: ComplianceStatus;
-  observaciones_documentacion?: string | null;
 }
 
 // Entity RevisionDocumentacion
@@ -75,10 +73,6 @@ export class RevisionDocumentacion {
     return this.data.recibo_pago;
   }
 
-  get observaciones(): string | null {
-    return this.data.observaciones_documentacion ?? null;
-  }
-
   // Crea una nueva instancia de RevisionDocumentacion
   static create(data: {
     id_ficha: string;
@@ -89,7 +83,6 @@ export class RevisionDocumentacion {
     diario_campo?: ComplianceStatus;
     registro_cosecha?: ComplianceStatus;
     recibo_pago?: ComplianceStatus;
-    observaciones_documentacion?: string;
   }): RevisionDocumentacion {
     return new RevisionDocumentacion({
       id_revision: "",
@@ -101,7 +94,6 @@ export class RevisionDocumentacion {
       diario_campo: data.diario_campo ?? "no_aplica",
       registro_cosecha: data.registro_cosecha ?? "no_aplica",
       recibo_pago: data.recibo_pago ?? "no_aplica",
-      observaciones_documentacion: data.observaciones_documentacion,
     });
   }
 
@@ -144,14 +136,6 @@ export class RevisionDocumentacion {
       }
     }
 
-    // Validar observaciones si existen
-    if (
-      this.data.observaciones_documentacion &&
-      this.data.observaciones_documentacion.length > 1000
-    ) {
-      errors.push("Observaciones no pueden exceder 1000 caracteres");
-    }
-
     return {
       valid: errors.length === 0,
       errors,
@@ -169,8 +153,6 @@ export class RevisionDocumentacion {
       diario_campo: this.data.diario_campo,
       registro_cosecha: this.data.registro_cosecha,
       recibo_pago: this.data.recibo_pago,
-      observaciones_documentacion:
-        this.data.observaciones_documentacion?.trim() || null,
     };
   }
 
@@ -186,8 +168,6 @@ export class RevisionDocumentacion {
       diario_campo: this.data.diario_campo,
       registro_cosecha: this.data.registro_cosecha,
       recibo_pago: this.data.recibo_pago,
-      observaciones_documentacion:
-        this.data.observaciones_documentacion?.trim() || null,
     };
   }
 
@@ -203,8 +183,6 @@ export class RevisionDocumentacion {
       diario_campo: this.data.diario_campo,
       registro_cosecha: this.data.registro_cosecha,
       recibo_pago: this.data.recibo_pago,
-      observaciones_documentacion:
-        this.data.observaciones_documentacion ?? null,
     };
   }
 
@@ -246,7 +224,7 @@ export class RevisionDocumentacion {
   actualizarDocumento(
     documento: keyof Omit<
       RevisionDocumentacionData,
-      "id_revision" | "id_ficha" | "observaciones_documentacion"
+      "id_revision" | "id_ficha"
     >,
     estado: ComplianceStatus
   ): void {
@@ -262,14 +240,5 @@ export class RevisionDocumentacion {
     }
 
     this.data[documento] = estado;
-  }
-
-  // Actualiza observaciones
-  actualizarObservaciones(observaciones: string): void {
-    if (observaciones.length > 1000) {
-      throw new Error("Observaciones no pueden exceder 1000 caracteres");
-    }
-
-    this.data.observaciones_documentacion = observaciones.trim();
   }
 }

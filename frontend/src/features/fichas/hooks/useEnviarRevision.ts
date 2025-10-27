@@ -1,11 +1,13 @@
 /**
  * useEnviarRevision Hook
  * Hook para enviar una ficha a revisión (borrador → revision)
+ * IMPORTANTE: Limpia los borradores guardados después de enviar exitosamente
  */
 
 import { useState } from "react";
 import { fichasService } from "../services/fichas.service";
 import { showToast } from "@/shared/hooks/useToast";
+import { deleteDraftFromIndexedDB } from "../services/draftStorage.service";
 import type { EnviarRevisionInput, Ficha } from "../types/ficha.types";
 
 export function useEnviarRevision() {
@@ -21,6 +23,30 @@ export function useEnviarRevision() {
       setError(null);
 
       const ficha = await fichasService.enviarRevision(id, data);
+
+      // Limpiar borradores guardados después de enviar exitosamente
+      // Los borradores ya no son necesarios porque la ficha está en el servidor
+      if (ficha.codigo_productor && ficha.gestion) {
+        console.log('[ENVIAR_REVISION] Limpiando borradores - Productor:', ficha.codigo_productor, 'Gestion:', ficha.gestion);
+
+        // Limpiar localStorage
+        const localStorageKey = `apromam-ficha-draft-${ficha.codigo_productor}-${ficha.gestion}`;
+        try {
+          localStorage.removeItem(localStorageKey);
+        } catch (e) {
+          console.warn('[ENVIAR_REVISION] Error al limpiar localStorage:', e);
+        }
+
+        // Limpiar IndexedDB
+        try {
+          await deleteDraftFromIndexedDB(ficha.codigo_productor, ficha.gestion);
+        } catch (e) {
+          console.warn('[ENVIAR_REVISION] Error al limpiar IndexedDB:', e);
+        }
+
+        // TODO: Limpiar borrador del servidor si existe
+        // Esto requeriría un endpoint DELETE /api/fichas/drafts/:codigoProductor/:gestion
+      }
 
       showToast.success("La ficha ha sido enviada para su revisión por el gerente");
 
