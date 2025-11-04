@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { catalogosService } from "../services/catalogos.service";
-import type { CreateGestionInput, Gestion } from "../types/catalogo.types";
+import { gestionesService } from "../services/gestiones.service";
+import type { CreateGestionInput, Gestion } from "../types/gestion.types";
 import { showToast } from "@/shared/components/ui";
 
 interface UseCreateGestionReturn {
@@ -18,7 +18,7 @@ export function useCreateGestion(): UseCreateGestionReturn {
     setError(null);
 
     try {
-      const gestion = await catalogosService.createGestion(data);
+      const gestion = await gestionesService.createGestion(data);
       showToast.success("Gestión creada exitosamente");
       return gestion;
     } catch (err) {

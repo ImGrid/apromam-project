@@ -39,8 +39,8 @@ export const EstadoSyncSchema = z.enum(
   }
 );
 
-export const CategoriaProductorSchema = z.enum(["E", "2T", "1T", "0T"], {
-  message: "Categoria debe ser: E, 2T, 1T o 0T",
+export const CategoriaProductorSchema = z.enum(["E", "T2", "T1", "T0"], {
+  message: "Categoria debe ser: E, T2, T1 o T0",
 });
 
 export const ProcedenciaSemillaSchema = z.enum(
@@ -107,6 +107,13 @@ export const EstadoUploadSchema = z.enum(["pendiente", "subido", "error"], {
   message: "Estado de upload invalido",
 });
 
+export const EstadoSeguimientoSchema = z.enum(
+  ["pendiente", "seguimiento", "corregido"],
+  {
+    message: "Estado de seguimiento debe ser: pendiente, seguimiento o corregido",
+  }
+);
+
 // Seccion 2: Revision de documentacion
 export const RevisionDocumentacionSchema = z.object({
   solicitud_ingreso: ComplianceStatusSchema,
@@ -132,7 +139,7 @@ export const AccionCorrectivaSchema = z.object({
   implementacion_descripcion: z
     .string()
     .max(500, "Implementacion no puede exceder 500 caracteres")
-    .optional(),
+    .nullish(),
 });
 
 export type AccionCorrectivaInput = z.infer<typeof AccionCorrectivaSchema>;
@@ -146,8 +153,16 @@ export const NoConformidadSchema = z.object({
   accion_correctiva_propuesta: z
     .string()
     .max(500, "Accion correctiva no puede exceder 500 caracteres")
-    .optional(),
+    .nullish(),
   fecha_limite_implementacion: z.string().datetime().optional(),
+  // Campos de seguimiento (opcionales - se llenan durante el seguimiento)
+  estado_seguimiento: EstadoSeguimientoSchema.default("pendiente").optional(),
+  comentario_seguimiento: z
+    .string()
+    .max(1000, "Comentario de seguimiento no puede exceder 1000 caracteres")
+    .nullish(),
+  fecha_seguimiento: z.string().datetime().optional(),
+  realizado_por_usuario: UUIDSchema.optional(),
 });
 
 export type NoConformidadInput = z.infer<typeof NoConformidadSchema>;
@@ -162,15 +177,15 @@ export const EvaluacionMitigacionSchema = z.object({
   practica_mitigacion_riesgos_descripcion: z
     .string()
     .max(1000, "Descripcion no puede exceder 1000 caracteres")
-    .optional(),
+    .nullish(),
   mitigacion_contaminacion_descripcion: z
     .string()
     .max(1000, "Descripcion no puede exceder 1000 caracteres")
-    .optional(),
+    .nullish(),
   comentarios_sobre_practica_mitigacion: z
     .string()
     .max(1000, "Comentarios no pueden exceder 1000 caracteres")
-    .optional(),
+    .nullish(),
 });
 
 export type EvaluacionMitigacionInput = z.infer<
@@ -308,7 +323,7 @@ export const CosechaVentasSchema = z
     observaciones: z
       .string()
       .max(500, "Observaciones no pueden exceder 500 caracteres")
-      .optional(),
+      .nullish(),
   })
   .refine(
     (data) => {
@@ -385,6 +400,7 @@ export const CreateFichaSchema = z.object({
     .int()
     .min(2000, "Gestion debe ser mayor a 2000")
     .max(2100, "Gestion debe ser menor a 2100"),
+  id_gestion: z.string().uuid("ID de gestion debe ser un UUID valido").optional(),
   fecha_inspeccion: z.string().datetime(),
   inspector_interno: z
     .string()
@@ -393,7 +409,7 @@ export const CreateFichaSchema = z.object({
   persona_entrevistada: z
     .string()
     .max(100, "Persona entrevistada no puede exceder 100 caracteres")
-    .optional(),
+    .nullish(),
   categoria_gestion_anterior: CategoriaProductorSchema.optional(),
   origen_captura: OrigenCapturaSchema.default("online"),
 
@@ -415,11 +431,11 @@ export const CreateFichaSchema = z.object({
   comentarios_actividad_pecuaria: z
     .string()
     .max(1000, "Comentarios actividad pecuaria no pueden exceder 1000 caracteres")
-    .optional(),
+    .nullish(),
   comentarios_evaluacion: z
     .string()
     .max(2000, "Comentarios no pueden exceder 2000 caracteres")
-    .optional(),
+    .nullish(),
 });
 
 export type CreateFichaInput = z.infer<typeof CreateFichaSchema>;
@@ -435,7 +451,7 @@ export const UpdateFichaSchema = z.object({
   persona_entrevistada: z
     .string()
     .max(100, "Persona entrevistada no puede exceder 100 caracteres")
-    .optional(),
+    .nullish(),
   categoria_gestion_anterior: CategoriaProductorSchema.optional(),
   revision_documentacion: RevisionDocumentacionSchema.optional(),
   evaluacion_mitigacion: EvaluacionMitigacionSchema.optional(),
@@ -450,11 +466,11 @@ export const UpdateFichaSchema = z.object({
   comentarios_actividad_pecuaria: z
     .string()
     .max(1000, "Comentarios actividad pecuaria no pueden exceder 1000 caracteres")
-    .optional(),
+    .nullish(),
   comentarios_evaluacion: z
     .string()
     .max(2000, "Comentarios no pueden exceder 2000 caracteres")
-    .optional(),
+    .nullish(),
 });
 
 export type UpdateFichaInput = z.infer<typeof UpdateFichaSchema>;
@@ -471,12 +487,12 @@ export const UpdateFichaCompletaSchema = z.object({
     persona_entrevistada: z
       .string()
       .max(100, "Persona entrevistada no puede exceder 100 caracteres")
-      .optional(),
+      .nullish(),
     categoria_gestion_anterior: CategoriaProductorSchema.optional(),
     comentarios_actividad_pecuaria: z
       .string()
       .max(1000, "Comentarios no pueden exceder 1000 caracteres")
-      .optional(),
+      .nullish(),
   }),
   revision_documentacion: RevisionDocumentacionSchema.optional(),
   acciones_correctivas: z.array(AccionCorrectivaSchema).default([]),

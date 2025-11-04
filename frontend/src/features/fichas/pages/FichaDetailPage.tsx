@@ -82,7 +82,13 @@ export default function FichaDetailPage() {
     );
   }
 
-  const canEdit = isEditable(ficha.ficha.estado_ficha);
+  // Solo los técnicos pueden editar fichas (en estado borrador o rechazado)
+  const canEdit = permissions.isTecnico() && isEditable(ficha.ficha.estado_ficha);
+
+  // Técnicos pueden gestionar archivos en cualquier estado EXCEPTO cuando está aprobado
+  const canManageArchivos =
+    permissions.isTecnico() &&
+    ficha.ficha.estado_ficha !== "aprobado";
 
   return (
     <Layout title="Detalle de Ficha">
@@ -169,6 +175,16 @@ export default function FichaDetailPage() {
                 />
               )}
             </div>
+          </Card>
+
+          {/* Archivos Adjuntos */}
+          <Card title="Archivos Adjuntos">
+            <FichaArchivosSection
+              idFicha={id!}
+              archivos={ficha.archivos}
+              canEdit={canManageArchivos}
+              onArchivosChange={refetch}
+            />
           </Card>
 
           {/* Revisión Documentación */}
@@ -673,16 +689,6 @@ export default function FichaDetailPage() {
               idFicha={id!}
               estadoFicha={ficha.ficha.estado_ficha}
               onSuccess={refetch}
-            />
-          </Card>
-
-          {/* Archivos Adjuntos */}
-          <Card title="Archivos Adjuntos">
-            <FichaArchivosSection
-              idFicha={id!}
-              archivos={ficha.archivos}
-              canEdit={canEdit}
-              onArchivosChange={refetch}
             />
           </Card>
         </div>

@@ -42,7 +42,9 @@ export function TecnicoFilters({
     ...COMUNIDAD_OPTIONS,
     ...comunidades.map((c) => ({
       value: c.id_comunidad,
-      label: c.nombre_comunidad,
+      label: c.nombre_municipio
+        ? `${c.nombre_comunidad} - ${c.nombre_municipio}`
+        : c.nombre_comunidad,
     })),
   ];
 

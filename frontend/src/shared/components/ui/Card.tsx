@@ -5,6 +5,7 @@ interface CardProps {
   title?: string;
   footer?: ReactNode;
   variant?: "default" | "outlined" | "elevated";
+  compact?: boolean;
   className?: string;
   onClick?: () => void;
 }
@@ -14,6 +15,7 @@ export function Card({
   title,
   footer,
   variant = "default",
+  compact = false,
   className = "",
   onClick,
 }: CardProps) {
@@ -53,19 +55,33 @@ export function Card({
     >
       {/* Title opcional */}
       {title && (
-        <div className="px-4 py-3 border-b sm:px-6 border-neutral-border">
-          <h3 className="text-base font-semibold text-text-primary sm:text-lg">
+        <div
+          className={`border-b border-neutral-border ${
+            compact ? "px-3 py-2" : "px-4 py-3 sm:px-6"
+          }`}
+        >
+          <h3
+            className={`font-semibold text-text-primary ${
+              compact ? "text-sm sm:text-base" : "text-base sm:text-lg"
+            }`}
+          >
             {title}
           </h3>
         </div>
       )}
 
       {/* Content */}
-      <div className="px-4 py-4 sm:px-6">{children}</div>
+      <div className={compact ? "px-3 py-3" : "px-4 py-4 sm:px-6"}>
+        {children}
+      </div>
 
       {/* Footer opcional */}
       {footer && (
-        <div className="px-4 py-3 border-t sm:px-6 bg-neutral-bg/50 border-neutral-border">
+        <div
+          className={`border-t bg-neutral-bg/50 border-neutral-border ${
+            compact ? "px-3 py-2" : "px-4 py-3 sm:px-6"
+          }`}
+        >
           {footer}
         </div>
       )}

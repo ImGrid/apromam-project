@@ -6,12 +6,16 @@ import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
 import comunidadesRoutes from "./routes/comunidades.routes.js";
 import catalogosRoutes from "./routes/catalogos.routes.js";
+import gestionesRoutes from "./routes/gestiones.routes.js";
 import geograficasRoutes from "./routes/geograficas.routes.js";
 import organizacionesRoutes from "./routes/organizaciones.routes.js";
 import productoresRoutes from "./routes/productores.routes.js";
 import usuariosRoutes from "./routes/usuarios.routes.js";
 import parcelasRoutes from "./routes/parcelas.routes.js";
 import fichasRoutes from "./routes/fichas.routes.js";
+import noConformidadesRoutes from "./routes/noConformidades.routes.js";
+import { gestionActivaMiddleware } from "./middleware/gestionActiva.middleware.js";
+
 // Funcion principal de inicializacion
 const startServer = async () => {
   try {
@@ -62,14 +66,44 @@ const startServer = async () => {
 
     // Registrar rutas
     await server.register(authRoutes, { prefix: "/api/auth" });
+
+    // Middleware de gestion activa - Se ejecuta en todas las rutas protegidas
+    // Inyecta request.gestionActiva con la gestion activa del sistema
+    server.addHook("onRequest", async (request, reply) => {
+      // Rutas publicas que NO requieren gestion activa
+      const publicRoutes = [
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/refresh",
+        "/health",
+        "/documentation",
+      ];
+
+      // Si es ruta publica, saltar middleware
+      if (publicRoutes.some((route) => request.url.startsWith(route))) {
+        console.log(
+          `[GESTION-MIDDLEWARE] 🟢 Ruta pública, saltando middleware: ${request.url}`
+        );
+        return;
+      }
+
+      // Aplicar middleware de gestion activa
+      console.log(
+        `[GESTION-MIDDLEWARE] 🔵 Aplicando middleware a: ${request.method} ${request.url}`
+      );
+      await gestionActivaMiddleware(request, reply);
+    });
+
     await server.register(comunidadesRoutes, { prefix: "/api/comunidades" });
     await server.register(catalogosRoutes, { prefix: "/api/catalogos" });
+    await server.register(gestionesRoutes, { prefix: "/api/gestiones" });
     await server.register(geograficasRoutes, { prefix: "/api/geograficas" });
     await server.register(organizacionesRoutes, { prefix: "/api/organizaciones" });
     await server.register(productoresRoutes, { prefix: "/api/productores" });
     await server.register(usuariosRoutes, { prefix: "/api/usuarios" });
     await server.register(parcelasRoutes, { prefix: "/api" });
     await server.register(fichasRoutes, { prefix: "/api/fichas" });
+    await server.register(noConformidadesRoutes, { prefix: "/api/no-conformidades" });
     // Iniciar servidor HTTP
     await server.listen({
       port: config.port,

@@ -5,7 +5,7 @@
  * Basado en patrones modernos de multi-step forms 2024-2025
  */
 
-import { CheckCircle2, AlertCircle, X } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/shared/config/routes.config";
 import {
@@ -32,6 +32,9 @@ interface StepItemProps {
   isActive: boolean;
   isCompleted: boolean;
   hasErrors: boolean;
+  hasWarnings: boolean;
+  errorCount: number;
+  warningCount: number;
   onClick: () => void;
   canNavigate: boolean;
 }
@@ -45,17 +48,36 @@ function StepItem({
   isActive,
   isCompleted,
   hasErrors,
+  hasWarnings,
+  errorCount,
+  warningCount,
   onClick,
   canNavigate,
 }: StepItemProps) {
+  console.log(`🎨 [StepItem ${step.id}] Renderizando:`, {
+    isActive,
+    isCompleted,
+    hasErrors,
+    hasWarnings,
+    errorCount,
+    warningCount,
+  });
+
   const getIcon = () => {
     if (hasErrors) {
+      console.log(`❌ [StepItem ${step.id}] Mostrando icono de ERROR`);
       return <AlertCircle className="w-5 h-5 text-error" />;
     }
+    if (hasWarnings) {
+      console.log(`⚠️ [StepItem ${step.id}] Mostrando icono de WARNING`);
+      return <AlertTriangle className="w-5 h-5 text-warning" />;
+    }
     if (isCompleted) {
+      console.log(`✅ [StepItem ${step.id}] Mostrando icono de COMPLETADO`);
       return <CheckCircle2 className="w-5 h-5 text-success" />;
     }
     // Mostrar número de sección en lugar de círculo
+    console.log(`🔢 [StepItem ${step.id}] Mostrando número de step`);
     return (
       <div
         className={`
@@ -69,6 +91,26 @@ function StepItem({
         {step.id}
       </div>
     );
+  };
+
+  const getBadge = () => {
+    if (errorCount > 0) {
+      console.log(`🔴 [StepItem ${step.id}] Mostrando badge con ${errorCount} errores`);
+      return (
+        <span className="bg-error text-white px-2 py-0.5 rounded-full text-xs font-medium">
+          {errorCount}
+        </span>
+      );
+    }
+    if (warningCount > 0) {
+      console.log(`🟡 [StepItem ${step.id}] Mostrando badge con ${warningCount} warnings`);
+      return (
+        <span className="bg-warning text-white px-2 py-0.5 rounded-full text-xs font-medium">
+          {warningCount}
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
@@ -90,6 +132,9 @@ function StepItem({
           {step.title}
         </span>
       </div>
+
+      {/* Badge (errores/warnings) */}
+      {getBadge()}
     </button>
   );
 }
@@ -195,8 +240,19 @@ export default function FichaSidebar({
             const validation = validationsMap[step.id as keyof typeof validationsMap];
             const isActive = currentStep === step.id;
             const isCompleted = completedSteps.has(step.id);
-            const hasErrors = validation ? !validation.isValid : false;
+            const hasErrors = validation ? validation.hasErrors : false;
+            const hasWarnings = validation ? validation.hasWarnings : false;
+            const errorCount = validation ? validation.errors.length : 0;
+            const warningCount = validation ? validation.warnings.length : 0;
             const canNavigate = actions.canNavigateToStep(step.id);
+
+            console.log(`📊 [FichaSidebar] Step ${step.id} validación:`, {
+              hasErrors,
+              hasWarnings,
+              errorCount,
+              warningCount,
+              isCompleted,
+            });
 
             return (
               <li key={step.id}>
@@ -205,6 +261,9 @@ export default function FichaSidebar({
                   isActive={isActive}
                   isCompleted={isCompleted}
                   hasErrors={hasErrors}
+                  hasWarnings={hasWarnings}
+                  errorCount={errorCount}
+                  warningCount={warningCount}
                   onClick={() => handleStepClick(step.id)}
                   canNavigate={canNavigate}
                 />

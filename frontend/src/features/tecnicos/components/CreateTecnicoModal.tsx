@@ -70,13 +70,19 @@ export function CreateTecnicoModal({
     try {
       // Cargar comunidades
       const comunidadesResponse = await apiClient.get<{
-        comunidades: Array<{ id_comunidad: string; nombre_comunidad: string }>;
+        comunidades: Array<{
+          id_comunidad: string;
+          nombre_comunidad: string;
+          nombre_municipio?: string;
+        }>;
       }>(ENDPOINTS.COMUNIDADES.BASE);
 
       setComunidades(
         comunidadesResponse.data.comunidades.map((c) => ({
           value: c.id_comunidad,
-          label: c.nombre_comunidad,
+          label: c.nombre_municipio
+            ? `${c.nombre_comunidad} - ${c.nombre_municipio}`
+            : c.nombre_comunidad,
         }))
       );
 

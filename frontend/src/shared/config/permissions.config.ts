@@ -39,7 +39,6 @@ export const PERMISSIONS: PermissionsMap = {
 
   gerente: {
     read: true,
-    create: true,
     edit: true,
     delete: true,
     approve: true,
@@ -91,7 +90,7 @@ export const RESOURCE_PERMISSIONS = {
     read: ["read", "readOwn", "all"],
   },
   fichas: {
-    create: ["create", "all"],
+    create: ["create"],
     edit: ["editOwn", "all"],
     delete: ["all"],
     read: ["read", "readOwn", "all"],
@@ -109,6 +108,13 @@ export const RESOURCE_PERMISSIONS = {
     edit: ["edit", "all"],
     delete: ["delete", "all"],
     read: ["read", "all"],
+  },
+  noConformidades: {
+    read: ["read", "readOwn", "all"],
+    edit: ["edit", "editOwn", "all"],
+    updateSeguimiento: ["edit", "editOwn", "all"],
+    uploadFiles: ["create", "edit", "all"],
+    deleteFiles: ["delete", "all"],
   },
 } as const;
 

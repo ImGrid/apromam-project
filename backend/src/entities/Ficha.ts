@@ -1,5 +1,5 @@
 // Tipos para Ficha
-export type CategoriaProductor = "E" | "2T" | "1T" | "0T";
+export type CategoriaProductor = "E" | "T2" | "T1" | "T0";
 export type OrigenCaptura = "online" | "offline";
 export type EstadoSync = "pendiente" | "sincronizado" | "conflicto";
 export type EstadoFicha = "borrador" | "revision" | "aprobado" | "rechazado";
@@ -9,7 +9,8 @@ export type ResultadoCertificacion = "aprobado" | "rechazado" | "pendiente";
 export interface FichaData {
   id_ficha: string;
   codigo_productor: string;
-  gestion: number;
+  gestion: number; // Campo legacy (mantener por compatibilidad)
+  id_gestion: string; // FK a gestiones (UUID)
   fecha_inspeccion: Date;
   inspector_interno: string;
   persona_entrevistada?: string | null;
@@ -44,7 +45,8 @@ export interface FichaPublicData {
   codigo_productor: string;
   nombre_productor?: string;
   nombre_comunidad?: string;
-  gestion: number;
+  gestion: number; // Campo legacy
+  id_gestion: string; // FK a gestiones
   fecha_inspeccion: string;
   inspector_interno: string;
   persona_entrevistada?: string;
@@ -81,6 +83,10 @@ export class Ficha {
 
   get gestion(): number {
     return this.data.gestion;
+  }
+
+  get idGestion(): string {
+    return this.data.id_gestion;
   }
 
   get fechaInspeccion(): Date {
@@ -155,7 +161,8 @@ export class Ficha {
   // Crea una nueva instancia
   static create(data: {
     codigo_productor: string;
-    gestion: number;
+    gestion: number; // Legacy
+    id_gestion: string; // FK a gestiones
     fecha_inspeccion: Date;
     inspector_interno: string;
     persona_entrevistada?: string;
@@ -167,6 +174,7 @@ export class Ficha {
       id_ficha: "",
       codigo_productor: data.codigo_productor,
       gestion: data.gestion,
+      id_gestion: data.id_gestion,
       fecha_inspeccion: data.fecha_inspeccion,
       inspector_interno: data.inspector_interno,
       persona_entrevistada: data.persona_entrevistada,
@@ -224,7 +232,7 @@ export class Ficha {
     }
 
     if (this.data.categoria_gestion_anterior) {
-      const categoriasValidas: CategoriaProductor[] = ["E", "2T", "1T", "0T"];
+      const categoriasValidas: CategoriaProductor[] = ["E", "T2", "T1", "T0"];
       if (!categoriasValidas.includes(this.data.categoria_gestion_anterior)) {
         errors.push("Categoria gestion anterior invalida");
       }
@@ -299,6 +307,7 @@ export class Ficha {
     return {
       codigo_productor: this.data.codigo_productor.trim().toUpperCase(),
       gestion: this.data.gestion,
+      id_gestion: this.data.id_gestion,
       fecha_inspeccion: this.data.fecha_inspeccion,
       inspector_interno: this.data.inspector_interno.trim(),
       persona_entrevistada: this.data.persona_entrevistada?.trim() || null,
@@ -351,6 +360,7 @@ export class Ficha {
       nombre_productor: this.data.nombre_productor,
       nombre_comunidad: this.data.nombre_comunidad,
       gestion: this.data.gestion,
+      id_gestion: this.data.id_gestion,
       fecha_inspeccion: this.data.fecha_inspeccion.toISOString(),
       inspector_interno: this.data.inspector_interno,
       persona_entrevistada: this.data.persona_entrevistada ?? undefined,

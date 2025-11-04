@@ -62,6 +62,7 @@ export class FichaRepository {
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
+          fi.id_gestion,
           fi.fecha_inspeccion,
           fi.inspector_interno,
           fi.persona_entrevistada,
@@ -102,6 +103,7 @@ export class FichaRepository {
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
+          fi.id_gestion,
           fi.fecha_inspeccion,
           fi.inspector_interno,
           fi.persona_entrevistada,
@@ -139,6 +141,7 @@ export class FichaRepository {
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
+          fi.id_gestion,
           fi.fecha_inspeccion,
           fi.inspector_interno,
           fi.persona_entrevistada,
@@ -177,6 +180,7 @@ export class FichaRepository {
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
+          fi.id_gestion,
           fi.fecha_inspeccion,
           fi.inspector_interno,
           fi.persona_entrevistada,
@@ -218,6 +222,7 @@ export class FichaRepository {
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
+          fi.id_gestion,
           fi.fecha_inspeccion,
           fi.inspector_interno,
           fi.persona_entrevistada,
@@ -279,12 +284,23 @@ export class FichaRepository {
   }): Promise<{ fichas: Ficha[]; total: number }> {
     const { gestion, estado, codigoProductor, comunidadId, estadoSync, page, limit } = params;
 
+    console.log('🔍 [REPOSITORY] findWithPagination llamado con:', {
+      gestion,
+      tipo_gestion: typeof gestion,
+      estado,
+      codigoProductor,
+      comunidadId,
+      page,
+      limit
+    });
+
     // Construir WHERE dinamico
     const conditions: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
 
     if (gestion !== undefined) {
+      console.log('🔍 [REPOSITORY] Agregando filtro por gestión:', gestion);
       conditions.push(`fi.gestion = $${paramIndex}`);
       values.push(gestion);
       paramIndex++;
@@ -316,6 +332,12 @@ export class FichaRepository {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    console.log('🔍 [REPOSITORY] Query construido:', {
+      whereClause,
+      values,
+      conditions
+    });
+
     // Calcular offset para paginacion
     const offset = (page - 1) * limit;
 
@@ -338,6 +360,7 @@ export class FichaRepository {
           fi.id_ficha,
           fi.codigo_productor,
           fi.gestion,
+          fi.id_gestion,
           fi.fecha_inspeccion,
           fi.inspector_interno,
           fi.persona_entrevistada,
@@ -463,6 +486,7 @@ export class FichaRepository {
           INSERT INTO ficha_inspeccion (
             codigo_productor,
             gestion,
+            id_gestion,
             fecha_inspeccion,
             inspector_interno,
             persona_entrevistada,
@@ -475,12 +499,13 @@ export class FichaRepository {
             comentarios_actividad_pecuaria,
             comentarios_evaluacion,
             created_by
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
           RETURNING id_ficha, created_at, updated_at
         `,
         values: [
           fichaData.codigo_productor,
           fichaData.gestion,
+          fichaData.id_gestion,
           fichaData.fecha_inspeccion,
           fichaData.inspector_interno,
           fichaData.persona_entrevistada,
@@ -567,14 +592,24 @@ export class FichaRepository {
                 id_ficha,
                 descripcion_no_conformidad,
                 accion_correctiva_propuesta,
-                fecha_limite_implementacion
-              ) VALUES ($1, $2, $3, $4)
+                fecha_limite_implementacion,
+                estado_seguimiento,
+                comentario_seguimiento,
+                fecha_seguimiento,
+                realizado_por_usuario,
+                updated_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             `,
             values: [
               idFicha,
               ncData.descripcion_no_conformidad,
               ncData.accion_correctiva_propuesta,
               ncData.fecha_limite_implementacion,
+              ncData.estado_seguimiento,
+              ncData.comentario_seguimiento,
+              ncData.fecha_seguimiento,
+              ncData.realizado_por_usuario,
+              ncData.updated_at,
             ],
           });
         }

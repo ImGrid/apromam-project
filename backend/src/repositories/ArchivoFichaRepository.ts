@@ -50,4 +50,36 @@ export class ArchivoFichaRepository {
     const results = await ReadQuery.execute<ArchivoFichaData>(query);
     return results.map((row) => ArchivoFicha.fromDatabase(row));
   }
+
+  // Busca un archivo por su ID
+  async findById(id_archivo: string): Promise<ArchivoFicha | null> {
+    const query = {
+      name: "find-archivo-by-id",
+      text: "SELECT * FROM archivos_ficha WHERE id_archivo = $1",
+      values: [id_archivo],
+    };
+
+    const results = await ReadQuery.execute<ArchivoFichaData>(query);
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    return ArchivoFicha.fromDatabase(results[0]);
+  }
+
+  // Elimina un archivo de la base de datos
+  async delete(id_archivo: string): Promise<void> {
+    const query = {
+      name: "delete-archivo-ficha",
+      text: "DELETE FROM archivos_ficha WHERE id_archivo = $1",
+      values: [id_archivo],
+    };
+
+    const result = await WriteQuery.execute(query);
+
+    if (!result.success) {
+      throw new Error(result.error || "Error al eliminar el archivo de la base de datos");
+    }
+  }
 }

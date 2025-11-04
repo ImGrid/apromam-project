@@ -9,6 +9,7 @@ import { User, Settings, LogOut, ChevronDown } from "lucide-react";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { useClickOutside } from "@/shared/hooks/useClickOutside";
+import { usePermissions } from "@/shared/hooks/usePermissions";
 import { ROUTES } from "@/shared/config/routes.config";
 
 // Colores de badge por rol
@@ -23,6 +24,7 @@ const ROLE_COLORS: Record<string, string> = {
 export function UserMenu() {
   const { user } = useAuth();
   const { logout, isLoading } = useLogout();
+  const permissions = usePermissions();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -110,15 +112,17 @@ export function UserMenu() {
               <span>Mi Perfil</span>
             </Link>
 
-            {/* Configuracion */}
-            <Link
-              to={ROUTES.PERFIL}
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-4 py-2 text-sm transition-colors text-text-primary hover:bg-neutral-bg"
-            >
-              <Settings className="w-4 h-4" />
-              <span>Configuración</span>
-            </Link>
+            {/* Configuración - Solo Admin */}
+            {permissions.isAdmin() && (
+              <Link
+                to={ROUTES.CONFIGURACION}
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm transition-colors text-text-primary hover:bg-neutral-bg"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Configuración</span>
+              </Link>
+            )}
           </div>
 
           {/* Logout */}

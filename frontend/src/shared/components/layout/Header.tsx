@@ -1,5 +1,6 @@
 import { Menu } from "lucide-react";
 import { UserMenu } from "./UserMenu";
+import { GestionIndicator } from "@/features/configuracion/components/GestionIndicator";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -24,8 +25,11 @@ export function Header({ onMenuClick, title = "Dashboard" }: HeaderProps) {
         <h1 className="text-lg font-semibold text-text-primary">{title}</h1>
       </div>
 
-      {/* Right side - User menu */}
-      <UserMenu />
+      {/* Right side - Gestion indicator & User menu */}
+      <div className="flex items-center gap-3">
+        <GestionIndicator />
+        <UserMenu />
+      </div>
     </header>
   );
 }

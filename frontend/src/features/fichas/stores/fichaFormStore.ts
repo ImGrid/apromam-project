@@ -7,15 +7,9 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { FichaCompleta } from "../types/ficha.types";
+import type { StepValidation, StepStatus } from "../types/validation.types";
 
-// ============================================
-// TYPES
-// ============================================
-
-export interface StepValidation {
-  isValid: boolean;
-  errors: string[];
-}
+console.log('🏪 [fichaFormStore] Inicializando store...');
 
 export interface FichaFormState {
   // Navegación
@@ -99,8 +93,12 @@ export const useFichaFormStore = create<FichaFormStore>()(
 
         goToNextStep: () => {
           const { currentStep } = get();
+          console.log(`➡️ [fichaFormStore] Navegando al siguiente step. Actual: ${currentStep}`);
           if (currentStep < TOTAL_STEPS) {
             set({ currentStep: currentStep + 1 });
+            console.log(`➡️ [fichaFormStore] Nuevo step: ${currentStep + 1}`);
+          } else {
+            console.log(`⚠️ [fichaFormStore] Ya estás en el último step (${TOTAL_STEPS})`);
           }
         },
 
@@ -112,21 +110,32 @@ export const useFichaFormStore = create<FichaFormStore>()(
         },
 
         markStepComplete: (step: number) => {
+          console.log(`✅ [fichaFormStore] Marcando step ${step} como completado`);
           const { completedSteps } = get();
           const newCompleted = new Set(completedSteps);
           newCompleted.add(step);
           set({ completedSteps: newCompleted });
+          console.log(`✅ [fichaFormStore] Steps completados:`, Array.from(newCompleted));
         },
 
         markStepIncomplete: (step: number) => {
+          console.log(`❌ [fichaFormStore] Marcando step ${step} como incompleto`);
           const { completedSteps } = get();
           const newCompleted = new Set(completedSteps);
           newCompleted.delete(step);
           set({ completedSteps: newCompleted });
+          console.log(`❌ [fichaFormStore] Steps completados:`, Array.from(newCompleted));
         },
 
         // Validación
         setStepValidation: (step: number, validation: StepValidation) => {
+          console.log(`🔍 [fichaFormStore] Validación step ${step}:`, {
+            isValid: validation.isValid,
+            hasErrors: validation.hasErrors,
+            hasWarnings: validation.hasWarnings,
+            errorsCount: validation.errors.length,
+            warningsCount: validation.warnings.length,
+          });
           set((state) => ({
             stepValidations: {
               ...state.stepValidations,

@@ -27,7 +27,9 @@ export function ComunidadesSelect({
     .sort((a, b) => a.nombre_comunidad.localeCompare(b.nombre_comunidad))
     .map((c) => ({
       value: c.id_comunidad,
-      label: c.nombre_comunidad,
+      label: c.nombre_municipio
+        ? `${c.nombre_comunidad} - ${c.nombre_municipio}`
+        : c.nombre_comunidad,
     }));
 
   const isDisabled = disabled || !municipioId || isLoading;

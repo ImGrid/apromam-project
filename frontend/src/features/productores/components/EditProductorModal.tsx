@@ -21,7 +21,7 @@ import type { Productor } from "../types/productor.types";
 const editProductorSchema = z.object({
   nombre_productor: z.string().min(3, "Mínimo 3 caracteres"),
   ci_documento: z.string().min(5, "CI inválido"),
-  categoria_actual: z.enum(["E", "2T", "1T", "0T"]),
+  categoria_actual: z.enum(["E", "T2", "T1", "T0"]),
   superficie_total_has: z.number().min(0).optional(),
   numero_parcelas_total: z.number().int().min(0).optional(),
   activo: z.boolean(),
@@ -97,9 +97,9 @@ export function EditProductorModal({
 
   const categorias: SelectOption[] = [
     { value: "E", label: "E - En transición" },
-    { value: "2T", label: "2T - Segundo año de transición" },
-    { value: "1T", label: "1T - Primer año de transición" },
-    { value: "0T", label: "0T - Inicio transición" },
+    { value: "T2", label: "T2 - Segundo año de transición" },
+    { value: "T1", label: "T1 - Primer año de transición" },
+    { value: "T0", label: "T0 - Inicio transición" },
   ];
 
   return (
@@ -116,7 +116,10 @@ export function EditProductorModal({
               <strong>Código:</strong> {productor.codigo_productor}
             </p>
             <p className="text-sm text-text-secondary">
-              <strong>Comunidad:</strong> {productor.nombre_comunidad}
+              <strong>Comunidad:</strong>{" "}
+              {productor.nombre_municipio
+                ? `${productor.nombre_comunidad} - ${productor.nombre_municipio}`
+                : productor.nombre_comunidad}
             </p>
             <p className="text-xs text-text-tertiary">
               El código y la comunidad no se pueden modificar

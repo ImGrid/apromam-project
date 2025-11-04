@@ -6,16 +6,13 @@
 
 import { useFormContext, useFieldArray } from "react-hook-form";
 import {
-  Plus,
-  Trash2,
   TrendingUp,
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
-import { Button } from "@/shared/components/ui/Button";
 import { FormField } from "@/shared/components/ui/FormField";
-import { FormSection } from "@/shared/components/ui/FormSection";
 import { Alert } from "@/shared/components/ui/Alert";
+import { Input } from "@/shared/components/ui/Input";
 import { SimpleRadioGroup } from "../Specialized/SimpleRadioGroup";
 import type { CreateFichaCompletaInput } from "../../types/ficha.types";
 
@@ -28,39 +25,15 @@ export default function Step8CosechaVentas() {
     formState: { errors },
   } = useFormContext<CreateFichaCompletaInput>();
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields } = useFieldArray({
     control,
     name: "cosecha_ventas",
   });
 
-  const handleAddCosecha = () => {
-    append({
-      tipo_mani: "ecologico",
-      superficie_actual_ha: 0,
-      cosecha_estimada_qq: 0,
-      numero_parcelas: 0,
-      destino_consumo_qq: 0,
-      destino_semilla_qq: 0,
-      destino_ventas_qq: 0,
-      observaciones: "",
-    });
-  };
-
   return (
     <div className="space-y-6">
-      {/* Lista de cosechas */}
-      <div className="space-y-6">
-        {fields.length === 0 ? (
-          <Alert
-            type="warning"
-            message={
-              <p className="text-sm">
-                Debe registrar la información de cosecha y ventas de maní. Haga clic en "Agregar Cultivo" para continuar.
-              </p>
-            }
-          />
-        ) : (
-          fields.map((field, index) => {
+      {/* Formulario de cosecha (siempre visible) */}
+      {fields.map((field, index) => {
             // Watch campos numéricos para validación
             const cosechaEstimada =
               watch(`cosecha_ventas.${index}.cosecha_estimada_qq`) || 0;
@@ -86,32 +59,15 @@ export default function Step8CosechaVentas() {
                 className="p-6 space-y-4 bg-white border rounded-lg border-neutral-border"
               >
                 {/* Header del cultivo */}
-                <div className="flex items-center justify-between pb-3 border-b">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-semibold text-text-primary">
-                      Cultivo #{index + 1}
-                    </h3>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="small"
-                    onClick={() => remove(index)}
-                    disabled={fields.length === 1}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar
-                  </Button>
-                  {fields.length === 1 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Debe haber al menos 1 registro
-                    </p>
-                  )}
+                <div className="flex items-center gap-2 pb-3 border-b">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-semibold text-text-primary">
+                    Producción y Distribución de Maní
+                  </h3>
                 </div>
 
-                {/* Información del cultivo */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {/* Información del cultivo - Grid compacto */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {/* Tipo de Maní */}
                   <FormField
                     label="Tipo de Maní"
@@ -147,21 +103,17 @@ export default function Step8CosechaVentas() {
                       errors.cosecha_ventas?.[index]?.numero_parcelas?.message
                     }
                   >
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
+                    <Input
+                      inputType="number"
+                      min={1}
+                      step={1}
                       {...register(`cosecha_ventas.${index}.numero_parcelas`, {
                         valueAsNumber: true,
                       })}
-                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="Ej: 3"
                     />
                   </FormField>
-                </div>
 
-                {/* Superficie y cosecha */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {/* Superficie actual */}
                   <FormField
                     label="Superficie Actual (ha)"
@@ -171,17 +123,16 @@ export default function Step8CosechaVentas() {
                         ?.message
                     }
                   >
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                    <Input
+                      inputType="number"
+                      min={0}
+                      step={0.01}
                       {...register(
                         `cosecha_ventas.${index}.superficie_actual_ha`,
                         {
                           valueAsNumber: true,
                         }
                       )}
-                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="Ej: 2.5"
                     />
                   </FormField>
@@ -190,23 +141,21 @@ export default function Step8CosechaVentas() {
                   <FormField
                     label="Cosecha Estimada (qq)"
                     required
-                    helperText="1 quintal (qq) = 46 kg"
                     error={
                       errors.cosecha_ventas?.[index]?.cosecha_estimada_qq
                         ?.message
                     }
                   >
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.1"
+                    <Input
+                      inputType="number"
+                      min={0}
+                      step={0.1}
                       {...register(
                         `cosecha_ventas.${index}.cosecha_estimada_qq`,
                         {
                           valueAsNumber: true,
                         }
                       )}
-                      className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="Ej: 120"
                     />
                   </FormField>
@@ -227,17 +176,16 @@ export default function Step8CosechaVentas() {
                           ?.message
                       }
                     >
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
+                      <Input
+                        inputType="number"
+                        min={0}
+                        step={0.1}
                         {...register(
                           `cosecha_ventas.${index}.destino_consumo_qq`,
                           {
                             valueAsNumber: true,
                           }
                         )}
-                        className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                         placeholder="0"
                       />
                     </FormField>
@@ -251,17 +199,16 @@ export default function Step8CosechaVentas() {
                           ?.message
                       }
                     >
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
+                      <Input
+                        inputType="number"
+                        min={0}
+                        step={0.1}
                         {...register(
                           `cosecha_ventas.${index}.destino_semilla_qq`,
                           {
                             valueAsNumber: true,
                           }
                         )}
-                        className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                         placeholder="0"
                       />
                     </FormField>
@@ -275,17 +222,16 @@ export default function Step8CosechaVentas() {
                           ?.message
                       }
                     >
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
+                      <Input
+                        inputType="number"
+                        min={0}
+                        step={0.1}
                         {...register(
                           `cosecha_ventas.${index}.destino_ventas_qq`,
                           {
                             valueAsNumber: true,
                           }
                         )}
-                        className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
                         placeholder="0"
                       />
                     </FormField>
@@ -337,8 +283,7 @@ export default function Step8CosechaVentas() {
                             <div className="flex items-start">
                               <AlertCircle className="w-4 h-4 mt-0.5" />
                               <p className="ml-2 text-sm">
-                                La suma de destinos excede el 110% de la cosecha
-                                estimada. Por favor, verifica los valores.
+                                Excede el 110% de la cosecha estimada
                               </p>
                             </div>
                           }
@@ -351,8 +296,7 @@ export default function Step8CosechaVentas() {
                             <div className="flex items-start">
                               <CheckCircle className="w-4 h-4 mt-0.5" />
                               <p className="ml-2 text-sm">
-                                Distribución correcta. Los valores están dentro
-                                del rango esperado.
+                                Distribución correcta
                               </p>
                             </div>
                           }
@@ -368,10 +312,7 @@ export default function Step8CosechaVentas() {
                               <div className="flex items-start">
                                 <AlertCircle className="w-4 h-4 mt-0.5" />
                                 <p className="ml-2 text-sm">
-                                  La distribución parece incompleta (
-                                  {porcentajeDistribucion.toFixed(1)}%).
-                                  Verifica si falta distribuir parte de la
-                                  cosecha.
+                                  Distribución incompleta ({porcentajeDistribucion.toFixed(1)}%)
                                 </p>
                               </div>
                             }
@@ -384,42 +325,18 @@ export default function Step8CosechaVentas() {
                 {/* Observaciones */}
                 <FormField
                   label="Observaciones"
-                  helperText="Información adicional sobre esta cosecha"
                   error={errors.cosecha_ventas?.[index]?.observaciones?.message}
                 >
                   <textarea
                     {...register(`cosecha_ventas.${index}.observaciones`)}
                     rows={2}
-                    className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Ej: Parte de la cosecha se perdió por sequía..."
+                    className="w-full min-h-[48px] px-4 py-3 text-base border rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 border-neutral-border focus:ring-primary focus:border-primary"
+                    placeholder="Opcional"
                   />
                 </FormField>
               </div>
             );
-          })
-        )}
-      </div>
-
-      {/* Botón agregar cosecha */}
-      <div className="flex flex-col items-center pt-4">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={handleAddCosecha}
-          className="w-full sm:w-auto"
-          disabled={fields.length >= 1}
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Agregar Cultivo
-        </Button>
-        {fields.length >= 1 && (
-          <Alert
-            type="info"
-            message="Solo se permite 1 registro de cosecha y ventas por ficha"
-            className="mt-4"
-          />
-        )}
-      </div>
+          })}
     </div>
   );
 }

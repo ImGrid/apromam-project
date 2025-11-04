@@ -133,10 +133,10 @@ export const fichasService = {
    * Lista archivos de una ficha
    */
   async getArchivos(id: string): Promise<ArchivoFicha[]> {
-    const response = await apiClient.get<ArchivoFicha[]>(
+    const response = await apiClient.get<{ archivos: ArchivoFicha[]; total: number }>(
       `${BASE_URL}/${id}/archivos`
     );
-    return response.data;
+    return response.data.archivos;
   },
 
   /**
@@ -148,19 +148,36 @@ export const fichasService = {
     tipoArchivo: string
   ): Promise<ArchivoFicha> {
     const formData = new FormData();
-    formData.append("file", file);
+    // IMPORTANTE: tipo_archivo debe ir ANTES del file
+    // Fastify multipart con request.file() solo parsea campos que vienen antes del archivo
     formData.append("tipo_archivo", tipoArchivo);
+    formData.append("file", file);
 
-    const response = await apiClient.post<ArchivoFicha>(
+    // Eliminamos explícitamente Content-Type para que Axios lo genere con el boundary correcto
+    const response = await apiClient.post<{ archivo: ArchivoFicha; message: string }>(
       `${BASE_URL}/${id}/archivos`,
       formData,
       {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": undefined,
         },
       }
     );
-    return response.data;
+    return response.data.archivo;
+  },
+
+  /**
+   * Elimina un archivo de una ficha
+   */
+  async deleteArchivo(idFicha: string, idArchivo: string): Promise<void> {
+    await apiClient.delete(`${BASE_URL}/${idFicha}/archivos/${idArchivo}`);
+  },
+
+  /**
+   * Obtiene la URL de descarga de un archivo
+   */
+  getArchivoUrl(idFicha: string, idArchivo: string): string {
+    return `${apiClient.defaults.baseURL}${BASE_URL}/${idFicha}/archivos/${idArchivo}/download`;
   },
 
   // ============================================

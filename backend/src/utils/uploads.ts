@@ -8,6 +8,7 @@ export const UPLOAD_SUBDIRS = {
   croquis: "croquis",
   foto_parcela: "fotos-parcelas",
   documento_pdf: "documentos",
+  no_conformidades: "no_conformidades", // Base para no conformidades
 } as const;
 
 export type TipoArchivoUpload = keyof typeof UPLOAD_SUBDIRS;
@@ -106,4 +107,49 @@ export function generateUniqueFilename(originalFilename: string, prefix?: string
   }
 
   return `${timestamp}-${random}${ext}`;
+}
+
+/**
+ * Construye la ruta completa para archivos de no conformidades
+ * Organiza: uploads/no_conformidades/{id_no_conformidad}/{filename}
+ */
+export function buildFilePathNC(
+  idNoConformidad: string,
+  filename: string
+): string {
+  const baseDir = path.join(config.upload.path, UPLOAD_SUBDIRS.no_conformidades);
+  return path.join(baseDir, idNoConformidad, filename);
+}
+
+/**
+ * Construye la ruta relativa para archivos de no conformidades
+ * (relativa al directorio base de uploads)
+ */
+export function buildRelativePathNC(
+  idNoConformidad: string,
+  filename: string
+): string {
+  return path.join(UPLOAD_SUBDIRS.no_conformidades, idNoConformidad, filename);
+}
+
+/**
+ * Inicializa el directorio específico para una no conformidad
+ */
+export async function initializeNCDirectory(idNoConformidad: string): Promise<void> {
+  const ncDir = path.join(
+    config.upload.path,
+    UPLOAD_SUBDIRS.no_conformidades,
+    idNoConformidad
+  );
+
+  try {
+    await fs.mkdir(ncDir, { recursive: true });
+    logger.debug(`Created NC directory: ${ncDir}`);
+  } catch (error) {
+    logger.error({
+      error: error instanceof Error ? error.message : "Unknown error",
+      ncDir,
+    }, "Failed to create NC directory");
+    throw error;
+  }
 }

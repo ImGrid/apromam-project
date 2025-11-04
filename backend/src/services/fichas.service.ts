@@ -3,6 +3,7 @@ import { ProductorRepository } from "../repositories/ProductorRepository.js";
 import { ParcelaRepository } from "../repositories/ParcelaRepository.js";
 import { ArchivoFichaRepository } from "../repositories/ArchivoFichaRepository.js";
 import { FichaDraftRepository } from "../repositories/FichaDraftRepository.js";
+import { GestionRepository } from "../repositories/GestionRepository.js";
 import { Ficha } from "../entities/Ficha.js";
 import { RevisionDocumentacion } from "../entities/RevisionDocumentacion.js";
 import { AccionCorrectiva } from "../entities/AccionCorrectiva.js";
@@ -42,19 +43,22 @@ export class FichasService {
   private parcelaRepository: ParcelaRepository;
   private archivoFichaRepository: ArchivoFichaRepository;
   private fichaDraftRepository: FichaDraftRepository;
+  private gestionRepository: GestionRepository;
 
   constructor(
     fichaRepository: FichaRepository,
     productorRepository: ProductorRepository,
     parcelaRepository: ParcelaRepository,
     archivoFichaRepository: ArchivoFichaRepository,
-    fichaDraftRepository: FichaDraftRepository
+    fichaDraftRepository: FichaDraftRepository,
+    gestionRepository: GestionRepository
   ) {
     this.fichaRepository = fichaRepository;
     this.productorRepository = productorRepository;
     this.parcelaRepository = parcelaRepository;
     this.archivoFichaRepository = archivoFichaRepository;
     this.fichaDraftRepository = fichaDraftRepository;
+    this.gestionRepository = gestionRepository;
   }
 
   // Lista fichas con filtros y paginacion
@@ -71,6 +75,15 @@ export class FichasService {
     page: number = 1,
     limit: number = 20
   ): Promise<{ fichas: FichaResponse[]; total: number; page: number; limit: number; totalPages: number }> {
+    console.log('🔍 [SERVICE] listFichas llamado con:', {
+      gestion,
+      tipo_gestion: typeof gestion,
+      esAdminOGerente,
+      comunidadId,
+      codigoProductor,
+      estado
+    });
+
     // Si es tecnico y no se especifica comunidad, usar su comunidad
     const comunidadFiltro = !esAdminOGerente && usuarioComunidadId
       ? usuarioComunidadId
@@ -85,6 +98,11 @@ export class FichasService {
       estadoSync,
       page,
       limit,
+    });
+
+    console.log('🔍 [SERVICE] Resultado del repository:', {
+      total: result.total,
+      cantidad_fichas: result.fichas.length
     });
 
     const totalPages = Math.ceil(result.total / limit);
@@ -162,10 +180,26 @@ export class FichasService {
       }
     }
 
+    // Obtener UUID de la gestion a partir del año
+    const gestion = await this.gestionRepository.findByAnio(input.gestion);
+    if (!gestion) {
+      throw new Error(`Gestión ${input.gestion} no encontrada`);
+    }
+
+    // Validar que fecha_inspeccion corresponde al año de la gestión
+    const fechaInspeccion = new Date(input.fecha_inspeccion);
+    const anioFechaInspeccion = fechaInspeccion.getFullYear();
+    if (anioFechaInspeccion !== input.gestion) {
+      throw new Error(
+        `La fecha de inspección (${anioFechaInspeccion}) no corresponde al año de la gestión (${input.gestion})`
+      );
+    }
+
     // Crear entity Ficha principal
     const ficha = Ficha.create({
       codigo_productor: input.codigo_productor,
       gestion: input.gestion,
+      id_gestion: gestion.id,
       fecha_inspeccion: new Date(input.fecha_inspeccion),
       inspector_interno: input.inspector_interno,
       persona_entrevistada: input.persona_entrevistada,
@@ -632,9 +666,73 @@ export class FichasService {
     usuarioComunidadId?: string,
     esAdminOGerente: boolean = false
   ): Promise<void> {
-    // TODO: Implementar método findById en ArchivoFichaRepository
-    // Por ahora, buscar en la lista de archivos de la ficha
-    throw new Error("Método deleteArchivo pendiente de implementación");
+    logger.info(
+      {
+        id_archivo: archivoId,
+      },
+      "Eliminando archivo de ficha"
+    );
+
+    // Buscar archivo en BD
+    const archivo = await this.archivoFichaRepository.findById(archivoId);
+    if (!archivo) {
+      throw new Error("Archivo no encontrado");
+    }
+
+    // Validar acceso a la ficha
+    const ficha = await this.fichaRepository.findById(archivo.idFicha);
+    if (!ficha) {
+      throw new Error("Ficha no encontrada");
+    }
+
+    if (!esAdminOGerente && usuarioComunidadId) {
+      const productor = await this.productorRepository.findByCodigo(
+        ficha.codigoProductor
+      );
+      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+        throw new Error("No tiene acceso a esta ficha");
+      }
+    }
+
+    // Construir ruta completa del archivo físico
+    const { config } = await import("../config/environment.js");
+    const path = await import("path");
+    const rutaCompleta = path.default.join(
+      config.upload.path,
+      archivo.rutaAlmacenamiento
+    );
+
+    // Intentar eliminar archivo físico
+    try {
+      await fs.unlink(rutaCompleta);
+      logger.info(
+        {
+          ruta: rutaCompleta,
+        },
+        "Archivo físico eliminado exitosamente"
+      );
+    } catch (error) {
+      // Si el archivo físico no existe o falla, solo loguear warning
+      // No abortamos la operación porque queremos limpiar la BD de todos modos
+      logger.warn(
+        {
+          error: error instanceof Error ? error.message : "Unknown error",
+          ruta: rutaCompleta,
+        },
+        "No se pudo eliminar archivo físico (puede que ya no exista)"
+      );
+    }
+
+    // Eliminar registro de BD
+    await this.archivoFichaRepository.delete(archivoId);
+
+    logger.info(
+      {
+        id_archivo: archivoId,
+        id_ficha: archivo.idFicha,
+      },
+      "Archivo eliminado exitosamente de la base de datos"
+    );
   }
 
   // METODOS DE WORKFLOW

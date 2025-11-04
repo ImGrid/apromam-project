@@ -9,6 +9,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { showToast } from "@/shared/hooks/useToast";
+import { useGestionActiva } from "@/features/configuracion/hooks/useGestionActiva";
 import {
   useFichaFormActions,
   useCurrentStep,
@@ -29,6 +30,33 @@ import { useAutoSaveDraft } from "../../hooks/useAutoSaveDraft";
 import { useRecoverDraft } from "../../hooks/useRecoverDraft";
 import { useOnlineStatus } from "@/shared/hooks/useOnlineStatus";
 import { DraftRecoveryModal } from "../DraftRecoveryModal";
+
+// Sistema de validación
+import { useStepValidation } from "../../hooks/useStepValidation";
+
+// ============================================
+// STEP VALIDATION MANAGER (debe estar dentro del FormProvider)
+// ============================================
+
+function StepValidationManager({ currentStep }: { currentStep: number }) {
+  console.log(`🔄 [StepValidationManager] Montado para step ${currentStep}`);
+
+  // Este hook SÍ puede usar useFormContext porque está dentro del FormProvider
+  const { validateNow } = useStepValidation(currentStep);
+  const actions = useFichaFormActions();
+
+  // Guardar la función de validación en el store
+  useEffect(() => {
+    // Guardar validateNow en el store para que handleNext pueda usarla
+    (window as any).__validateCurrentStep = validateNow;
+
+    return () => {
+      delete (window as any).__validateCurrentStep;
+    };
+  }, [validateNow]);
+
+  return null; // No renderiza nada
+}
 
 // ============================================
 // TYPES
@@ -62,6 +90,7 @@ export default function FichaMultiStepForm({
   const isAutosaving = useIsAutosaving();
   const actions = useFichaFormActions();
   const isOnline = useOnlineStatus();
+  const { gestionActiva } = useGestionActiva();
 
   // React Hook Form setup
   const methods = useForm<CreateFichaCompletaInput>({
@@ -78,7 +107,18 @@ export default function FichaMultiStepForm({
       actividades_pecuarias: [],
       parcelas_inspeccionadas: [],
       detalles_cultivo: [],
-      cosecha_ventas: [],
+      cosecha_ventas: [
+        {
+          tipo_mani: "ecologico",
+          superficie_actual_ha: 0,
+          cosecha_estimada_qq: 0,
+          numero_parcelas: 0,
+          destino_consumo_qq: 0,
+          destino_semilla_qq: 0,
+          destino_ventas_qq: 0,
+          observaciones: "",
+        },
+      ],
     },
   });
 
@@ -109,6 +149,8 @@ export default function FichaMultiStepForm({
     mode === "create" ? codigoProductor : undefined,
     mode === "create" ? gestion : undefined
   );
+
+  console.log(`🎯 [FichaMultiStepForm] Renderizando step ${currentStep}`);
 
   // Hook de auto-save (reemplaza el setInterval anterior)
   // IMPORTANTE: Deshabilitar mientras se carga el draft o el modal está abierto
@@ -149,10 +191,31 @@ export default function FichaMultiStepForm({
       console.log('[RECOVER] Step actual:', draft.step_actual);
       console.log('[RECOVER] Datos del formulario:', draft.data);
 
+      // Asegurar que cosecha_ventas tenga exactamente 1 registro
+      const draftData = { ...draft.data };
+      if (draftData.cosecha_ventas) {
+        if (draftData.cosecha_ventas.length === 0) {
+          // Si está vacío, inicializar con 1 registro
+          draftData.cosecha_ventas = [{
+            tipo_mani: "ecologico",
+            superficie_actual_ha: 0,
+            cosecha_estimada_qq: 0,
+            numero_parcelas: 0,
+            destino_consumo_qq: 0,
+            destino_semilla_qq: 0,
+            destino_ventas_qq: 0,
+            observaciones: "",
+          }];
+        } else if (draftData.cosecha_ventas.length > 1) {
+          // Si hay más de 1, mantener solo el primero
+          draftData.cosecha_ventas = [draftData.cosecha_ventas[0]];
+        }
+      }
+
       // Reset del React Hook Form con datos del borrador
       // keepDefaultValues: true mantiene los valores por defecto y solo actualiza los campos con datos
       // keepDirtyValues: false asegura que todos los valores se actualicen
-      reset(draft.data, {
+      reset(draftData, {
         keepDefaultValues: false,
         keepDirtyValues: false,
         keepErrors: false,
@@ -195,8 +258,17 @@ export default function FichaMultiStepForm({
       ficha,                    // Se aplana al root
       evaluacion_conocimiento,  // Se renombra
       detalles_cultivo,         // Se renombra
+      no_conformidades,         // Se transforma
       ...rest
     } = data;
+
+    // Transformar fechas en no_conformidades de "YYYY-MM-DD" a ISO datetime
+    const no_conformidadesTransformadas = no_conformidades?.map((nc) => ({
+      ...nc,
+      fecha_limite_implementacion: nc.fecha_limite_implementacion
+        ? new Date(nc.fecha_limite_implementacion).toISOString()
+        : undefined,
+    }));
 
     const dataToSend = {
       // Aplanar campos de ficha al root
@@ -212,6 +284,9 @@ export default function FichaMultiStepForm({
       evaluacion_conocimiento_normas: evaluacion_conocimiento,
       detalle_cultivos_parcelas: detalles_cultivo,
 
+      // Incluir no_conformidades con fechas transformadas
+      no_conformidades: no_conformidadesTransformadas,
+
       // Resto de secciones (nombres correctos)
       ...rest
     };
@@ -222,6 +297,7 @@ export default function FichaMultiStepForm({
     console.log('[ENVIAR] - fecha_inspeccion (ISO):', dataToSend.fecha_inspeccion);
     console.log('[ENVIAR] - inspector_interno:', dataToSend.inspector_interno);
     console.log('[ENVIAR] - detalle_cultivos_parcelas:', dataToSend.detalle_cultivos_parcelas);
+    console.log('[ENVIAR] - no_conformidades (fechas transformadas):', dataToSend.no_conformidades);
     console.log('[ENVIAR] ========================================');
 
     try {
@@ -232,6 +308,73 @@ export default function FichaMultiStepForm({
       console.error("[ENVIAR] Error al enviar ficha:", err);
       showToast.error("Error al enviar la ficha");
     }
+  };
+
+  // Handler para navegar al siguiente step CON VALIDACIÓN
+  const handleNext = async () => {
+    console.log(`⏭️ [FichaMultiStepForm] Intentando avanzar desde step ${currentStep}`);
+
+    // Obtener la función de validación del window (guardada por StepValidationManager)
+    const validateCurrentStep = (window as any).__validateCurrentStep;
+
+    if (!validateCurrentStep) {
+      console.log(`⚠️ [FichaMultiStepForm] No hay función de validación disponible, avanzando sin validar`);
+      actions.goToNextStep();
+      return;
+    }
+
+    // Validar step actual antes de avanzar
+    const validation = await validateCurrentStep();
+
+    console.log(`🔍 [FichaMultiStepForm] Resultado validación step ${currentStep}:`, validation);
+
+    // Si hay ERRORES críticos, NO permitir avanzar
+    if (validation.hasErrors) {
+      console.log(`❌ [FichaMultiStepForm] Step ${currentStep} tiene ERRORES - bloqueando navegación`);
+      console.log(`❌ [FichaMultiStepForm] Errores:`, validation.errors);
+
+      showToast.error(
+        `Completa los campos obligatorios antes de continuar`,
+        {
+          duration: 5000,
+        }
+      );
+
+      // Scroll al primer campo con error
+      if (validation.errors.length > 0) {
+        const firstErrorField = validation.errors[0].field;
+        console.log(`📍 [FichaMultiStepForm] Primer campo con error: ${firstErrorField}`);
+
+        // Intentar hacer scroll al campo
+        setTimeout(() => {
+          const fieldElement = document.querySelector(`[name="${firstErrorField}"]`);
+          if (fieldElement) {
+            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
+
+      return; // ❌ BLOQUEAR NAVEGACIÓN
+    }
+
+    // Si hay WARNINGS (pero no errores), permitir avanzar con notificación
+    if (validation.hasWarnings) {
+      console.log(`⚠️ [FichaMultiStepForm] Step ${currentStep} tiene WARNINGS - permitiendo avanzar`);
+      console.log(`⚠️ [FichaMultiStepForm] Warnings:`, validation.warnings);
+
+      showToast.warning(
+        `Hay campos recomendados sin completar`,
+        {
+          duration: 3000,
+        }
+      );
+
+      // ✅ PERMITIR NAVEGACIÓN (warning no bloquea)
+    }
+
+    // Si paso validación (o solo tiene warnings), avanzar
+    console.log(`✅ [FichaMultiStepForm] Step ${currentStep} validado correctamente - avanzando`);
+    actions.goToNextStep();
   };
 
   // Handler para guardar borrador manual (ahora usa el hook)
@@ -250,11 +393,14 @@ export default function FichaMultiStepForm({
 
   return (
     <FormProvider {...methods}>
+      {/* Validación del step actual (debe estar dentro del FormProvider) */}
+      <StepValidationManager currentStep={currentStep} />
+
       {/* Modal de recuperación de borrador */}
       <DraftRecoveryModal
         isOpen={!!draft}
         codigoProductor={codigoProductor || ""}
-        gestion={gestion || new Date().getFullYear()}
+        gestion={gestion || gestionActiva?.anio_gestion || new Date().getFullYear()}
         stepActual={draft?.step_actual || 1}
         updatedAt={draft?.updated_at || new Date().toISOString()}
         onAccept={handleAcceptDraft}
@@ -300,12 +446,12 @@ export default function FichaMultiStepForm({
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer - handleNext valida antes de avanzar */}
       <FichaStepFooter
         currentStep={currentStep}
         totalSteps={STEP_CONFIGS.length}
         onPrevious={actions.goToPreviousStep}
-        onNext={actions.goToNextStep}
+        onNext={handleNext}
         onSaveDraft={handleSaveDraft}
         onSubmit={handleSubmit(handleFormSubmit)}
         isFirstStep={currentStep === 1}

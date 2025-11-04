@@ -13,7 +13,7 @@ export type OrigenCaptura = "online" | "offline";
 
 export type EstadoSync = "pendiente" | "sincronizado" | "conflicto";
 
-export type CategoriaProductor = "E" | "2T" | "1T" | "0T";
+export type CategoriaProductor = "E" | "T2" | "T1" | "T0";
 
 export type ProcedenciaSemilla =
   | "asociacion"

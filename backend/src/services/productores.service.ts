@@ -308,7 +308,7 @@ export class ProductoresService {
     por_categoria: Record<string, number>;
     con_coordenadas: number;
   }> {
-    const categorias = ["E", "2T", "1T", "0T"];
+    const categorias = ["E", "T2", "T1", "T0"];
     const porCategoria: Record<string, number> = {};
 
     if (!esAdminOGerente && usuarioComunidadId) {

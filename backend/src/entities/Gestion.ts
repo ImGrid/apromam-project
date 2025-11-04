@@ -2,22 +2,16 @@
 export interface GestionData {
   id_gestion: string;
   anio_gestion: number;
-  descripcion?: string;
-  fecha_inicio?: Date;
-  fecha_fin?: Date;
-  estado_gestion: "planificada" | "activa" | "finalizada";
   activa: boolean;
+  activo_sistema: boolean;
 }
 
 // Interfaz para datos publicos de Gestion (response)
 export interface GestionPublicData {
   id_gestion: string;
   anio_gestion: number;
-  descripcion: string | null;
-  fecha_inicio: string | null;
-  fecha_fin: string | null;
-  estado_gestion: "planificada" | "activa" | "finalizada";
   activa: boolean;
+  activo_sistema: boolean;
 }
 
 // Entidad Gestion
@@ -38,41 +32,23 @@ export class Gestion {
     return this.data.anio_gestion;
   }
 
-  get descripcion(): string | null {
-    return this.data.descripcion ?? null;
-  }
-
-  get fechaInicio(): Date | null {
-    return this.data.fecha_inicio ?? null;
-  }
-
-  get fechaFin(): Date | null {
-    return this.data.fecha_fin ?? null;
-  }
-
-  get estadoGestion(): "planificada" | "activa" | "finalizada" {
-    return this.data.estado_gestion;
-  }
-
   get activa(): boolean {
     return this.data.activa;
+  }
+
+  get activoSistema(): boolean {
+    return this.data.activo_sistema;
   }
 
   // Crea una nueva instancia de Gestion
   static create(data: {
     anio_gestion: number;
-    descripcion?: string;
-    fecha_inicio?: Date;
-    fecha_fin?: Date;
   }): Gestion {
     return new Gestion({
       id_gestion: "",
       anio_gestion: data.anio_gestion,
-      descripcion: data.descripcion || `Gestion Agricola ${data.anio_gestion}`,
-      fecha_inicio: data.fecha_inicio,
-      fecha_fin: data.fecha_fin,
-      estado_gestion: "planificada",
       activa: true,
+      activo_sistema: false,
     });
   }
 
@@ -97,16 +73,6 @@ export class Gestion {
       errors.push("Año debe ser menor a 2100");
     }
 
-    if (this.data.descripcion && this.data.descripcion.trim().length < 4) {
-      errors.push("Descripcion de gestion debe tener al menos 4 caracteres");
-    }
-
-    if (this.data.fecha_inicio && this.data.fecha_fin) {
-      if (this.data.fecha_inicio > this.data.fecha_fin) {
-        errors.push("Fecha inicio debe ser anterior a fecha fin");
-      }
-    }
-
     return {
       valid: errors.length === 0,
       errors,
@@ -116,36 +82,24 @@ export class Gestion {
   // Convierte a formato para insertar en BD
   toDatabaseInsert(): {
     anio_gestion: number;
-    descripcion: string | null;
-    fecha_inicio: Date | null;
-    fecha_fin: Date | null;
-    estado_gestion: "planificada" | "activa" | "finalizada";
     activa: boolean;
+    activo_sistema: boolean;
   } {
     return {
       anio_gestion: this.data.anio_gestion,
-      descripcion: this.data.descripcion?.trim() ?? null,
-      fecha_inicio: this.data.fecha_inicio ?? null,
-      fecha_fin: this.data.fecha_fin ?? null,
-      estado_gestion: this.data.estado_gestion,
       activa: this.data.activa,
+      activo_sistema: this.data.activo_sistema,
     };
   }
 
   // Convierte a formato para actualizar en BD
   toDatabaseUpdate(): {
-    descripcion?: string | null;
-    fecha_inicio?: Date | null;
-    fecha_fin?: Date | null;
-    estado_gestion?: "planificada" | "activa" | "finalizada";
     activa?: boolean;
+    activo_sistema?: boolean;
   } {
     return {
-      descripcion: this.data.descripcion?.trim() ?? null,
-      fecha_inicio: this.data.fecha_inicio ?? null,
-      fecha_fin: this.data.fecha_fin ?? null,
-      estado_gestion: this.data.estado_gestion,
       activa: this.data.activa,
+      activo_sistema: this.data.activo_sistema,
     };
   }
 
@@ -154,11 +108,8 @@ export class Gestion {
     return {
       id_gestion: this.data.id_gestion,
       anio_gestion: this.data.anio_gestion,
-      descripcion: this.data.descripcion ?? null,
-      fecha_inicio: this.data.fecha_inicio?.toISOString() ?? null,
-      fecha_fin: this.data.fecha_fin?.toISOString() ?? null,
-      estado_gestion: this.data.estado_gestion,
       activa: this.data.activa,
+      activo_sistema: this.data.activo_sistema,
     };
   }
 
@@ -192,26 +143,19 @@ export class Gestion {
     return this.data.anio_gestion < anioActual;
   }
 
-  // Actualiza la descripcion de la gestion
-  actualizarDescripcion(nuevaDescripcion: string): void {
-    if (!nuevaDescripcion || nuevaDescripcion.trim().length < 4) {
-      throw new Error("Descripcion debe tener al menos 4 caracteres");
-    }
-    this.data.descripcion = nuevaDescripcion.trim();
+  // Verifica si es la gestion activa del sistema
+  esGestionActiva(): boolean {
+    return this.data.activo_sistema === true;
   }
 
-  // Actualiza las fechas de la gestion
-  actualizarFechas(fechaInicio: Date, fechaFin: Date): void {
-    if (fechaInicio > fechaFin) {
-      throw new Error("Fecha inicio debe ser anterior a fecha fin");
-    }
-    this.data.fecha_inicio = fechaInicio;
-    this.data.fecha_fin = fechaFin;
+  // Establece como gestion activa del sistema
+  establecerComoActiva(): void {
+    this.data.activo_sistema = true;
   }
 
-  // Actualiza el estado de la gestion
-  actualizarEstado(nuevoEstado: "planificada" | "activa" | "finalizada"): void {
-    this.data.estado_gestion = nuevoEstado;
+  // Quita de gestion activa del sistema
+  quitarComoActiva(): void {
+    this.data.activo_sistema = false;
   }
 
   // Activa la gestion

@@ -8,8 +8,10 @@ import { ProductorRepository } from "../repositories/ProductorRepository.js";
 import { ParcelaRepository } from "../repositories/ParcelaRepository.js";
 import { ArchivoFichaRepository } from "../repositories/ArchivoFichaRepository.js";
 import { FichaDraftRepository } from "../repositories/FichaDraftRepository.js";
+import { GestionRepository } from "../repositories/GestionRepository.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { requireRoles, requireAdmin } from "../middleware/authorize.js";
+import { gestionActivaMiddleware } from "../middleware/gestionActiva.middleware.js";
 import {
   CreateFichaSchema,
   UpdateFichaSchema,
@@ -41,12 +43,14 @@ export default async function fichasRoutes(
   const parcelaRepository = new ParcelaRepository();
   const archivoFichaRepository = new ArchivoFichaRepository();
   const fichaDraftRepository = new FichaDraftRepository();
+  const gestionRepository = new GestionRepository();
   const fichasService = new FichasService(
     fichaRepository,
     productorRepository,
     parcelaRepository,
     archivoFichaRepository,
-    fichaDraftRepository
+    fichaDraftRepository,
+    gestionRepository
   );
   const fichasController = new FichasController(fichasService);
 
@@ -57,6 +61,7 @@ export default async function fichasRoutes(
     {
       onRequest: [
         authenticate,
+        gestionActivaMiddleware,
         requireRoles("tecnico", "gerente", "administrador"),
       ],
       schema: {
@@ -158,6 +163,7 @@ export default async function fichasRoutes(
     {
       onRequest: [
         authenticate,
+        gestionActivaMiddleware,
         requireRoles("tecnico", "gerente", "administrador"),
       ],
       schema: {
@@ -184,7 +190,7 @@ export default async function fichasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/",
     {
-      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      onRequest: [authenticate, gestionActivaMiddleware, requireRoles("tecnico", "administrador")],
       schema: {
         description: "Crea una nueva ficha de inspección completa.",
         tags: ["fichas"],
@@ -212,7 +218,7 @@ export default async function fichasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/:id",
     {
-      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      onRequest: [authenticate, gestionActivaMiddleware, requireRoles("tecnico", "administrador")],
       schema: {
         description: "Actualiza una ficha que está en estado 'borrador'.",
         tags: ["fichas"],
@@ -242,7 +248,7 @@ export default async function fichasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().put(
     "/:id/completa",
     {
-      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      onRequest: [authenticate, gestionActivaMiddleware, requireRoles("tecnico", "administrador")],
       schema: {
         description:
           "Actualiza una ficha completa incluyendo todas las 11 secciones. " +
@@ -332,7 +338,7 @@ export default async function fichasRoutes(
   fastify.withTypeProvider<ZodTypeProvider>().post(
     "/:id/archivos",
     {
-      onRequest: [authenticate, requireRoles("tecnico", "administrador")],
+      onRequest: [authenticate, requireRoles("tecnico")],
       schema: {
         description: "Sube un archivo y lo asocia a una ficha.",
         tags: ["fichas"],
@@ -354,6 +360,65 @@ export default async function fichasRoutes(
       },
     },
     async (request, reply) => fichasController.uploadArchivo(request, reply)
+  );
+
+  // GET /api/fichas/:id/archivos/:idArchivo/download
+  // Descarga un archivo específico de una ficha
+  fastify.withTypeProvider<ZodTypeProvider>().get(
+    "/:id/archivos/:idArchivo/download",
+    {
+      onRequest: [
+        authenticate,
+        requireRoles("tecnico", "gerente", "administrador"),
+      ],
+      schema: {
+        description: "Descarga un archivo de una ficha.",
+        tags: ["fichas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: z.object({
+          id: z.string().uuid().describe("ID de la ficha"),
+          idArchivo: z.string().uuid().describe("ID del archivo"),
+        }),
+        response: {
+          400: FichaErrorSchema,
+          401: FichaErrorSchema,
+          403: FichaErrorSchema,
+          404: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.downloadArchivo(request, reply)
+  );
+
+  // DELETE /api/fichas/:id/archivos/:idArchivo
+  // Elimina un archivo de una ficha
+  fastify.withTypeProvider<ZodTypeProvider>().delete(
+    "/:id/archivos/:idArchivo",
+    {
+      onRequest: [authenticate, requireRoles("tecnico")],
+      schema: {
+        description: "Elimina un archivo de una ficha.",
+        tags: ["fichas"],
+        headers: z.object({
+          authorization: z.string().describe("Bearer token"),
+        }),
+        params: z.object({
+          id: z.string().uuid().describe("ID de la ficha"),
+          idArchivo: z.string().uuid().describe("ID del archivo"),
+        }),
+        response: {
+          204: z.null(),
+          401: FichaErrorSchema,
+          403: FichaErrorSchema,
+          404: FichaErrorSchema,
+          500: FichaErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => fichasController.deleteArchivoFicha(request, reply)
   );
 
   // --- DRAFT ROUTES ---

@@ -85,7 +85,7 @@ export function ProductoresList({
         const variant =
           productor.categoria_actual === 'E'
             ? 'warning'
-            : productor.categoria_actual === '0T'
+            : productor.categoria_actual === 'T0'
             ? 'success'
             : 'info';
 

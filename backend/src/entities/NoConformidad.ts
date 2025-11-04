@@ -1,3 +1,6 @@
+// Tipo para estado de seguimiento
+export type EstadoSeguimiento = "pendiente" | "seguimiento" | "corregido";
+
 // Interfaz para datos de NoConformidad desde BD
 export interface NoConformidadData {
   id_no_conformidad: string;
@@ -5,6 +8,11 @@ export interface NoConformidadData {
   descripcion_no_conformidad: string;
   accion_correctiva_propuesta?: string | null;
   fecha_limite_implementacion?: Date | null;
+  estado_seguimiento: EstadoSeguimiento;
+  comentario_seguimiento?: string | null;
+  fecha_seguimiento?: Date | null;
+  realizado_por_usuario?: string | null;
+  updated_at: Date;
   created_at: Date;
 }
 
@@ -15,6 +23,11 @@ export interface NoConformidadPublicData {
   descripcion_no_conformidad: string;
   accion_correctiva_propuesta?: string | null;
   fecha_limite_implementacion?: string | null;
+  estado_seguimiento: EstadoSeguimiento;
+  comentario_seguimiento?: string | null;
+  fecha_seguimiento?: string | null;
+  realizado_por_usuario?: string | null;
+  updated_at: string;
   created_at: string;
 }
 
@@ -48,16 +61,38 @@ export class NoConformidad {
     return this.data.fecha_limite_implementacion ?? null;
   }
 
+  get estadoSeguimiento(): EstadoSeguimiento {
+    return this.data.estado_seguimiento;
+  }
+
+  get comentarioSeguimiento(): string | null {
+    return this.data.comentario_seguimiento ?? null;
+  }
+
+  get fechaSeguimiento(): Date | null {
+    return this.data.fecha_seguimiento ?? null;
+  }
+
+  get realizadoPorUsuario(): string | null {
+    return this.data.realizado_por_usuario ?? null;
+  }
+
+  get updatedAt(): Date {
+    return this.data.updated_at;
+  }
+
   get createdAt(): Date {
     return this.data.created_at;
   }
 
-  // Crea una nueva instancia
+  // Crea una nueva instancia (para crear en fichas)
   static create(data: {
     id_ficha: string;
     descripcion_no_conformidad: string;
     accion_correctiva_propuesta?: string;
     fecha_limite_implementacion?: Date;
+    estado_seguimiento?: EstadoSeguimiento; // Opcional, default 'pendiente'
+    comentario_seguimiento?: string;
   }): NoConformidad {
     return new NoConformidad({
       id_no_conformidad: "",
@@ -65,6 +100,11 @@ export class NoConformidad {
       descripcion_no_conformidad: data.descripcion_no_conformidad,
       accion_correctiva_propuesta: data.accion_correctiva_propuesta,
       fecha_limite_implementacion: data.fecha_limite_implementacion,
+      estado_seguimiento: data.estado_seguimiento || "pendiente",
+      comentario_seguimiento: data.comentario_seguimiento,
+      fecha_seguimiento: undefined,
+      realizado_por_usuario: undefined,
+      updated_at: new Date(),
       created_at: new Date(),
     });
   }
@@ -100,6 +140,19 @@ export class NoConformidad {
       errors.push("Accion correctiva no puede exceder 500 caracteres");
     }
 
+    if (
+      this.data.comentario_seguimiento &&
+      this.data.comentario_seguimiento.length > 1000
+    ) {
+      errors.push("Comentario de seguimiento no puede exceder 1000 caracteres");
+    }
+
+    // Validar estado
+    const estadosValidos: EstadoSeguimiento[] = ["pendiente", "seguimiento", "corregido"];
+    if (!estadosValidos.includes(this.data.estado_seguimiento)) {
+      errors.push("Estado de seguimiento inválido");
+    }
+
     return {
       valid: errors.length === 0,
       errors,
@@ -117,6 +170,11 @@ export class NoConformidad {
       accion_correctiva_propuesta:
         this.data.accion_correctiva_propuesta?.trim() || null,
       fecha_limite_implementacion: this.data.fecha_limite_implementacion,
+      estado_seguimiento: this.data.estado_seguimiento,
+      comentario_seguimiento: this.data.comentario_seguimiento?.trim() || null,
+      fecha_seguimiento: this.data.fecha_seguimiento,
+      realizado_por_usuario: this.data.realizado_por_usuario,
+      updated_at: this.data.updated_at,
     };
   }
 
@@ -129,6 +187,11 @@ export class NoConformidad {
       accion_correctiva_propuesta:
         this.data.accion_correctiva_propuesta?.trim() || null,
       fecha_limite_implementacion: this.data.fecha_limite_implementacion,
+      estado_seguimiento: this.data.estado_seguimiento,
+      comentario_seguimiento: this.data.comentario_seguimiento?.trim() || null,
+      fecha_seguimiento: this.data.fecha_seguimiento,
+      realizado_por_usuario: this.data.realizado_por_usuario,
+      updated_at: new Date(),
     };
   }
 
@@ -142,6 +205,11 @@ export class NoConformidad {
         this.data.accion_correctiva_propuesta ?? null,
       fecha_limite_implementacion:
         this.data.fecha_limite_implementacion?.toISOString() ?? null,
+      estado_seguimiento: this.data.estado_seguimiento,
+      comentario_seguimiento: this.data.comentario_seguimiento ?? null,
+      fecha_seguimiento: this.data.fecha_seguimiento?.toISOString() ?? null,
+      realizado_por_usuario: this.data.realizado_por_usuario ?? null,
+      updated_at: this.data.updated_at.toISOString(),
       created_at: this.data.created_at.toISOString(),
     };
   }
@@ -176,5 +244,36 @@ export class NoConformidad {
   // Actualiza fecha limite
   actualizarFechaLimite(fecha: Date): void {
     this.data.fecha_limite_implementacion = fecha;
+  }
+
+  // Actualiza seguimiento completo
+  // IMPORTANTE: fecha_seguimiento es opcional para permitir entrada manual (gestiones historicas)
+  // Si no se proporciona, se usa la fecha actual
+  actualizarSeguimiento(data: {
+    estado_seguimiento: EstadoSeguimiento;
+    comentario_seguimiento?: string;
+    fecha_seguimiento?: Date; // Opcional: permite entrada manual
+    realizado_por_usuario: string;
+  }): void {
+    this.data.estado_seguimiento = data.estado_seguimiento;
+    this.data.comentario_seguimiento = data.comentario_seguimiento?.trim() || null;
+    this.data.fecha_seguimiento = data.fecha_seguimiento ?? new Date();
+    this.data.realizado_por_usuario = data.realizado_por_usuario;
+    this.data.updated_at = new Date();
+  }
+
+  // Verifica si está pendiente
+  estaPendiente(): boolean {
+    return this.data.estado_seguimiento === "pendiente";
+  }
+
+  // Verifica si está en seguimiento
+  estaEnSeguimiento(): boolean {
+    return this.data.estado_seguimiento === "seguimiento";
+  }
+
+  // Verifica si está corregida
+  estaCorregida(): boolean {
+    return this.data.estado_seguimiento === "corregido";
   }
 }

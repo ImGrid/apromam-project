@@ -7,7 +7,7 @@
 // ENUMS Y TIPOS BASICOS
 // ============================================
 
-export type CategoriaGestion = "E" | "2T" | "1T" | "0T";
+export type CategoriaGestion = "E" | "T2" | "T1" | "T0";
 export type OrigenCaptura = "online" | "offline";
 export type EstadoSync = "pendiente" | "sincronizado" | "conflicto";
 export type EstadoFicha = "borrador" | "revision" | "aprobado" | "rechazado";

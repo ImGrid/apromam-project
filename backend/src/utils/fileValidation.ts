@@ -2,11 +2,19 @@ import { fileTypeFromBuffer } from "file-type";
 import { TipoArchivo } from "../entities/ArchivoFicha.js";
 import logger from "./logger.js";
 
+// Tipo genérico para todos los archivos del sistema
+export type TipoArchivoSistema = TipoArchivo |
+  "evidencia_correccion" |
+  "documento_soporte" |
+  "foto_antes" |
+  "foto_despues";
+
 /**
  * Configuración de tipos de archivo permitidos
  * Define MIME types permitidos, extensiones y tamaños máximos
  */
 export const ALLOWED_FILE_CONFIG = {
+  // Tipos para fichas de inspección
   croquis: {
     mimeTypes: ["image/jpeg", "image/png"],
     extensions: [".jpg", ".jpeg", ".png"],
@@ -24,6 +32,31 @@ export const ALLOWED_FILE_CONFIG = {
     extensions: [".pdf"],
     maxSize: 10 * 1024 * 1024, // 10MB
     description: "Documentos PDF",
+  },
+  // Tipos para no conformidades (evidencias de corrección)
+  evidencia_correccion: {
+    mimeTypes: ["image/jpeg", "image/png", "application/pdf"],
+    extensions: [".jpg", ".jpeg", ".png", ".pdf"],
+    maxSize: 10 * 1024 * 1024, // 10MB
+    description: "Evidencia de corrección (JPEG, PNG, PDF)",
+  },
+  documento_soporte: {
+    mimeTypes: ["application/pdf"],
+    extensions: [".pdf"],
+    maxSize: 10 * 1024 * 1024, // 10MB
+    description: "Documento de soporte (PDF)",
+  },
+  foto_antes: {
+    mimeTypes: ["image/jpeg", "image/png"],
+    extensions: [".jpg", ".jpeg", ".png"],
+    maxSize: 5 * 1024 * 1024, // 5MB
+    description: "Foto antes de corrección (JPEG, PNG)",
+  },
+  foto_despues: {
+    mimeTypes: ["image/jpeg", "image/png"],
+    extensions: [".jpg", ".jpeg", ".png"],
+    maxSize: 5 * 1024 * 1024, // 5MB
+    description: "Foto después de corrección (JPEG, PNG)",
   },
 } as const;
 
@@ -46,7 +79,7 @@ export interface FileValidationResult {
  */
 export async function validateFileType(
   buffer: Buffer,
-  expectedTipoArchivo: TipoArchivo
+  expectedTipoArchivo: TipoArchivoSistema
 ): Promise<FileValidationResult> {
   const errors: FileValidationError[] = [];
 
@@ -119,7 +152,7 @@ export async function validateFileType(
  */
 export function validateFileSize(
   fileSize: number,
-  tipoArchivo: TipoArchivo
+  tipoArchivo: TipoArchivoSistema
 ): FileValidationResult {
   const errors: FileValidationError[] = [];
   const config = ALLOWED_FILE_CONFIG[tipoArchivo];
@@ -154,7 +187,7 @@ export function validateFileSize(
  */
 export async function validateFile(
   buffer: Buffer,
-  tipoArchivo: TipoArchivo
+  tipoArchivo: TipoArchivoSistema
 ): Promise<FileValidationResult> {
   const allErrors: FileValidationError[] = [];
 
@@ -177,6 +210,6 @@ export async function validateFile(
 /**
  * Obtiene la configuración para un tipo de archivo
  */
-export function getFileConfig(tipoArchivo: TipoArchivo) {
+export function getFileConfig(tipoArchivo: TipoArchivoSistema) {
   return ALLOWED_FILE_CONFIG[tipoArchivo];
 }

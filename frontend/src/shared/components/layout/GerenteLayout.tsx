@@ -9,6 +9,7 @@ import {
   Users,
   MapPin,
   BookOpen,
+  AlertTriangle,
 } from "lucide-react";
 import { Header } from "@/shared/components/layout/Header";
 import { Breadcrumbs } from "@/shared/components/layout/Breadcrumbs";
@@ -55,6 +56,11 @@ const gerenteNavItems = [
     label: "Reportes",
     path: ROUTES.DASHBOARD,
     icon: BarChart3,
+  },
+  {
+    label: "Seguimiento NC",
+    path: ROUTES.NO_CONFORMIDADES,
+    icon: AlertTriangle,
   },
 ];
 

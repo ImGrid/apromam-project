@@ -29,7 +29,7 @@ const productorSchema = z.object({
     .number()
     .min(2000, "Año inválido")
     .max(new Date().getFullYear(), "Año no puede ser futuro"),
-  categoria_actual: z.enum(["E", "2T", "1T", "0T"]),
+  categoria_actual: z.enum(["E", "T2", "T1", "T0"]),
   superficie_total_has: z.number().min(0.01, "Superficie debe ser mayor a 0"),
   latitud: z.number().optional(),
   longitud: z.number().optional(),
@@ -68,7 +68,7 @@ export function CreateProductorModal({
     resolver: zodResolver(productorSchema),
     defaultValues: {
       año_ingreso_programa: new Date().getFullYear(),
-      categoria_actual: "0T",
+      categoria_actual: "T0",
     },
   });
 
@@ -76,7 +76,11 @@ export function CreateProductorModal({
   const loadComunidades = useCallback(async () => {
     try {
       const response = await apiClient.get<{
-        comunidades: Array<{ id_comunidad: string; nombre_comunidad: string }>;
+        comunidades: Array<{
+          id_comunidad: string;
+          nombre_comunidad: string;
+          nombre_municipio?: string;
+        }>;
       }>(ENDPOINTS.COMUNIDADES.BASE);
 
       let comunidadesData = response.data.comunidades;
@@ -91,7 +95,9 @@ export function CreateProductorModal({
       setComunidades(
         comunidadesData.map((c) => ({
           value: c.id_comunidad,
-          label: c.nombre_comunidad,
+          label: c.nombre_municipio
+            ? `${c.nombre_comunidad} - ${c.nombre_municipio}`
+            : c.nombre_comunidad,
         }))
       );
     } catch {
@@ -219,9 +225,9 @@ export function CreateProductorModal({
 
   const categorias: SelectOption[] = [
     { value: "E", label: "E - En transición" },
-    { value: "2T", label: "2T - Segundo año de transición" },
-    { value: "1T", label: "1T - Primer año de transición" },
-    { value: "0T", label: "0T - Inicio transición" },
+    { value: "T2", label: "T2 - Segundo año de transición" },
+    { value: "T1", label: "T1 - Primer año de transición" },
+    { value: "T0", label: "T0 - Inicio transición" },
   ];
 
   return (
@@ -306,7 +312,7 @@ export function CreateProductorModal({
                 onChange={(value) =>
                   setValue(
                     "categoria_actual",
-                    value as "E" | "2T" | "1T" | "0T"
+                    value as "E" | "T2" | "T1" | "T0"
                   )
                 }
                 placeholder="Selecciona categoría"

@@ -6,9 +6,10 @@
 
 import { useState, useEffect } from "react";
 import { Search, Filter, X } from "lucide-react";
-import { Button } from "@/shared/components/ui/Button";
-import { FormField } from "@/shared/components/ui/FormField";
+import { Button, Input, Select } from "@/shared/components/ui";
+import { useGestionActiva } from "@/features/configuracion/hooks/useGestionActiva";
 import type { FichasFilters as FichasFiltersType } from "../types/ficha.types";
+import type { SelectOption } from "@/shared/components/ui";
 
 interface FichasFiltersProps {
   filters: FichasFiltersType;
@@ -21,6 +22,7 @@ export function FichasFilters({
   onFiltersChange,
   onClearFilters,
 }: FichasFiltersProps) {
+  const { gestionActiva } = useGestionActiva();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [localFilters, setLocalFilters] = useState<FichasFiltersType>(filters);
 
@@ -53,17 +55,49 @@ export function FichasFilters({
       filters[key as keyof FichasFiltersType] !== ""
   );
 
-  const currentYear = new Date().getFullYear();
+  // Usar gestión activa del sistema en lugar de año calendario
+  const currentYear = gestionActiva?.anio_gestion ?? new Date().getFullYear();
+
+  // Opciones para los selects
+  const estadoOptions: SelectOption[] = [
+    { value: "", label: "Todos los estados" },
+    { value: "borrador", label: "Borrador" },
+    { value: "revision", label: "En Revisión" },
+    { value: "aprobado", label: "Aprobado" },
+    { value: "rechazado", label: "Rechazado" },
+  ];
+
+  const gestionOptions: SelectOption[] = [
+    { value: "", label: "Todas las gestiones" },
+    { value: currentYear.toString(), label: currentYear.toString() },
+    { value: (currentYear - 1).toString(), label: (currentYear - 1).toString() },
+    { value: (currentYear - 2).toString(), label: (currentYear - 2).toString() },
+    { value: (currentYear - 3).toString(), label: (currentYear - 3).toString() },
+  ];
+
+  const resultadoOptions: SelectOption[] = [
+    { value: "", label: "Todos los resultados" },
+    { value: "aprobado", label: "Aprobado" },
+    { value: "rechazado", label: "Rechazado" },
+    { value: "pendiente", label: "Pendiente" },
+  ];
+
+  const syncOptions: SelectOption[] = [
+    { value: "", label: "Todos" },
+    { value: "pendiente", label: "Pendiente" },
+    { value: "sincronizado", label: "Sincronizado" },
+    { value: "conflicto", label: "Conflicto" },
+  ];
 
   return (
-    <div className="p-4 bg-white border rounded-lg border-neutral-border">
+    <div className="p-3 bg-white border rounded-lg border-neutral-border">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold text-text-primary">Filtros</h3>
+          <Filter className="w-4 h-4 text-primary" />
+          <h3 className="text-base font-semibold text-text-primary">Filtros</h3>
           {hasActiveFilters && (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
+            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
               Activos
             </span>
           )}
@@ -71,12 +105,13 @@ export function FichasFilters({
         <div className="flex gap-2">
           <Button
             variant="ghost"
+            size="small"
             onClick={() => setShowAdvanced(!showAdvanced)}
           >
             {showAdvanced ? "Ocultar" : "Avanzado"}
           </Button>
           {hasActiveFilters && (
-            <Button variant="ghost" onClick={handleClearAll}>
+            <Button variant="ghost" size="small" onClick={handleClearAll}>
               <X className="w-4 h-4" />
               Limpiar
             </Button>
@@ -85,143 +120,99 @@ export function FichasFilters({
       </div>
 
       {/* Filtros básicos */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {/* Búsqueda por código de productor */}
-        <FormField label="Código Productor">
-          <div className="relative">
-            <Search className="absolute w-4 h-4 transform -translate-y-1/2 left-3 top-1/2 text-text-secondary" />
-            <input
-              type="text"
-              value={localFilters.codigo_productor || ""}
-              onChange={(e) =>
-                handleInputChange("codigo_productor", e.target.value)
-              }
-              className="w-full py-2 pl-10 pr-3 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Buscar por código..."
-            />
-          </div>
-        </FormField>
+        <Input
+          label="Código Productor"
+          placeholder="Buscar por código..."
+          value={localFilters.codigo_productor || ""}
+          onChange={(e) =>
+            handleInputChange("codigo_productor", e.target.value)
+          }
+        />
 
         {/* Filtro por estado */}
-        <FormField label="Estado">
-          <select
-            value={localFilters.estado_ficha || ""}
-            onChange={(e) => handleInputChange("estado_ficha", e.target.value)}
-            className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="">Todos los estados</option>
-            <option value="borrador">Borrador</option>
-            <option value="revision">En Revisión</option>
-            <option value="aprobado">Aprobado</option>
-            <option value="rechazado">Rechazado</option>
-          </select>
-        </FormField>
+        <Select
+          label="Estado"
+          options={estadoOptions}
+          value={localFilters.estado_ficha || ""}
+          onChange={(value) => handleInputChange("estado_ficha", value)}
+        />
 
         {/* Filtro por gestión */}
-        <FormField label="Gestión">
-          <select
-            value={localFilters.gestion || ""}
-            onChange={(e) =>
-              handleInputChange(
-                "gestion",
-                e.target.value ? parseInt(e.target.value) : undefined
-              )
-            }
-            className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="">Todas las gestiones</option>
-            <option value={currentYear}>{currentYear}</option>
-            <option value={currentYear - 1}>{currentYear - 1}</option>
-            <option value={currentYear - 2}>{currentYear - 2}</option>
-            <option value={currentYear - 3}>{currentYear - 3}</option>
-          </select>
-        </FormField>
+        <Select
+          label="Gestión"
+          options={gestionOptions}
+          value={localFilters.gestion?.toString() || ""}
+          onChange={(value) =>
+            handleInputChange(
+              "gestion",
+              value ? parseInt(value) : undefined
+            )
+          }
+        />
       </div>
 
       {/* Filtros avanzados */}
       {showAdvanced && (
-        <div className="grid grid-cols-1 gap-4 pt-4 mt-4 border-t md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 pt-3 mt-3 border-t md:grid-cols-3">
           {/* Inspector interno */}
-          <FormField label="Inspector Interno">
-            <input
-              type="text"
-              value={localFilters.inspector_interno || ""}
-              onChange={(e) =>
-                handleInputChange("inspector_interno", e.target.value)
-              }
-              className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Nombre del inspector..."
-            />
-          </FormField>
+          <Input
+            label="Inspector Interno"
+            placeholder="Nombre del inspector..."
+            value={localFilters.inspector_interno || ""}
+            onChange={(e) =>
+              handleInputChange("inspector_interno", e.target.value)
+            }
+          />
 
           {/* Comunidad */}
-          <FormField label="Comunidad">
-            <input
-              type="text"
-              value={localFilters.comunidad || ""}
-              onChange={(e) => handleInputChange("comunidad", e.target.value)}
-              className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="Nombre de la comunidad..."
-            />
-          </FormField>
+          <Input
+            label="Comunidad"
+            placeholder="Nombre de la comunidad..."
+            value={localFilters.comunidad || ""}
+            onChange={(e) => handleInputChange("comunidad", e.target.value)}
+          />
 
           {/* Resultado certificación */}
-          <FormField label="Resultado Certificación">
-            <select
-              value={localFilters.resultado_certificacion || ""}
-              onChange={(e) =>
-                handleInputChange("resultado_certificacion", e.target.value)
-              }
-              className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">Todos los resultados</option>
-              <option value="aprobado">Aprobado</option>
-              <option value="rechazado">Rechazado</option>
-              <option value="pendiente">Pendiente</option>
-            </select>
-          </FormField>
+          <Select
+            label="Resultado Certificación"
+            options={resultadoOptions}
+            value={localFilters.resultado_certificacion || ""}
+            onChange={(value) =>
+              handleInputChange("resultado_certificacion", value)
+            }
+          />
 
           {/* Fecha desde */}
-          <FormField label="Fecha Desde">
-            <input
-              type="date"
-              value={localFilters.fecha_desde || ""}
-              onChange={(e) => handleInputChange("fecha_desde", e.target.value)}
-              className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </FormField>
+          <Input
+            label="Fecha Desde"
+            inputType="date"
+            value={localFilters.fecha_desde || ""}
+            onChange={(e) => handleInputChange("fecha_desde", e.target.value)}
+          />
 
           {/* Fecha hasta */}
-          <FormField label="Fecha Hasta">
-            <input
-              type="date"
-              value={localFilters.fecha_hasta || ""}
-              onChange={(e) => handleInputChange("fecha_hasta", e.target.value)}
-              className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </FormField>
+          <Input
+            label="Fecha Hasta"
+            inputType="date"
+            value={localFilters.fecha_hasta || ""}
+            onChange={(e) => handleInputChange("fecha_hasta", e.target.value)}
+          />
 
           {/* Estado sync */}
-          <FormField label="Estado Sincronización">
-            <select
-              value={localFilters.estado_sync || ""}
-              onChange={(e) =>
-                handleInputChange("estado_sync", e.target.value)
-              }
-              className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">Todos</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="sincronizado">Sincronizado</option>
-              <option value="conflicto">Conflicto</option>
-            </select>
-          </FormField>
+          <Select
+            label="Estado Sincronización"
+            options={syncOptions}
+            value={localFilters.estado_sync || ""}
+            onChange={(value) => handleInputChange("estado_sync", value)}
+          />
         </div>
       )}
 
       {/* Botón aplicar */}
-      <div className="flex justify-end mt-4">
-        <Button variant="primary" onClick={handleApplyFilters}>
+      <div className="flex justify-end mt-3">
+        <Button variant="primary" size="small" onClick={handleApplyFilters}>
           <Search className="w-4 h-4" />
           Aplicar Filtros
         </Button>

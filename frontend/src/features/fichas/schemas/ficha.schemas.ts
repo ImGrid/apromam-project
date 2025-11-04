@@ -9,7 +9,7 @@ import { z } from "zod";
 // ENUMS Y TIPOS BASICOS
 // ============================================
 
-export const categoriaGestionSchema = z.enum(["E", "2T", "1T", "0T"]);
+export const categoriaGestionSchema = z.enum(["E", "T2", "T1", "T0"]);
 
 export const origenCapturaSchema = z.enum(["online", "offline"]);
 
@@ -98,9 +98,9 @@ export const fichaSchema = z.object({
   fecha_inspeccion: z.string().refine(
     (date) => {
       const d = new Date(date);
-      return !isNaN(d.getTime()) && d <= new Date();
+      return !isNaN(d.getTime());
     },
-    { message: "La fecha no puede ser futura" }
+    { message: "Fecha inválida" }
   ),
   inspector_interno: z
     .string()
@@ -111,7 +111,7 @@ export const fichaSchema = z.object({
     .string()
     .max(100, "La persona entrevistada no puede exceder 100 caracteres")
     .trim()
-    .optional(),
+    .nullish(),
   categoria_gestion_anterior: categoriaGestionSchema.optional(),
   origen_captura: origenCapturaSchema.default("online"),
   fecha_sincronizacion: z.string().optional(),
@@ -122,12 +122,12 @@ export const fichaSchema = z.object({
     .string()
     .max(2000, "Los comentarios no pueden exceder 2000 caracteres")
     .trim()
-    .optional(),
+    .nullish(),
   comentarios_actividad_pecuaria: z
     .string()
     .max(1000, "Los comentarios no pueden exceder 1000 caracteres")
     .trim()
-    .optional(),
+    .nullish(),
   nombre_productor: z.string().optional(),
   nombre_comunidad: z.string().optional(),
 });
@@ -170,7 +170,7 @@ export const revisionDocumentacionSchema = z.object({
     .string()
     .max(1000, "Las observaciones no pueden exceder 1000 caracteres")
     .trim()
-    .optional(),
+    .nullish(),
 });
 
 export const createRevisionDocumentacionSchema =
@@ -196,7 +196,7 @@ export const accionCorrectivaSchema = z.object({
     .string()
     .max(500, "La implementación no puede exceder 500 caracteres")
     .trim()
-    .optional(),
+    .nullish(),
 });
 
 export const createAccionCorrectivaSchema = accionCorrectivaSchema.omit({
@@ -218,9 +218,9 @@ export const noConformidadSchema = z.object({
     .trim(),
   accion_correctiva_propuesta: z
     .string()
-    .min(5, "La acción correctiva debe tener al menos 5 caracteres")
     .max(500, "La acción correctiva no puede exceder 500 caracteres")
-    .trim(),
+    .trim()
+    .nullish(),
   fecha_limite_implementacion: z.string().optional(),
   estado_conformidad: z.string().default("pendiente"),
 });
@@ -246,12 +246,12 @@ export const evaluacionMitigacionSchema = z.object({
     .string()
     .max(1000, "La descripción no puede exceder 1000 caracteres")
     .trim()
-    .optional(),
+    .nullish(),
   mitigacion_contaminacion_descripcion: z
     .string()
     .max(1000, "La descripción no puede exceder 1000 caracteres")
     .trim()
-    .optional(),
+    .nullish(),
 });
 
 export const createEvaluacionMitigacionSchema = evaluacionMitigacionSchema.omit(
@@ -276,8 +276,7 @@ export const evaluacionPoscosechaSchema = z.object({
     .string()
     .max(1000, "Los comentarios no pueden exceder 1000 caracteres")
     .trim()
-    .nullable()
-    .optional(),
+    .nullish(),
 });
 
 export const createEvaluacionPoscosechaSchema = evaluacionPoscosechaSchema.omit(
@@ -300,8 +299,7 @@ export const evaluacionConocimientoSchema = z.object({
     .string()
     .max(1000, "Los comentarios no pueden exceder 1000 caracteres")
     .trim()
-    .nullable()
-    .optional(),
+    .nullish(),
 });
 
 export const createEvaluacionConocimientoSchema =
@@ -530,7 +528,7 @@ export const cosechaVentasSchema = z
       .string()
       .max(500, "Las observaciones no pueden exceder 500 caracteres")
       .trim()
-      .optional(),
+      .nullish(),
   })
   .refine(
     (data) => {
@@ -580,6 +578,24 @@ export const fichaCompletaFormSchema = z
     {
       message: "Debe haber exactamente 1 registro de cosecha y ventas",
       path: ["cosecha_ventas"],
+    }
+  )
+  .refine(
+    (data) => {
+      // Validar que la fecha de inspección esté dentro del año de la gestión
+      if (!data.ficha?.fecha_inspeccion || !data.ficha?.gestion) {
+        return true; // Dejar que otras validaciones manejen campos requeridos
+      }
+
+      const fechaInspeccion = new Date(data.ficha.fecha_inspeccion);
+      const anioInspeccion = fechaInspeccion.getFullYear();
+      const gestion = data.ficha.gestion;
+
+      return anioInspeccion === gestion;
+    },
+    {
+      message: "La fecha de inspección debe corresponder al año de la gestión",
+      path: ["ficha", "fecha_inspeccion"],
     }
   );
 

@@ -3,7 +3,7 @@
  */
 
 // Categorías de certificación orgánica
-export type CategoriaProductor = "E" | "2T" | "1T" | "0T";
+export type CategoriaProductor = "E" | "T2" | "T1" | "T0";
 
 // Interfaz completa de productor
 export interface Productor {
@@ -104,15 +104,15 @@ export interface ProductorStats {
 // Labels para categorías
 export const CATEGORIA_LABELS: Record<CategoriaProductor, string> = {
   "E": "En transición",
-  "2T": "Segundo año de transición",
-  "1T": "Primer año de transición",
-  "0T": "Inicio transición",
+  "T2": "Segundo año de transición",
+  "T1": "Primer año de transición",
+  "T0": "Inicio transición",
 };
 
 // Colores para categorías
 export const CATEGORIA_COLORS: Record<CategoriaProductor, string> = {
   "E": "warning",
-  "2T": "info",
-  "1T": "success",
-  "0T": "neutral",
+  "T2": "info",
+  "T1": "success",
+  "T0": "neutral",
 };

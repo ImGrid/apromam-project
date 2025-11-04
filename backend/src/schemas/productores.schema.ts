@@ -6,8 +6,8 @@ const UUIDSchema = z.string().uuid({
 });
 
 // Schema para categoria de productor
-const CategoriaProductorSchema = z.enum(["E", "2T", "1T", "0T"], {
-  error: "Categoria debe ser: E, 2T, 1T o 0T",
+const CategoriaProductorSchema = z.enum(["E", "T2", "T1", "T0"], {
+  error: "Categoria debe ser: E, T2, T1 o T0",
 });
 
 // Schema para coordenadas GPS

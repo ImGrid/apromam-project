@@ -1,3 +1,9 @@
+/**
+ * Tipos para el módulo de Catálogos (solo Tipos de Cultivo)
+ *
+ * NOTA: Los tipos de Gestiones están en features/configuracion/types/gestion.types.ts
+ */
+
 // Tipo de Cultivo completo
 export interface TipoCultivo {
   id_tipo_cultivo: string;
@@ -25,44 +31,9 @@ export interface UpdateTipoCultivoInput {
   activo?: boolean;
 }
 
-// Gestion completa
-export interface Gestion {
-  id_gestion: string;
-  anio_gestion: number;
-  descripcion?: string | null;
-  fecha_inicio?: string | null;
-  fecha_fin?: string | null;
-  estado_gestion: "planificada" | "activa" | "finalizada";
-  activa: boolean;
-}
-
-// Datos para crear gestion
-export interface CreateGestionInput {
-  anio_gestion: number;
-  descripcion?: string;
-  fecha_inicio?: string;
-  fecha_fin?: string;
-  estado_gestion?: "planificada" | "activa" | "finalizada";
-}
-
-// Datos para actualizar gestion
-export interface UpdateGestionInput {
-  descripcion?: string;
-  fecha_inicio?: string;
-  fecha_fin?: string;
-  estado_gestion?: "planificada" | "activa" | "finalizada";
-  activa?: boolean;
-}
-
 // Respuesta de lista de tipos cultivo
 export interface TiposCultivoListResponse {
   tipos_cultivo: TipoCultivo[];
-  total: number;
-}
-
-// Respuesta de lista de gestiones
-export interface GestionesListResponse {
-  gestiones: Gestion[];
   total: number;
 }
 

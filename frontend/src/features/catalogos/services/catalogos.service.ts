@@ -3,15 +3,12 @@ import type {
   TipoCultivo,
   CreateTipoCultivoInput,
   UpdateTipoCultivoInput,
-  Gestion,
-  CreateGestionInput,
-  UpdateGestionInput,
   TiposCultivoListResponse,
-  GestionesListResponse,
   CatalogoFilters,
 } from "../types/catalogo.types";
 
-// Servicios para gestion de catalogos (Tipos Cultivo y Gestiones)
+// Servicios para gestion de catalogos (solo Tipos Cultivo)
+// NOTA: Gestiones se manejan en el módulo configuracion
 // Admin y Gerente tienen acceso completo
 // Tecnico solo puede ver
 
@@ -62,66 +59,10 @@ export const updateTipoCultivo = async (
   return response.data.tipo_cultivo;
 };
 
-// GESTIONES
-
-export const listGestiones = async (
-  filters?: CatalogoFilters
-): Promise<GestionesListResponse> => {
-  const params = new URLSearchParams();
-  if (filters?.activo !== undefined) {
-    params.append("activo", filters.activo.toString());
-  }
-
-  const queryString = params.toString();
-  const url = `/api/catalogos/gestiones${queryString ? `?${queryString}` : ""}`;
-
-  const response = await apiClient.get<GestionesListResponse>(url);
-  return response.data;
-};
-
-export const getGestionById = async (id: string): Promise<Gestion> => {
-  const response = await apiClient.get<{ gestion: Gestion }>(
-    `/api/catalogos/gestiones/${id}`
-  );
-  return response.data.gestion;
-};
-
-export const getGestionActual = async (): Promise<Gestion | null> => {
-  const response = await apiClient.get<{ gestion: Gestion | null }>(
-    "/api/catalogos/gestiones/actual"
-  );
-  return response.data.gestion;
-};
-
-export const createGestion = async (
-  data: CreateGestionInput
-): Promise<Gestion> => {
-  const response = await apiClient.post<{ gestion: Gestion }>(
-    "/api/catalogos/gestiones",
-    data
-  );
-  return response.data.gestion;
-};
-
-export const updateGestion = async (
-  id: string,
-  data: UpdateGestionInput
-): Promise<Gestion> => {
-  const response = await apiClient.put<{ gestion: Gestion }>(
-    `/api/catalogos/gestiones/${id}`,
-    data
-  );
-  return response.data.gestion;
-};
-
+// Export service object
 export const catalogosService = {
   listTiposCultivo,
   getTipoCultivoById,
   createTipoCultivo,
   updateTipoCultivo,
-  listGestiones,
-  getGestionById,
-  getGestionActual,
-  createGestion,
-  updateGestion,
 };

@@ -9,6 +9,7 @@ import { Plus, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import { FormField } from "@/shared/components/ui/FormField";
 import { Alert } from "@/shared/components/ui/Alert";
+import { Input } from "@/shared/components/ui/Input";
 import type { CreateFichaCompletaInput } from "../../types/ficha.types";
 
 export default function Step11NoConformidades() {
@@ -38,12 +39,7 @@ export default function Step11NoConformidades() {
         {fields.length === 0 ? (
           <Alert
             type="success"
-            message={
-              <p className="text-sm">
-                No hay no conformidades registradas. Si la inspección no reveló
-                incumplimientos, puedes continuar al siguiente paso.
-              </p>
-            }
+            message="Sin no conformidades registradas"
           />
         ) : (
           fields.map((field, index) => (
@@ -70,63 +66,63 @@ export default function Step11NoConformidades() {
                 </Button>
               </div>
 
-              {/* Descripción de la no conformidad */}
-              <FormField
-                label="Descripción de la No Conformidad"
-                required
-                helperText="Describe claramente el incumplimiento detectado (mínimo 5 caracteres)"
-                error={
-                  errors.no_conformidades?.[index]?.descripcion_no_conformidad
-                    ?.message
-                }
-              >
-                <textarea
-                  {...register(
-                    `no_conformidades.${index}.descripcion_no_conformidad`
-                  )}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="Ej: Se detectó almacenamiento de fertilizantes convencionales cerca del área de producción orgánica..."
-                />
-              </FormField>
+              {/* Grid de 2 columnas para textareas en desktop */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {/* Descripción de la no conformidad */}
+                <FormField
+                  label="Descripción de la No Conformidad"
+                  required
+                  error={
+                    errors.no_conformidades?.[index]?.descripcion_no_conformidad
+                      ?.message
+                  }
+                >
+                  <textarea
+                    {...register(
+                      `no_conformidades.${index}.descripcion_no_conformidad`
+                    )}
+                    rows={4}
+                    className="w-full min-h-[48px] px-4 py-3 text-base border rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 border-neutral-border focus:ring-primary focus:border-primary"
+                    placeholder="Descripción del incumplimiento"
+                  />
+                </FormField>
 
-              {/* Acción correctiva propuesta */}
-              <FormField
-                label="Acción Correctiva Propuesta"
-                required
-                helperText="Propón una solución específica para resolver esta no conformidad"
-                error={
-                  errors.no_conformidades?.[index]?.accion_correctiva_propuesta
-                    ?.message
-                }
-              >
-                <textarea
-                  {...register(
-                    `no_conformidades.${index}.accion_correctiva_propuesta`
-                  )}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="Ej: Retirar inmediatamente los fertilizantes convencionales y establecer una zona de almacenamiento separada con distancia mínima de 50m..."
-                />
-              </FormField>
+                {/* Acción correctiva propuesta */}
+                <FormField
+                  label="Acción Correctiva Propuesta"
+                  error={
+                    errors.no_conformidades?.[index]?.accion_correctiva_propuesta
+                      ?.message
+                  }
+                >
+                  <textarea
+                    {...register(
+                      `no_conformidades.${index}.accion_correctiva_propuesta`
+                    )}
+                    rows={4}
+                    className="w-full min-h-[48px] px-4 py-3 text-base border rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 border-neutral-border focus:ring-primary focus:border-primary"
+                    placeholder="Solución propuesta"
+                  />
+                </FormField>
+              </div>
 
-              {/* Fecha límite */}
-              <FormField
-                label="Fecha Límite de Implementación"
-                helperText="Fecha máxima para resolver la no conformidad"
-                error={
-                  errors.no_conformidades?.[index]
-                    ?.fecha_limite_implementacion?.message
-                }
-              >
-                <input
-                  type="date"
-                  {...register(
-                    `no_conformidades.${index}.fecha_limite_implementacion`
-                  )}
-                  className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </FormField>
+              {/* Fecha límite - más compacta */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <FormField
+                  label="Fecha Límite de Implementación"
+                  error={
+                    errors.no_conformidades?.[index]
+                      ?.fecha_limite_implementacion?.message
+                  }
+                >
+                  <Input
+                    inputType="date"
+                    {...register(
+                      `no_conformidades.${index}.fecha_limite_implementacion`
+                    )}
+                  />
+                </FormField>
+              </div>
             </div>
           ))
         )}

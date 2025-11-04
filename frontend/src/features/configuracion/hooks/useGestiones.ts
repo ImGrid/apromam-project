@@ -1,52 +1,56 @@
+/**
+ * useGestiones Hook
+ * Hook para listar todas las gestiones del sistema
+ *
+ * Incluye filtro opcional por estado activo
+ * y obtiene la gestión activa del sistema en paralelo
+ */
+
 import { useState, useEffect, useCallback } from "react";
-import { catalogosService } from "../services/catalogos.service";
-import type { Gestion, CatalogoFilters } from "../types/catalogo.types";
+import { gestionesService } from "../services/gestiones.service";
+import type { Gestion } from "../types/gestion.types";
 
 interface UseGestionesReturn {
   gestiones: Gestion[];
-  gestionActual: Gestion | null;
+  gestionActiva: Gestion | null;
   total: number;
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  filters: CatalogoFilters;
-  setFilters: (filters: CatalogoFilters) => void;
 }
 
 export function useGestiones(
-  initialFilters?: CatalogoFilters
+  filtrarActivo?: boolean
 ): UseGestionesReturn {
   const [gestiones, setGestiones] = useState<Gestion[]>([]);
-  const [gestionActual, setGestionActual] = useState<Gestion | null>(null);
+  const [gestionActiva, setGestionActiva] = useState<Gestion | null>(null);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<CatalogoFilters>(
-    initialFilters || {}
-  );
 
   const fetchGestiones = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const [gestionesResponse, actualResponse] = await Promise.all([
-        catalogosService.listGestiones(filters),
-        catalogosService.getGestionActual(),
+      // Obtener ambas cosas en paralelo
+      const [gestionesResponse, gestionActivaData] = await Promise.all([
+        gestionesService.listGestiones(filtrarActivo),
+        gestionesService.getGestionActiva().catch(() => null), // No fallar si no hay activa
       ]);
 
-      setGestiones(gestionesResponse.gestiones);
+      setGestiones(gestionesResponse.data);
       setTotal(gestionesResponse.total);
-      setGestionActual(actualResponse);
+      setGestionActiva(gestionActivaData);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Error al cargar gestiones";
       setError(errorMessage);
-      console.error("Error fetching gestiones:", err);
+      console.error("[useGestiones] Error:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filtrarActivo]);
 
   useEffect(() => {
     fetchGestiones();
@@ -54,12 +58,10 @@ export function useGestiones(
 
   return {
     gestiones,
-    gestionActual,
+    gestionActiva,
     total,
     isLoading,
     error,
     refetch: fetchGestiones,
-    filters,
-    setFilters,
   };
 }

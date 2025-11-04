@@ -59,13 +59,19 @@ export function EditTecnicoModal({
   const loadComunidades = useCallback(async () => {
     try {
       const response = await apiClient.get<{
-        comunidades: Array<{ id_comunidad: string; nombre_comunidad: string }>;
+        comunidades: Array<{
+          id_comunidad: string;
+          nombre_comunidad: string;
+          nombre_municipio?: string;
+        }>;
       }>(ENDPOINTS.COMUNIDADES.BASE);
 
       setComunidades(
         response.data.comunidades.map((c) => ({
           value: c.id_comunidad,
-          label: c.nombre_comunidad,
+          label: c.nombre_municipio
+            ? `${c.nombre_comunidad} - ${c.nombre_municipio}`
+            : c.nombre_comunidad,
         }))
       );
     } catch (error) {

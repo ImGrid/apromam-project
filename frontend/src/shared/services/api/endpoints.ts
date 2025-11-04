@@ -88,4 +88,19 @@ export const ENDPOINTS = {
       `/api/fichas/draft/${codigoProductor}/${gestion}`,
     DRAFT_DELETE: (id: string) => `/api/fichas/draft/${id}`,
   },
+
+  // No Conformidades (Seguimiento)
+  NO_CONFORMIDADES: {
+    BASE: "/api/no-conformidades",
+    BY_ID: (id: string) => `/api/no-conformidades/${id}`,
+    BY_FICHA: (idFicha: string) => `/api/no-conformidades/ficha/${idFicha}`,
+    ESTADISTICAS: "/api/no-conformidades/estadisticas",
+    UPDATE_SEGUIMIENTO: (id: string) => `/api/no-conformidades/${id}/seguimiento`,
+    UPDATE_DATOS: (id: string) => `/api/no-conformidades/${id}`,
+    ARCHIVOS: (id: string) => `/api/no-conformidades/${id}/archivos`,
+    ARCHIVO_BY_ID: (id: string, idArchivo: string) =>
+      `/api/no-conformidades/${id}/archivos/${idArchivo}`,
+    DOWNLOAD_ARCHIVO: (id: string, idArchivo: string) =>
+      `/api/no-conformidades/${id}/archivos/${idArchivo}/download`,
+  },
 } as const;

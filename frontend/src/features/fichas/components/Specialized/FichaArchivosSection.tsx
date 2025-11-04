@@ -6,7 +6,6 @@
 
 import { useState, useEffect } from "react";
 import {
-  Paperclip,
   FileImage,
   FileText,
   Download,
@@ -83,15 +82,45 @@ export function FichaArchivosSection({
   };
 
   // Handler para descargar archivo
-  const handleDownload = (idArchivo: string, nombreOriginal: string) => {
-    const url = fichasService.getArchivoUrl(idFicha, idArchivo);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = nombreOriginal;
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async (idArchivo: string, nombreOriginal: string) => {
+    try {
+      const url = fichasService.getArchivoUrl(idFicha, idArchivo);
+
+      // Obtener el token de autenticación desde localStorage
+      const token = localStorage.getItem("apromam_access_token");
+      if (!token) {
+        alert("No hay token de autenticación. Por favor, vuelva a iniciar sesión.");
+        return;
+      }
+
+      // Descargar el archivo con autenticación
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al descargar: ${response.status}`);
+      }
+
+      // Convertir a blob y descargar
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = nombreOriginal;
+      document.body.appendChild(link);
+      link.click();
+
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error("Error al descargar archivo:", error);
+      alert("Error al descargar el archivo");
+    }
   };
 
   // Agrupar archivos por tipo
@@ -109,15 +138,7 @@ export function FichaArchivosSection({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Paperclip className="w-5 h-5 text-primary" />
-        <h3 className="text-lg font-semibold text-text-primary">
-          Archivos Adjuntos
-        </h3>
-      </div>
-
+    <div className="space-y-4">
       {/* Información */}
       <Alert
         type="info"
@@ -130,111 +151,114 @@ export function FichaArchivosSection({
         }
       />
 
-      {/* Sección de Croquis */}
-      <div className="p-4 border rounded-lg border-neutral-border">
-        <h4 className="mb-3 text-sm font-semibold text-text-primary">
-          Croquis de la Unidad Productiva
-        </h4>
-        {canEdit && (
-          <div className="mb-4">
-            <FileUploadZone
-              onUpload={(file) => handleUpload(file, "croquis")}
-              accept="image/*"
-              maxSize={5}
-              tipoArchivo="croquis"
-              disabled={isUploading}
-            />
-          </div>
-        )}
-        {archivosPorTipo.croquis.length > 0 ? (
-          <div className="space-y-2">
-            {archivosPorTipo.croquis.map((archivo) => (
-              <ArchivoItem
-                key={archivo.id_archivo}
-                archivo={archivo}
-                onDownload={handleDownload}
-                onDelete={canEdit ? handleDelete : undefined}
-                icon={getIconForType(archivo.tipo_archivo)}
+      {/* Grid de 3 columnas para las secciones */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Sección de Croquis */}
+        <div className="p-4 border rounded-lg border-neutral-border">
+          <h4 className="mb-3 text-sm font-semibold text-text-primary">
+            Croquis de la Unidad Productiva
+          </h4>
+          {canEdit && (
+            <div className="mb-4">
+              <FileUploadZone
+                onUpload={(file) => handleUpload(file, "croquis")}
+                accept="image/*"
+                maxSize={5}
+                tipoArchivo="croquis"
+                disabled={isUploading}
               />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-secondary">
-            No hay croquis adjuntos
-          </p>
-        )}
-      </div>
+            </div>
+          )}
+          {archivosPorTipo.croquis.length > 0 ? (
+            <div className="space-y-2">
+              {archivosPorTipo.croquis.map((archivo) => (
+                <ArchivoItem
+                  key={archivo.id_archivo}
+                  archivo={archivo}
+                  onDownload={handleDownload}
+                  onDelete={canEdit ? handleDelete : undefined}
+                  icon={getIconForType(archivo.tipo_archivo)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-text-secondary">
+              No hay croquis adjuntos
+            </p>
+          )}
+        </div>
 
-      {/* Sección de Fotos de Parcelas */}
-      <div className="p-4 border rounded-lg border-neutral-border">
-        <h4 className="mb-3 text-sm font-semibold text-text-primary">
-          Fotos de Parcelas
-        </h4>
-        {canEdit && (
-          <div className="mb-4">
-            <FileUploadZone
-              onUpload={(file) => handleUpload(file, "foto_parcela")}
-              accept="image/*"
-              maxSize={5}
-              tipoArchivo="foto_parcela"
-              disabled={isUploading}
-              multiple
-            />
-          </div>
-        )}
-        {archivosPorTipo.foto_parcela.length > 0 ? (
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-            {archivosPorTipo.foto_parcela.map((archivo) => (
-              <ArchivoItem
-                key={archivo.id_archivo}
-                archivo={archivo}
-                onDownload={handleDownload}
-                onDelete={canEdit ? handleDelete : undefined}
-                icon={getIconForType(archivo.tipo_archivo)}
+        {/* Sección de Fotos de Parcelas */}
+        <div className="p-4 border rounded-lg border-neutral-border">
+          <h4 className="mb-3 text-sm font-semibold text-text-primary">
+            Fotos de Parcelas
+          </h4>
+          {canEdit && (
+            <div className="mb-4">
+              <FileUploadZone
+                onUpload={(file) => handleUpload(file, "foto_parcela")}
+                accept="image/*"
+                maxSize={5}
+                tipoArchivo="foto_parcela"
+                disabled={isUploading}
+                multiple
               />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-secondary">
-            No hay fotos adjuntas
-          </p>
-        )}
-      </div>
+            </div>
+          )}
+          {archivosPorTipo.foto_parcela.length > 0 ? (
+            <div className="space-y-2">
+              {archivosPorTipo.foto_parcela.map((archivo) => (
+                <ArchivoItem
+                  key={archivo.id_archivo}
+                  archivo={archivo}
+                  onDownload={handleDownload}
+                  onDelete={canEdit ? handleDelete : undefined}
+                  icon={getIconForType(archivo.tipo_archivo)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-text-secondary">
+              No hay fotos adjuntas
+            </p>
+          )}
+        </div>
 
-      {/* Sección de Documentos PDF */}
-      <div className="p-4 border rounded-lg border-neutral-border">
-        <h4 className="mb-3 text-sm font-semibold text-text-primary">
-          Documentos PDF
-        </h4>
-        {canEdit && (
-          <div className="mb-4">
-            <FileUploadZone
-              onUpload={(file) => handleUpload(file, "documento_pdf")}
-              accept=".pdf,application/pdf"
-              maxSize={10}
-              tipoArchivo="documento_pdf"
-              disabled={isUploading}
-              multiple
-            />
-          </div>
-        )}
-        {archivosPorTipo.documento_pdf.length > 0 ? (
-          <div className="space-y-2">
-            {archivosPorTipo.documento_pdf.map((archivo) => (
-              <ArchivoItem
-                key={archivo.id_archivo}
-                archivo={archivo}
-                onDownload={handleDownload}
-                onDelete={canEdit ? handleDelete : undefined}
-                icon={getIconForType(archivo.tipo_archivo)}
+        {/* Sección de Documentos PDF */}
+        <div className="p-4 border rounded-lg border-neutral-border">
+          <h4 className="mb-3 text-sm font-semibold text-text-primary">
+            Documentos PDF
+          </h4>
+          {canEdit && (
+            <div className="mb-4">
+              <FileUploadZone
+                onUpload={(file) => handleUpload(file, "documento_pdf")}
+                accept=".pdf,application/pdf"
+                maxSize={10}
+                tipoArchivo="documento_pdf"
+                disabled={isUploading}
+                multiple
               />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-secondary">
-            No hay documentos PDF adjuntos
-          </p>
-        )}
+            </div>
+          )}
+          {archivosPorTipo.documento_pdf.length > 0 ? (
+            <div className="space-y-2">
+              {archivosPorTipo.documento_pdf.map((archivo) => (
+                <ArchivoItem
+                  key={archivo.id_archivo}
+                  archivo={archivo}
+                  onDownload={handleDownload}
+                  onDelete={canEdit ? handleDelete : undefined}
+                  icon={getIconForType(archivo.tipo_archivo)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-text-secondary">
+              No hay documentos PDF adjuntos
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Loading state */}

@@ -27,6 +27,7 @@ import { LocationPicker } from "@/shared/components/maps/LocationPicker";
 import { Tooltip } from "@/shared/components/ui/Tooltip";
 import { Button } from "@/shared/components/ui/Button";
 import { useAuthStore } from "@/features/auth/stores/authStore";
+import { useGestionActiva } from "@/features/configuracion/hooks/useGestionActiva";
 import { productoresService } from "@/features/productores/services/productores.service";
 import { fichasService } from "../../services/fichas.service";
 import { showToast } from "@/shared/hooks/useToast";
@@ -44,6 +45,7 @@ export default function Step1DatosGenerales() {
   } = useFormContext<CreateFichaCompletaInput>();
 
   const user = useAuthStore((state) => state.user);
+  const { gestionActiva } = useGestionActiva();
 
   const [selectedProductor, setSelectedProductor] = useState<Productor | null>(null);
   const [coordenadas, setCoordenadas] = useState({
@@ -53,10 +55,24 @@ export default function Step1DatosGenerales() {
   });
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
-  // Observar el codigo_productor del formulario
+  // Observar el codigo_productor y gestion del formulario
   const codigoProductorFromForm = watch("ficha.codigo_productor");
+  const gestionFromForm = watch("ficha.gestion");
   // Detectar modo edit: si hay código de productor inicial, estamos editando
   const [isEditMode] = useState(() => !!codigoProductorFromForm);
+
+  // Calcular rango de fechas permitidas basado en la gestión
+  const getFechaRangos = () => {
+    if (!gestionFromForm) return { min: undefined, max: undefined };
+
+    // Permitir fechas del año de la gestión
+    const min = `${gestionFromForm}-01-01`;
+    const max = `${gestionFromForm}-12-31`;
+
+    return { min, max };
+  };
+
+  const { min: minFecha, max: maxFecha } = getFechaRangos();
 
 
   // Auto-rellenar inspector_interno con el usuario logueado
@@ -103,7 +119,8 @@ export default function Step1DatosGenerales() {
       return;
     }
 
-    const currentYear = new Date().getFullYear();
+    // Usar gestión activa del sistema en lugar de año calendario
+    const currentYear = gestionActiva?.anio_gestion ?? new Date().getFullYear();
 
     // Validar si ya existe una ficha para este productor en la gestión actual
     try {
@@ -300,8 +317,15 @@ export default function Step1DatosGenerales() {
                   type="date"
                   {...register("ficha.fecha_inspeccion")}
                   className="w-full px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                  max={new Date().toISOString().split("T")[0]}
+                  min={minFecha}
+                  max={maxFecha}
+                  title={gestionFromForm ? `Seleccione una fecha del año ${gestionFromForm}` : "Seleccione primero un productor"}
                 />
+                {gestionFromForm && (
+                  <p className="mt-1 text-xs text-text-secondary">
+                    Gestión {gestionFromForm}: puede seleccionar fechas entre {minFecha} y {maxFecha}
+                  </p>
+                )}
               </FormField>
             </div>
 
@@ -319,43 +343,43 @@ export default function Step1DatosGenerales() {
                     className="w-4 h-4 text-primary focus:ring-primary"
                   />
                   <span className="text-sm font-medium">
-                    E □ - Ecológico
+                    E - En transición
                   </span>
                 </label>
 
                 <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                   <input
                     type="radio"
-                    value="0T"
+                    value="T2"
                     {...register("ficha.categoria_gestion_anterior")}
                     className="w-4 h-4 text-primary focus:ring-primary"
                   />
                   <span className="text-sm font-medium">
-                    T0 □ - Año cero
+                    T2 - Segundo año de transición
                   </span>
                 </label>
 
                 <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                   <input
                     type="radio"
-                    value="1T"
+                    value="T1"
                     {...register("ficha.categoria_gestion_anterior")}
                     className="w-4 h-4 text-primary focus:ring-primary"
                   />
                   <span className="text-sm font-medium">
-                    T1 □ - Primer año de transición
+                    T1 - Primer año de transición
                   </span>
                 </label>
 
                 <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                   <input
                     type="radio"
-                    value="2T"
+                    value="T0"
                     {...register("ficha.categoria_gestion_anterior")}
                     className="w-4 h-4 text-primary focus:ring-primary"
                   />
                   <span className="text-sm font-medium">
-                    T2 □ - Segundo año de transición
+                    T0 - Inicio transición
                   </span>
                 </label>
               </div>

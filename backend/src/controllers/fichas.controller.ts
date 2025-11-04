@@ -25,6 +25,7 @@ export class FichasController {
   // Lista fichas con filtros opcionales y paginacion
   // Tecnico: solo su comunidad
   // Gerente/Admin: todas las comunidades
+  // IMPORTANTE: Filtra automaticamente por gestion activa del sistema
   async list(
     request: FastifyRequest<{ Querystring: FichaQuery }>,
     reply: FastifyReply
@@ -37,10 +38,48 @@ export class FichasController {
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
+      // Obtener gestion activa del sistema
+      const gestionActiva = (request as any).gestionActiva;
+
+      console.log('🔍 [FICHAS-CONTROLLER] request.gestionActiva:', {
+        existe: !!gestionActiva,
+        valor: gestionActiva ? {
+          id: gestionActiva.id,
+          anio: gestionActiva.anio,
+          tipo: typeof gestionActiva.anio
+        } : 'undefined'
+      });
+
+      if (!gestionActiva) {
+        console.log('❌ [FICHAS-CONTROLLER] NO HAY GESTIÓN ACTIVA en request');
+        return reply.status(500).send({
+          error: "NO_ACTIVE_GESTION",
+          message: "No hay gestion activa configurada en el sistema",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      console.log('✅ [FICHAS-CONTROLLER] Gestión activa del sistema:', {
+        id: gestionActiva.id,
+        anio: gestionActiva.anio,
+        tipo: typeof gestionActiva.anio
+      });
+
+      // Usar gestión del query param si existe, sino usar gestión activa como fallback
+      // Nota: gestion ya viene como number gracias al transform de Zod
+      const gestionAUsar = gestion || gestionActiva.anio;
+
+      console.log('🔍 [CONTROLLER] Gestión a usar para listado:', {
+        gestionQueryParam: gestion,
+        gestionActiva: gestionActiva.anio,
+        gestionFinal: gestionAUsar,
+        origen: gestion ? 'query_param' : 'gestion_activa'
+      });
+
       const result = await this.fichasService.listFichas(
         usuarioComunidadId,
         esAdminOGerente,
-        gestion,
+        gestionAUsar,
         comunidad,
         productor,
         estado,
@@ -48,6 +87,12 @@ export class FichasController {
         page,
         limit
       );
+
+      console.log('🔍 [CONTROLLER] Fichas retornadas:', {
+        total: result.total,
+        gestion_usada: gestionAUsar,
+        page: result.page
+      });
 
       return reply.status(200).send(result);
     } catch (error) {
@@ -64,6 +109,7 @@ export class FichasController {
   // Obtiene una ficha completa con todas sus secciones
   // Tecnico: solo si es de su comunidad
   // Gerente/Admin: cualquier ficha
+  // IMPORTANTE: Verifica que la ficha pertenezca a la gestion activa
   async getById(
     request: FastifyRequest<{ Params: FichaParams }>,
     reply: FastifyReply
@@ -75,11 +121,32 @@ export class FichasController {
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
+      // Obtener gestion activa del sistema
+      const gestionActiva = (request as any).gestionActiva;
+
+      if (!gestionActiva) {
+        return reply.status(500).send({
+          error: "NO_ACTIVE_GESTION",
+          message: "No hay gestion activa configurada en el sistema",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       const fichaCompleta = await this.fichasService.getFichaCompleta(
         id,
         usuarioComunidadId,
         esAdminOGerente
       );
+
+      console.log('🔍 [CONTROLLER] Ficha obtenida:', {
+        id_ficha: fichaCompleta.ficha.id,
+        gestion: fichaCompleta.ficha.gestion,
+        gestion_activa_sistema: gestionActiva.anio,
+        permite_gestion_diferente: true
+      });
+
+      // No verificamos gestión - permitimos ver fichas de cualquier gestión (pasadas o activas)
+      // El control de acceso se hace por comunidad, no por gestión
 
       return reply.status(200).send({ ficha: fichaCompleta });
     } catch (error) {
@@ -112,6 +179,7 @@ export class FichasController {
   // Crea una nueva ficha completa con transaccion atomica
   // Tecnico: solo en su comunidad
   // Admin: en cualquier comunidad
+  // IMPORTANTE: Fuerza la gestion activa del sistema, ignora la gestion del frontend
   async create(
     request: FastifyRequest<{ Body: CreateFichaInput }>,
     reply: FastifyReply
@@ -123,12 +191,54 @@ export class FichasController {
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
+      // Obtener gestion activa del sistema
+      const gestionActiva = (request as any).gestionActiva;
+
+      console.log('🔍 [FICHAS-CREATE] request.gestionActiva:', {
+        existe: !!gestionActiva,
+        valor: gestionActiva ? {
+          id: gestionActiva.id,
+          anio: gestionActiva.anio,
+        } : 'undefined'
+      });
+
+      if (!gestionActiva) {
+        console.log('❌ [FICHAS-CREATE] NO HAY GESTIÓN ACTIVA en request');
+        return reply.status(500).send({
+          error: "NO_ACTIVE_GESTION",
+          message: "No hay gestion activa configurada en el sistema",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Usar gestión del body si existe, sino usar gestión activa como fallback
+      const gestionBody = request.body.gestion;
+      const gestionAUsar = gestionBody || gestionActiva.anio;
+
+      console.log('✅ [FICHAS-CREATE] Gestión para crear ficha:', {
+        gestion_body: gestionBody,
+        gestion_activa: gestionActiva.anio,
+        gestion_final: gestionAUsar,
+        origen: gestionBody ? 'request_body' : 'gestion_activa'
+      });
+
+      const inputConGestion = {
+        ...request.body,
+        gestion: gestionAUsar,
+      };
+
       const fichaCompleta = await this.fichasService.createFichaCompleta(
-        request.body,
+        inputConGestion,
         usuarioId,
         usuarioComunidadId,
         esAdminOGerente
       );
+
+      console.log('🔍 [CONTROLLER] Ficha creada exitosamente:', {
+        id_ficha: fichaCompleta.ficha.id,
+        gestion: fichaCompleta.ficha.gestion,
+        codigo_productor: fichaCompleta.ficha.codigoProductor
+      });
 
       return reply.status(201).send({
         ficha: fichaCompleta,
@@ -654,23 +764,156 @@ export class FichasController {
     }
   }
 
-  // GET /api/archivos/:archivoId/download
+  // GET /api/fichas/:id/archivos/:idArchivo/download
   // Descarga un archivo específico
   async downloadArchivo(
-    request: FastifyRequest<{ Params: { archivoId: string } }>,
+    request: FastifyRequest<{ Params: { id: string; idArchivo: string } }>,
     reply: FastifyReply
   ) {
     try {
-      // TODO: Implementar cuando ArchivoFichaRepository tenga findById
-      return reply.status(501).send({
-        error: "not_implemented",
-        message: "Endpoint de descarga pendiente de implementación",
-      });
+      const { id: fichaId, idArchivo } = request.params;
+      const usuarioComunidadId = request.user?.comunidadId;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
+
+      // Buscar archivo en BD
+      const archivo = await this.fichasService["archivoFichaRepository"].findById(
+        idArchivo
+      );
+
+      if (!archivo) {
+        return reply.status(404).send({
+          error: "not_found",
+          message: "Archivo no encontrado",
+        });
+      }
+
+      // Verificar que el archivo pertenece a la ficha solicitada
+      if (archivo.idFicha !== fichaId) {
+        return reply.status(400).send({
+          error: "bad_request",
+          message: "El archivo no pertenece a la ficha especificada",
+        });
+      }
+
+      // Validar acceso a la ficha
+      const ficha = await this.fichasService["fichaRepository"].findById(
+        archivo.idFicha
+      );
+      if (!ficha) {
+        return reply.status(404).send({
+          error: "not_found",
+          message: "Ficha no encontrada",
+        });
+      }
+
+      if (!esAdminOGerente && usuarioComunidadId) {
+        const productor = await this.fichasService[
+          "productorRepository"
+        ].findByCodigo(ficha.codigoProductor);
+        if (!productor || productor.idComunidad !== usuarioComunidadId) {
+          return reply.status(403).send({
+            error: "forbidden",
+            message: "No tiene acceso a esta ficha",
+          });
+        }
+      }
+
+      // Construir ruta completa del archivo
+      const path = await import("path");
+      const fs = await import("fs/promises");
+      const { config } = await import("../config/environment.js");
+
+      const rutaCompleta = path.default.join(
+        config.upload.path,
+        archivo.rutaAlmacenamiento
+      );
+
+      // Validar seguridad: evitar path traversal
+      const rutaNormalizada = path.default.normalize(rutaCompleta);
+      if (!rutaNormalizada.startsWith(config.upload.path)) {
+        return reply.status(400).send({
+          error: "bad_request",
+          message: "Ruta de archivo inválida",
+        });
+      }
+
+      // Verificar que el archivo existe en disco
+      try {
+        await fs.access(rutaCompleta);
+      } catch (error) {
+        request.log.error(
+          { ruta: rutaCompleta, error },
+          "Archivo no encontrado en disco"
+        );
+        return reply.status(404).send({
+          error: "not_found",
+          message: "El archivo no existe en el servidor",
+        });
+      }
+
+      // Configurar headers para descarga
+      const mimeType = archivo.mimeType || "application/octet-stream";
+      reply.header("Content-Type", mimeType);
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="${archivo.nombreOriginal}"`
+      );
+
+      // Enviar archivo usando stream
+      const stream = await import("fs");
+      const fileStream = stream.createReadStream(rutaCompleta);
+
+      return reply.send(fileStream);
     } catch (error) {
       request.log.error(error, "Error downloading archivo");
       return reply.status(500).send({
         error: "internal_server_error",
         message: "Error al descargar archivo",
+      });
+    }
+  }
+
+  // DELETE /api/fichas/:id/archivos/:idArchivo
+  // Elimina un archivo de una ficha
+  async deleteArchivoFicha(
+    request: FastifyRequest<{ Params: { id: string; idArchivo: string } }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id: fichaId, idArchivo } = request.params;
+      const usuarioComunidadId = request.user?.comunidadId;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
+
+      await this.fichasService.deleteArchivo(
+        idArchivo,
+        usuarioComunidadId,
+        esAdminOGerente
+      );
+
+      return reply.status(204).send();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("no encontrado") || error.message.includes("no encontrada")) {
+          return reply.status(404).send({
+            error: "not_found",
+            message: error.message,
+          });
+        }
+        if (error.message.includes("acceso")) {
+          return reply.status(403).send({
+            error: "forbidden",
+            message: error.message,
+          });
+        }
+      }
+      request.log.error(error, "Error deleting archivo");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al eliminar archivo",
       });
     }
   }

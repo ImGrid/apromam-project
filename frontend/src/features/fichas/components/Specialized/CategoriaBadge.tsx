@@ -1,12 +1,12 @@
 /**
  * CategoriaBadge
  * Badge para mostrar la categoría de gestión de un productor
- * E (Ecológico) | 2T (Segundo año transición) | 1T (Primer año) | 0T (Año cero)
+ * E (Ecológico) | T2 (Segundo año transición) | T1 (Primer año) | T0 (Año cero)
  */
 
 import { Badge } from "@/shared/components/ui/Badge";
 
-export type CategoriaGestion = "E" | "2T" | "1T" | "0T";
+export type CategoriaGestion = "E" | "T2" | "T1" | "T0";
 
 interface CategoriaBadgeProps {
   categoria: CategoriaGestion;
@@ -29,20 +29,20 @@ const CATEGORIA_CONFIG: Record<
     variant: "success",
     description: "Certificación orgánica completa",
   },
-  "2T": {
-    label: "2T",
+  "T2": {
+    label: "T2",
     fullLabel: "2° Transición",
     variant: "info",
     description: "Segundo año de transición",
   },
-  "1T": {
-    label: "1T",
+  "T1": {
+    label: "T1",
     fullLabel: "1° Transición",
     variant: "warning",
     description: "Primer año de transición",
   },
-  "0T": {
-    label: "0T",
+  "T0": {
+    label: "T0",
     fullLabel: "Año Cero",
     variant: "neutral",
     description: "Año cero - inicio del proceso",
@@ -97,7 +97,7 @@ export function CategoriaCard({ categoria, className = "" }: CategoriaCardProps)
 export function getNextCategoria(
   currentCategoria: CategoriaGestion
 ): CategoriaGestion | null {
-  const cycle: CategoriaGestion[] = ["0T", "1T", "2T", "E"];
+  const cycle: CategoriaGestion[] = ["T0", "T1", "T2", "E"];
   const currentIndex = cycle.indexOf(currentCategoria);
 
   if (currentIndex === -1 || currentIndex === cycle.length - 1) {

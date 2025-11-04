@@ -19,9 +19,9 @@ interface ProductorFiltersProps {
 const CATEGORIA_OPTIONS: SelectOption[] = [
   { value: '', label: 'Todas las categorías' },
   { value: 'E', label: `E - ${CATEGORIA_LABELS.E}` },
-  { value: '2T', label: `2T - ${CATEGORIA_LABELS['2T']}` },
-  { value: '1T', label: `1T - ${CATEGORIA_LABELS['1T']}` },
-  { value: '0T', label: `0T - ${CATEGORIA_LABELS['0T']}` },
+  { value: 'T2', label: `T2 - ${CATEGORIA_LABELS.T2}` },
+  { value: 'T1', label: `T1 - ${CATEGORIA_LABELS.T1}` },
+  { value: 'T0', label: `T0 - ${CATEGORIA_LABELS.T0}` },
 ];
 
 const GPS_OPTIONS: SelectOption[] = [
@@ -43,7 +43,9 @@ export function ProductorFilters({
     { value: '', label: 'Todas las comunidades' },
     ...comunidades.map((c) => ({
       value: c.id_comunidad,
-      label: c.nombre_comunidad,
+      label: c.nombre_municipio
+        ? `${c.nombre_comunidad} - ${c.nombre_municipio}`
+        : c.nombre_comunidad,
     })),
   ];
 

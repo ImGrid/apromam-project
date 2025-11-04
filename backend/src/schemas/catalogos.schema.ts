@@ -75,31 +75,14 @@ export const CreateGestionSchema = z.object({
     .int()
     .min(2000, "Año debe ser mayor a 2000")
     .max(2100, "Año debe ser menor a 2100"),
-  descripcion: z
-    .string()
-    .min(4, "Descripcion debe tener al menos 4 caracteres")
-    .max(200, "Descripcion no puede exceder 200 caracteres")
-    .trim()
-    .optional(),
-  fecha_inicio: z.string().datetime().optional(),
-  fecha_fin: z.string().datetime().optional(),
-  estado_gestion: z.enum(["planificada", "activa", "finalizada"]).optional(),
 });
 
 export type CreateGestionInput = z.infer<typeof CreateGestionSchema>;
 
 // Schema para actualizar gestion
 export const UpdateGestionSchema = z.object({
-  descripcion: z
-    .string()
-    .min(4, "Descripcion debe tener al menos 4 caracteres")
-    .max(200, "Descripcion no puede exceder 200 caracteres")
-    .trim()
-    .optional(),
-  fecha_inicio: z.string().datetime().optional(),
-  fecha_fin: z.string().datetime().optional(),
-  estado_gestion: z.enum(["planificada", "activa", "finalizada"]).optional(),
   activa: z.boolean().optional(),
+  activo_sistema: z.boolean().optional(),
 });
 
 export type UpdateGestionInput = z.infer<typeof UpdateGestionSchema>;
@@ -108,11 +91,8 @@ export type UpdateGestionInput = z.infer<typeof UpdateGestionSchema>;
 export const GestionResponseSchema = z.object({
   id_gestion: UUIDSchema,
   anio_gestion: z.number().int(),
-  descripcion: z.string().nullable(),
-  fecha_inicio: z.string().nullable(),
-  fecha_fin: z.string().nullable(),
-  estado_gestion: z.enum(["planificada", "activa", "finalizada"]),
   activa: z.boolean(),
+  activo_sistema: z.boolean(),
 });
 
 export type GestionResponse = z.infer<typeof GestionResponseSchema>;

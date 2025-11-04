@@ -3,27 +3,22 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { CatalogosController } from "../controllers/catalogos.controller.js";
 import { CatalogosService } from "../services/catalogos.service.js";
 import { TipoCultivoRepository } from "../repositories/TipoCultivoRepository.js";
-import { GestionRepository } from "../repositories/GestionRepository.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { requireRoles } from "../middleware/authorize.js";
 import {
   CreateTipoCultivoSchema,
   UpdateTipoCultivoSchema,
-  CreateGestionSchema,
-  UpdateGestionSchema,
   CatalogoParamsSchema,
   CatalogoQuerySchema,
   TiposCultivoListResponseSchema,
   TipoCultivoResponseSchema,
-  GestionesListResponseSchema,
-  GestionResponseSchema,
   CatalogoErrorSchema,
 } from "../schemas/catalogos.schema.js";
 import { z } from "zod";
 
 /**
- * Plugin de rutas de catálogos
- * Gestión de tipos cultivo y gestiones
+ * Plugin de rutas de catálogos (solo tipos de cultivo)
+ * NOTA: Gestiones ahora tienen su propio endpoint en /api/gestiones
  */
 export default async function catalogosRoutes(
   fastify: FastifyInstance,
@@ -31,11 +26,7 @@ export default async function catalogosRoutes(
 ) {
   // Inicializar dependencias
   const tipoCultivoRepository = new TipoCultivoRepository();
-  const gestionRepository = new GestionRepository();
-  const catalogosService = new CatalogosService(
-    tipoCultivoRepository,
-    gestionRepository
-  );
+  const catalogosService = new CatalogosService(tipoCultivoRepository);
   const catalogosController = new CatalogosController(catalogosService);
 
   // ==========================================
@@ -192,183 +183,5 @@ export default async function catalogosRoutes(
     },
     async (request, reply) =>
       catalogosController.deleteTipoCultivo(request, reply)
-  );
-
-  // ==========================================
-  // RUTAS GESTIONES
-  // ==========================================
-
-  /**
-   * GET /api/catalogos/gestiones
-   * Lista todas las gestiones
-   * Acceso: todos los roles autenticados
-   */
-  fastify.withTypeProvider<ZodTypeProvider>().get(
-    "/gestiones",
-    {
-      onRequest: [authenticate],
-      schema: {
-        description: "Lista todas las gestiones",
-        tags: ["catalogos"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
-        }),
-        querystring: CatalogoQuerySchema,
-        response: {
-          200: GestionesListResponseSchema,
-          401: CatalogoErrorSchema,
-          500: CatalogoErrorSchema,
-        },
-      },
-    },
-    async (request, reply) => catalogosController.listGestiones(request, reply)
-  );
-
-  /**
-   * GET /api/catalogos/gestiones/actual
-   * Obtiene la gestión actual (año actual)
-   * Acceso: todos los roles autenticados
-   */
-  fastify.withTypeProvider<ZodTypeProvider>().get(
-    "/gestiones/actual",
-    {
-      onRequest: [authenticate],
-      schema: {
-        description: "Obtiene la gestión actual (año actual)",
-        tags: ["catalogos"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
-        }),
-        response: {
-          200: z.object({ gestion: GestionResponseSchema }),
-          401: CatalogoErrorSchema,
-          404: CatalogoErrorSchema,
-          500: CatalogoErrorSchema,
-        },
-      },
-    },
-    async (request, reply) =>
-      catalogosController.getGestionActual(request, reply)
-  );
-
-  /**
-   * GET /api/catalogos/gestiones/:id
-   * Obtiene una gestión por ID
-   * Acceso: todos los roles autenticados
-   */
-  fastify.withTypeProvider<ZodTypeProvider>().get(
-    "/gestiones/:id",
-    {
-      onRequest: [authenticate],
-      schema: {
-        description: "Obtiene una gestión por ID",
-        tags: ["catalogos"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
-        }),
-        params: CatalogoParamsSchema,
-        response: {
-          200: z.object({ gestion: GestionResponseSchema }),
-          401: CatalogoErrorSchema,
-          404: CatalogoErrorSchema,
-          500: CatalogoErrorSchema,
-        },
-      },
-    },
-    async (request, reply) => catalogosController.getGestionById(request, reply)
-  );
-
-  /**
-   * POST /api/catalogos/gestiones
-   * Crea una nueva gestión
-   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
-   */
-  fastify.withTypeProvider<ZodTypeProvider>().post(
-    "/gestiones",
-    {
-      onRequest: [authenticate, requireRoles("administrador")],
-      schema: {
-        description: "Crea una nueva gestión",
-        tags: ["catalogos"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
-        }),
-        body: CreateGestionSchema,
-        response: {
-          201: z.object({
-            gestion: GestionResponseSchema,
-            message: z.string(),
-          }),
-          401: CatalogoErrorSchema,
-          403: CatalogoErrorSchema,
-          409: CatalogoErrorSchema,
-          500: CatalogoErrorSchema,
-        },
-      },
-    },
-    async (request, reply) => catalogosController.createGestion(request, reply)
-  );
-
-  /**
-   * PUT /api/catalogos/gestiones/:id
-   * Actualiza una gestión existente
-   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
-   */
-  fastify.withTypeProvider<ZodTypeProvider>().put(
-    "/gestiones/:id",
-    {
-      onRequest: [authenticate, requireRoles("administrador")],
-      schema: {
-        description: "Actualiza una gestión existente",
-        tags: ["catalogos"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
-        }),
-        params: CatalogoParamsSchema,
-        body: UpdateGestionSchema,
-        response: {
-          200: z.object({
-            gestion: GestionResponseSchema,
-            message: z.string(),
-          }),
-          401: CatalogoErrorSchema,
-          403: CatalogoErrorSchema,
-          404: CatalogoErrorSchema,
-          500: CatalogoErrorSchema,
-        },
-      },
-    },
-    async (request, reply) => catalogosController.updateGestion(request, reply)
-  );
-
-  /**
-   * DELETE /api/catalogos/gestiones/:id
-   * Elimina (desactiva) una gestión
-   * Acceso: solo admin (gerente NO puede modificar catálogos, solo ver)
-   */
-  fastify.withTypeProvider<ZodTypeProvider>().delete(
-    "/gestiones/:id",
-    {
-      onRequest: [authenticate, requireRoles("administrador")],
-      schema: {
-        description: "Elimina (desactiva) una gestión",
-        tags: ["catalogos"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
-        }),
-        params: CatalogoParamsSchema,
-        response: {
-          204: {
-            type: "null",
-            description: "Gestión eliminada exitosamente",
-          },
-          401: CatalogoErrorSchema,
-          403: CatalogoErrorSchema,
-          404: CatalogoErrorSchema,
-          500: CatalogoErrorSchema,
-        },
-      },
-    },
-    async (request, reply) => catalogosController.deleteGestion(request, reply)
   );
 }

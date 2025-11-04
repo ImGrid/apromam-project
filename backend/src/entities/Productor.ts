@@ -6,7 +6,7 @@ import {
 } from "../utils/postgis.utils.js";
 
 // Categorias de certificacion organica
-export type CategoriaProductor = "E" | "2T" | "1T" | "0T";
+export type CategoriaProductor = "E" | "T2" | "T1" | "T0";
 
 // Interfaz para datos de Productor desde BD
 export interface ProductorData {
@@ -270,9 +270,9 @@ export class Productor {
     }
 
     // Validar categoria
-    const categoriasValidas: CategoriaProductor[] = ["E", "2T", "1T", "0T"];
+    const categoriasValidas: CategoriaProductor[] = ["E", "T2", "T1", "T0"];
     if (!categoriasValidas.includes(this.data.categoria_actual)) {
-      errors.push("Categoria debe ser: E, 2T, 1T o 0T");
+      errors.push("Categoria debe ser: E, T2, T1 o T0");
     }
 
     // Validar superficie
@@ -478,7 +478,7 @@ export class Productor {
 
   // Verifica si la categoria es en transicion
   esEnTransicion(): boolean {
-    return ["2T", "1T", "0T"].includes(this.data.categoria_actual);
+    return ["T2", "T1", "T0"].includes(this.data.categoria_actual);
   }
 
   // Calcula años en el programa
@@ -527,9 +527,9 @@ export class Productor {
 
   // Actualiza categoria de certificacion
   actualizarCategoria(nuevaCategoria: CategoriaProductor): void {
-    const categoriasValidas: CategoriaProductor[] = ["E", "2T", "1T", "0T"];
+    const categoriasValidas: CategoriaProductor[] = ["E", "T2", "T1", "T0"];
     if (!categoriasValidas.includes(nuevaCategoria)) {
-      throw new Error("Categoria debe ser: E, 2T, 1T o 0T");
+      throw new Error("Categoria debe ser: E, T2, T1 o T0");
     }
 
     this.data.categoria_actual = nuevaCategoria;

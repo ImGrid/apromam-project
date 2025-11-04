@@ -32,6 +32,11 @@ const CatalogosManagePage = lazy(() =>
     default: m.CatalogosManagePage,
   }))
 );
+const ConfiguracionPage = lazy(() =>
+  import("@/features/configuracion/pages/ConfiguracionPage").then((m) => ({
+    default: m.ConfiguracionPage,
+  }))
+);
 const ProductoresListPage = lazy(() =>
   import("@/features/productores/pages/ProductoresListPage").then((m) => ({
     default: m.ProductoresListPage,
@@ -51,6 +56,18 @@ const FichaEditPage = lazy(() =>
 );
 const FichaDetailPage = lazy(() =>
   import("@/features/fichas/pages/FichaDetailPage")
+);
+
+// Módulo de No Conformidades (Seguimiento)
+const NoConformidadesListPage = lazy(() =>
+  import(
+    "@/features/seguimiento-no-conformidades/pages/NoConformidadesListPage"
+  ).then((m) => ({ default: m.NoConformidadesListPage }))
+);
+const NoConformidadDetailPage = lazy(() =>
+  import(
+    "@/features/seguimiento-no-conformidades/pages/NoConformidadDetailPage"
+  ).then((m) => ({ default: m.NoConformidadDetailPage }))
 );
 
 export const router = createBrowserRouter([
@@ -75,6 +92,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <PerfilPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: ROUTES.CONFIGURACION,
+    element: (
+      <ProtectedRoute requiredRole={["administrador"]}>
+        <ConfiguracionPage />
       </ProtectedRoute>
     ),
   },
@@ -147,6 +172,22 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <FichaDetailPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: ROUTES.NO_CONFORMIDADES,
+    element: (
+      <ProtectedRoute requiredRole={["tecnico", "gerente"]}>
+        <NoConformidadesListPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: ROUTES.NO_CONFORMIDADES_DETAIL(":id"),
+    element: (
+      <ProtectedRoute requiredRole={["tecnico", "gerente"]}>
+        <NoConformidadDetailPage />
       </ProtectedRoute>
     ),
   },

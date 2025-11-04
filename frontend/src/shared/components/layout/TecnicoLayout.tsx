@@ -7,6 +7,7 @@ import {
   ClipboardList,
   PlusCircle,
   MapPin,
+  AlertTriangle,
 } from "lucide-react";
 import { Header } from "@/shared/components/layout/Header";
 import { Breadcrumbs } from "@/shared/components/layout/Breadcrumbs";
@@ -39,6 +40,11 @@ const tecnicoNavItems = [
     label: "Mis Productores",
     path: ROUTES.PRODUCTORES,
     icon: Leaf,
+  },
+  {
+    label: "Seguimiento NC",
+    path: ROUTES.NO_CONFORMIDADES,
+    icon: AlertTriangle,
   },
 ];
 

@@ -16,6 +16,7 @@ export const ROUTES = {
   DASHBOARD: "/dashboard",
   REPORTES: "/reportes",
   PERFIL: "/perfil",
+  CONFIGURACION: "/configuracion",
 
   // Usuarios
   USUARIOS: "/usuarios",
@@ -56,4 +57,8 @@ export const ROUTES = {
   FICHAS_CREATE: "/fichas/crear",
   FICHAS_EDIT: (id: string) => `/fichas/${id}/editar`,
   FICHAS_DETAIL: (id: string) => `/fichas/${id}`,
+
+  // No Conformidades (Seguimiento)
+  NO_CONFORMIDADES: "/seguimiento-no-conformidades",
+  NO_CONFORMIDADES_DETAIL: (id: string) => `/seguimiento-no-conformidades/${id}`,
 } as const;
