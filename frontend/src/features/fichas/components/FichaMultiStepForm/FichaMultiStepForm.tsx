@@ -39,8 +39,6 @@ import { useStepValidation } from "../../hooks/useStepValidation";
 // ============================================
 
 function StepValidationManager({ currentStep }: { currentStep: number }) {
-  console.log(`🔄 [StepValidationManager] Montado para step ${currentStep}`);
-
   // Este hook SÍ puede usar useFormContext porque está dentro del FormProvider
   const { validateNow } = useStepValidation(currentStep);
   const actions = useFichaFormActions();
@@ -150,8 +148,6 @@ export default function FichaMultiStepForm({
     mode === "create" ? gestion : undefined
   );
 
-  console.log(`🎯 [FichaMultiStepForm] Renderizando step ${currentStep}`);
-
   // Hook de auto-save (reemplaza el setInterval anterior)
   // IMPORTANTE: Deshabilitar mientras se carga el draft o el modal está abierto
   // IMPORTANTE: Solo auto-guardar en modo "create", NO en modo "edit"
@@ -186,11 +182,6 @@ export default function FichaMultiStepForm({
   // Manejar aceptación de borrador
   const handleAcceptDraft = () => {
     if (draft) {
-      console.log('[RECOVER] Recuperando borrador - Productor:', codigoProductor, 'Gestion:', gestion);
-      console.log('[RECOVER] Borrador recuperado:', draft);
-      console.log('[RECOVER] Step actual:', draft.step_actual);
-      console.log('[RECOVER] Datos del formulario:', draft.data);
-
       // Asegurar que cosecha_ventas tenga exactamente 1 registro
       const draftData = { ...draft.data };
       if (draftData.cosecha_ventas) {
@@ -232,7 +223,6 @@ export default function FichaMultiStepForm({
       // Cerrar modal
       acceptDraft();
 
-      console.log('[RECOVER] Borrador aplicado - Navegando a step:', draft.step_actual);
       showToast.success("Borrador recuperado exitosamente");
     }
   };
@@ -244,14 +234,6 @@ export default function FichaMultiStepForm({
 
   // Handler para submit final
   const handleFormSubmit = async (data: CreateFichaCompletaInput) => {
-    console.log('[ENVIAR] ========================================');
-    console.log('[ENVIAR] Iniciando envío a revisión');
-    console.log('[ENVIAR] Datos completos de la ficha (estructura frontend):', data);
-    console.log('[ENVIAR] Parcelas inspeccionadas (NO se envían al backend):', data.parcelas_inspeccionadas);
-    console.log('[ENVIAR] Detalles de cultivo (parcelas):', data.detalles_cultivo);
-    console.log('[ENVIAR] Cosecha y ventas:', data.cosecha_ventas);
-    console.log('[ENVIAR] Errores de validación:', errors);
-
     // Transformar de estructura frontend a estructura backend
     const {
       parcelas_inspeccionadas,  // NO se envía (se envían al finalizar)
@@ -291,18 +273,8 @@ export default function FichaMultiStepForm({
       ...rest
     };
 
-    console.log('[ENVIAR] Datos transformados para backend:', dataToSend);
-    console.log('[ENVIAR] - codigo_productor:', dataToSend.codigo_productor);
-    console.log('[ENVIAR] - gestion:', dataToSend.gestion);
-    console.log('[ENVIAR] - fecha_inspeccion (ISO):', dataToSend.fecha_inspeccion);
-    console.log('[ENVIAR] - inspector_interno:', dataToSend.inspector_interno);
-    console.log('[ENVIAR] - detalle_cultivos_parcelas:', dataToSend.detalle_cultivos_parcelas);
-    console.log('[ENVIAR] - no_conformidades (fechas transformadas):', dataToSend.no_conformidades);
-    console.log('[ENVIAR] ========================================');
-
     try {
       await onSubmit(dataToSend);
-      console.log('[ENVIAR] Ficha enviada exitosamente');
       actions.resetForm();
     } catch (err) {
       console.error("[ENVIAR] Error al enviar ficha:", err);
@@ -312,13 +284,10 @@ export default function FichaMultiStepForm({
 
   // Handler para navegar al siguiente step CON VALIDACIÓN
   const handleNext = async () => {
-    console.log(`⏭️ [FichaMultiStepForm] Intentando avanzar desde step ${currentStep}`);
-
     // Obtener la función de validación del window (guardada por StepValidationManager)
     const validateCurrentStep = (window as any).__validateCurrentStep;
 
     if (!validateCurrentStep) {
-      console.log(`⚠️ [FichaMultiStepForm] No hay función de validación disponible, avanzando sin validar`);
       actions.goToNextStep();
       return;
     }
@@ -326,13 +295,8 @@ export default function FichaMultiStepForm({
     // Validar step actual antes de avanzar
     const validation = await validateCurrentStep();
 
-    console.log(`🔍 [FichaMultiStepForm] Resultado validación step ${currentStep}:`, validation);
-
     // Si hay ERRORES críticos, NO permitir avanzar
     if (validation.hasErrors) {
-      console.log(`❌ [FichaMultiStepForm] Step ${currentStep} tiene ERRORES - bloqueando navegación`);
-      console.log(`❌ [FichaMultiStepForm] Errores:`, validation.errors);
-
       showToast.error(
         `Completa los campos obligatorios antes de continuar`,
         {
@@ -343,7 +307,6 @@ export default function FichaMultiStepForm({
       // Scroll al primer campo con error
       if (validation.errors.length > 0) {
         const firstErrorField = validation.errors[0].field;
-        console.log(`📍 [FichaMultiStepForm] Primer campo con error: ${firstErrorField}`);
 
         // Intentar hacer scroll al campo
         setTimeout(() => {
@@ -359,9 +322,6 @@ export default function FichaMultiStepForm({
 
     // Si hay WARNINGS (pero no errores), permitir avanzar con notificación
     if (validation.hasWarnings) {
-      console.log(`⚠️ [FichaMultiStepForm] Step ${currentStep} tiene WARNINGS - permitiendo avanzar`);
-      console.log(`⚠️ [FichaMultiStepForm] Warnings:`, validation.warnings);
-
       showToast.warning(
         `Hay campos recomendados sin completar`,
         {
@@ -373,7 +333,6 @@ export default function FichaMultiStepForm({
     }
 
     // Si paso validación (o solo tiene warnings), avanzar
-    console.log(`✅ [FichaMultiStepForm] Step ${currentStep} validado correctamente - avanzando`);
     actions.goToNextStep();
   };
 

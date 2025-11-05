@@ -12,7 +12,7 @@ import { useNoConformidades } from "../hooks";
 import { EstadoSeguimientoBadge, SeguimientoForm, ArchivosSection, EstadisticasWidget } from "../components";
 import type { NoConformidadEnriquecida, EstadoSeguimiento } from "../types";
 import type { DataTableColumn } from "@/shared/components/ui/DataTable";
-import { Edit, Upload, MessageSquare } from "lucide-react";
+import { Settings, MessageSquare } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -20,7 +20,8 @@ export function NoConformidadesListPage() {
   const permissions = usePermissions();
   const [estadoFilter, setEstadoFilter] = useState<EstadoSeguimiento | "">("");
   const [selectedNC, setSelectedNC] = useState<NoConformidadEnriquecida | null>(null);
-  const [modalType, setModalType] = useState<"seguimiento" | "archivos" | "comentario" | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isComentarioModalOpen, setIsComentarioModalOpen] = useState(false);
 
   const { noConformidades, isLoading, refetch } = useNoConformidades(
     estadoFilter ? { estado_seguimiento: estadoFilter } : undefined
@@ -34,29 +35,28 @@ export function NoConformidadesListPage() {
     ? TecnicoLayout
     : AdminLayout;
 
-  const handleOpenSeguimiento = (nc: NoConformidadEnriquecida) => {
+  const handleOpenModal = (nc: NoConformidadEnriquecida) => {
     setSelectedNC(nc);
-    setModalType("seguimiento");
-  };
-
-  const handleOpenArchivos = (nc: NoConformidadEnriquecida) => {
-    setSelectedNC(nc);
-    setModalType("archivos");
+    setIsModalOpen(true);
   };
 
   const handleOpenComentario = (nc: NoConformidadEnriquecida) => {
     setSelectedNC(nc);
-    setModalType("comentario");
+    setIsComentarioModalOpen(true);
   };
 
   const handleCloseModal = () => {
-    setModalType(null);
+    setIsModalOpen(false);
+    setSelectedNC(null);
+  };
+
+  const handleCloseComentarioModal = () => {
+    setIsComentarioModalOpen(false);
     setSelectedNC(null);
   };
 
   const handleSeguimientoSuccess = () => {
     refetch();
-    handleCloseModal();
   };
 
   const columns: DataTableColumn<NoConformidadEnriquecida>[] = [
@@ -135,16 +135,10 @@ export function NoConformidadesListPage() {
       render: (nc) => (
         <div className="flex items-center gap-1">
           <IconButton
-            icon={<Edit className="w-4 h-4" />}
-            onClick={() => handleOpenSeguimiento(nc)}
-            tooltip="Actualizar seguimiento"
+            icon={<Settings className="w-4 h-4" />}
+            onClick={() => handleOpenModal(nc)}
+            tooltip="Gestionar NC"
             variant="primary"
-          />
-          <IconButton
-            icon={<Upload className="w-4 h-4" />}
-            onClick={() => handleOpenArchivos(nc)}
-            tooltip="Gestionar archivos"
-            variant="neutral"
           />
         </div>
       ),
@@ -185,41 +179,16 @@ export function NoConformidadesListPage() {
           </Card>
         </div>
 
-        {/* Modal de Seguimiento */}
+        {/* Modal Unificado */}
         <Modal
-          isOpen={modalType === "seguimiento" && selectedNC !== null}
+          isOpen={isModalOpen && selectedNC !== null}
           onClose={handleCloseModal}
-          title="Actualizar Seguimiento"
-          size="medium"
-        >
-          {selectedNC && (
-            <div className="space-y-3">
-              <div className="pb-3 border-b">
-                <p className="text-sm text-gray-600">
-                  <strong>Productor:</strong> {selectedNC.nombre_productor}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  <strong>Descripción:</strong> {selectedNC.descripcion_no_conformidad}
-                </p>
-              </div>
-              <SeguimientoForm
-                idNoConformidad={selectedNC.id_no_conformidad}
-                estadoActual={selectedNC.estado_seguimiento}
-                onSuccess={handleSeguimientoSuccess}
-              />
-            </div>
-          )}
-        </Modal>
-
-        {/* Modal de Archivos */}
-        <Modal
-          isOpen={modalType === "archivos" && selectedNC !== null}
-          onClose={handleCloseModal}
-          title="Gestionar Archivos"
+          title="Gestionar No Conformidad"
           size="large"
         >
           {selectedNC && (
-            <div className="space-y-3">
+            <div className="space-y-6">
+              {/* Información de la NC */}
               <div className="pb-3 border-b">
                 <p className="text-sm text-gray-600">
                   <strong>Productor:</strong> {selectedNC.nombre_productor}
@@ -228,15 +197,34 @@ export function NoConformidadesListPage() {
                   <strong>Descripción:</strong> {selectedNC.descripcion_no_conformidad}
                 </p>
               </div>
-              <ArchivosSection idNoConformidad={selectedNC.id_no_conformidad} />
+
+              {/* Sección 1: Seguimiento */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  Actualizar Seguimiento
+                </h3>
+                <SeguimientoForm
+                  idNoConformidad={selectedNC.id_no_conformidad}
+                  estadoActual={selectedNC.estado_seguimiento}
+                  onSuccess={handleSeguimientoSuccess}
+                />
+              </div>
+
+              {/* Sección 2: Archivos */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  Gestión de Archivos
+                </h3>
+                <ArchivosSection idNoConformidad={selectedNC.id_no_conformidad} />
+              </div>
             </div>
           )}
         </Modal>
 
         {/* Modal de Comentario */}
         <Modal
-          isOpen={modalType === "comentario" && selectedNC !== null}
-          onClose={handleCloseModal}
+          isOpen={isComentarioModalOpen && selectedNC !== null}
+          onClose={handleCloseComentarioModal}
           title="Comentario de Seguimiento"
           size="medium"
         >

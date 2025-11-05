@@ -11,12 +11,11 @@ import { useFichaFormStore } from '../stores/fichaFormStore';
 import { STEP_FIELDS } from '../config/stepFields.config';
 import type { StepValidation } from '../types/validation.types';
 import type { CreateFichaCompletaInput } from '../types/ficha.types';
+import { useProductorParcelas } from '@/features/productores/hooks/useProductorParcelas';
 
-// Import validaciones custom (las crearemos después)
+// Import validaciones custom
 import { validateStep4Superficie } from '../utils/customValidations';
 import { validateStep8Destinos } from '../utils/customValidations';
-
-console.log('🪝 [useStepValidation] Hook cargado');
 
 /**
  * Hook para validar un step específico
@@ -25,7 +24,9 @@ export function useStepValidation(step: number) {
   const { trigger, watch, formState } = useFormContext<CreateFichaCompletaInput>();
   const actions = useFichaFormStore((state) => state.actions);
 
-  console.log(`🪝 [useStepValidation] Inicializando para step ${step}`);
+  // Obtener parcelas del productor para validación del Step 4
+  const codigoProductor = step === 4 ? watch('ficha.codigo_productor') : undefined;
+  const { parcelas } = useProductorParcelas(codigoProductor);
 
   /**
    * Función principal de validación
@@ -34,13 +35,10 @@ export function useStepValidation(step: number) {
    * 3. Retorna resultado combinado
    */
   const validateStep = useCallback(async (): Promise<StepValidation> => {
-    console.log(`🔍 [useStepValidation] Validando step ${step}...`);
-
     const fields = STEP_FIELDS[step];
 
     // Si el step no tiene campos definidos, es válido por defecto
     if (!fields || fields.length === 0) {
-      console.log(`✅ [useStepValidation] Step ${step} no tiene campos, marcado como válido`);
       return {
         isValid: true,
         hasErrors: false,
@@ -50,12 +48,8 @@ export function useStepValidation(step: number) {
       };
     }
 
-    console.log(`🔍 [useStepValidation] Campos a validar en step ${step}:`, fields);
-
     // 1. Validar con Zod (via trigger de React Hook Form)
     const isZodValid = await trigger(fields as any);
-
-    console.log(`🔍 [useStepValidation] Resultado validación Zod step ${step}:`, isZodValid);
 
     // Si Zod encontró errores, extraerlos de formState.errors
     if (!isZodValid) {
@@ -80,8 +74,6 @@ export function useStepValidation(step: number) {
         }
       });
 
-      console.log(`❌ [useStepValidation] Errores Zod en step ${step}:`, fieldErrors);
-
       const validation: StepValidation = {
         isValid: false,
         hasErrors: true,
@@ -103,12 +95,10 @@ export function useStepValidation(step: number) {
 
     switch (step) {
       case 4:
-        console.log(`🔍 [useStepValidation] Ejecutando validación custom para Step 4 (superficie)`);
-        customValidation = await validateStep4Superficie(watch);
+        customValidation = await validateStep4Superficie(watch, parcelas);
         break;
 
       case 8:
-        console.log(`🔍 [useStepValidation] Ejecutando validación custom para Step 8 (destinos)`);
         customValidation = await validateStep8Destinos(watch);
         break;
 
@@ -119,16 +109,10 @@ export function useStepValidation(step: number) {
 
     // Si hay validación custom, combinar con resultado Zod
     if (customValidation) {
-      console.log(`🔍 [useStepValidation] Resultado validación custom step ${step}:`, {
-        hasErrors: customValidation.hasErrors,
-        hasWarnings: customValidation.hasWarnings,
-      });
-
       return customValidation;
     }
 
     // Si pasó Zod y no hay validación custom, está completamente válido
-    console.log(`✅ [useStepValidation] Step ${step} es válido`);
 
     return {
       isValid: true,
@@ -137,7 +121,7 @@ export function useStepValidation(step: number) {
       errors: [],
       warnings: [],
     };
-  }, [step, trigger, watch, formState.errors]);
+  }, [step, trigger, watch, formState.errors, parcelas]);
 
   /**
    * Validación con debouncing (500ms)
@@ -145,8 +129,6 @@ export function useStepValidation(step: number) {
    */
   const validateDebounced = useDebouncedCallback(
     async () => {
-      console.log(`⏱️ [useStepValidation] Debounce triggered para step ${step}`);
-
       const validation = await validateStep();
 
       // Actualizar el store con el resultado
@@ -154,13 +136,10 @@ export function useStepValidation(step: number) {
 
       // Marcar step como completo/incompleto según resultado
       if (validation.isValid && !validation.hasWarnings) {
-        console.log(`✅ [useStepValidation] Marcando step ${step} como COMPLETO`);
         actions.markStepComplete(step);
       } else if (validation.hasErrors) {
-        console.log(`❌ [useStepValidation] Marcando step ${step} como INCOMPLETO (errores)`);
         actions.markStepIncomplete(step);
       } else if (validation.hasWarnings) {
-        console.log(`⚠️ [useStepValidation] Step ${step} tiene warnings pero está completo`);
         actions.markStepComplete(step);
       }
     },
@@ -172,10 +151,7 @@ export function useStepValidation(step: number) {
    * Se ejecuta automáticamente
    */
   useEffect(() => {
-    console.log(`👁️ [useStepValidation] Watcheando cambios en step ${step}`);
-
     const subscription = watch(() => {
-      console.log(`🔄 [useStepValidation] Datos cambiaron en step ${step}, validando...`);
       validateDebounced();
     });
 
@@ -183,7 +159,6 @@ export function useStepValidation(step: number) {
     validateDebounced();
 
     return () => {
-      console.log(`👋 [useStepValidation] Desmontando watcher para step ${step}`);
       subscription.unsubscribe();
     };
   }, [step, watch, validateDebounced]);
@@ -193,7 +168,6 @@ export function useStepValidation(step: number) {
    * Se usa cuando el usuario hace clic en "Siguiente"
    */
   const validateNow = useCallback(async (): Promise<StepValidation> => {
-    console.log(`⚡ [useStepValidation] Validación INMEDIATA solicitada para step ${step}`);
     const validation = await validateStep();
     actions.setStepValidation(step, validation);
     return validation;
