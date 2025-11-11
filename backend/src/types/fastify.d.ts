@@ -15,7 +15,7 @@ declare module "fastify" {
       userId: string;
       username: string;
       role: string;
-      comunidadId?: string;
+      comunidadesIds?: string[];
       permisos?: Record<string, any>;
     };
     gestionActiva?: Gestion;
@@ -35,7 +35,8 @@ declare module "@fastify/jwt" {
       userId: string;
       username: string;
       role: string;
-      comunidadId?: string;
+      comunidadesIds?: string[];
+      permisos?: Record<string, any>;
       type: "access" | "refresh";
     };
   }

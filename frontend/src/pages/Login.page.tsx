@@ -22,7 +22,6 @@ export function LoginPage() {
   const handleLoginSuccess = () => {
     // El redirect se maneja automaticamente por el useEffect de arriba
     // o directamente en LoginForm
-    console.log("Login exitoso");
   };
 
   return (

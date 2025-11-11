@@ -46,6 +46,7 @@ export interface CreateParcelaInput {
 }
 
 export interface UpdateParcelaInput {
+  superficie_ha?: number;
   coordenadas?: {
     latitud: number;
     longitud: number;
@@ -134,6 +135,18 @@ export const parcelasService = {
         data
       );
       return response.data.parcela;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  /**
+   * Elimina (desactiva) una parcela
+   * @param id - ID de la parcela
+   */
+  async deleteParcela(id: string): Promise<void> {
+    try {
+      await apiClient.delete(ENDPOINTS.PARCELAS.BY_ID(id));
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }

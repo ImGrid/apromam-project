@@ -73,18 +73,6 @@ export interface ProductorFiltersInput {
   search?: string;
 }
 
-// Input para búsqueda por proximidad
-export interface ProximitySearchInput {
-  latitud: number;
-  longitud: number;
-  radio_metros: number;
-}
-
-// Productor con distancia (para búsqueda por proximidad)
-export interface ProductorWithDistance extends Productor {
-  distancia_metros?: number;
-}
-
 // Respuesta de lista de productores
 export interface ProductoresListResponse {
   productores: Productor[];

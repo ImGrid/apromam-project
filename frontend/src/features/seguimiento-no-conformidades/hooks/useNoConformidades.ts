@@ -36,7 +36,7 @@ export function useNoConformidades(filters?: UseNoConformidadesFilters) {
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filters?.estado_seguimiento, filters?.codigo_productor, filters?.gestion]);
 
   useEffect(() => {
     fetchNoConformidades();

@@ -55,7 +55,7 @@ export default function Step9EvaluacionPoscosecha() {
         {/* Vista Desktop - Tabla de 2 columnas */}
         <div className="hidden overflow-hidden border rounded-lg md:block border-neutral-border">
           {/* Header */}
-          <div className="grid grid-cols-[40%,60%] bg-gray-50 border-b border-neutral-border">
+          <div className="grid grid-cols-[40%,60%] bg-neutral-50 border-b border-neutral-border">
             <div className="px-4 py-3 text-sm font-semibold text-text-primary">
               PREGUNTA
             </div>
@@ -70,7 +70,7 @@ export default function Step9EvaluacionPoscosecha() {
               key={pregunta.campo}
               className={`grid grid-cols-[40%,60%] ${
                 index !== preguntas.length - 1 ? "border-b border-neutral-border" : ""
-              } hover:bg-gray-50 transition-colors`}
+              } hover:bg-neutral-50 transition-colors`}
             >
               {/* Columna 1: Pregunta */}
               <div className="flex items-center px-4 py-4 text-sm text-text-secondary">
@@ -125,11 +125,11 @@ export default function Step9EvaluacionPoscosecha() {
           <textarea
             {...register("evaluacion_poscosecha.comentarios_poscosecha")}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500"
             placeholder="Escriba sus comentarios aquí..."
           />
           {errors.evaluacion_poscosecha?.comentarios_poscosecha && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-error-600">
               {errors.evaluacion_poscosecha.comentarios_poscosecha.message}
             </p>
           )}

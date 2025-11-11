@@ -2,12 +2,21 @@ import { useState, useEffect, useCallback } from "react";
 import { comunidadesService } from "../services/comunidades.service";
 import type { Comunidad, ComunidadFilters } from "../types/comunidad.types";
 
-export function useComunidades(initialFilters?: ComunidadFilters) {
+export function useComunidades(externalFilters?: ComunidadFilters) {
   const [comunidades, setComunidades] = useState<Comunidad[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<ComunidadFilters>(initialFilters || {});
+  const [internalFilters, setInternalFilters] = useState<ComunidadFilters>(externalFilters || {});
   const [total, setTotal] = useState(0);
+
+  // Usar filtros externos si se proporcionan, sino usar internos
+  const filters = externalFilters || internalFilters;
+
+  const hasActiveFilters = Object.keys(filters).some(
+    (key) =>
+      filters[key as keyof ComunidadFilters] !== undefined &&
+      filters[key as keyof ComunidadFilters] !== ""
+  );
 
   const fetchComunidades = useCallback(async () => {
     setIsLoading(true);
@@ -22,7 +31,13 @@ export function useComunidades(initialFilters?: ComunidadFilters) {
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [
+    filters?.nombre,
+    filters?.municipio,
+    filters?.provincia,
+    filters?.sin_tecnicos,
+    filters?.activo,
+  ]);
 
   useEffect(() => {
     fetchComunidades();
@@ -34,7 +49,8 @@ export function useComunidades(initialFilters?: ComunidadFilters) {
     error,
     total,
     filters,
-    setFilters,
+    setFilters: setInternalFilters,
     refetch: fetchComunidades,
+    hasActiveFilters,
   };
 }

@@ -10,6 +10,7 @@ import {
 import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
 import { StatCard } from "../components/StatCard";
+import { AlertCard } from "../components/AlertCard";
 import { FichasPendientesList } from "../components/FichasPendientesList";
 import { Button } from "@/shared/components/ui/Button";
 import { dashboardService } from "../services/dashboard.service";
@@ -17,7 +18,7 @@ import { CreateTecnicoModal } from "@/features/tecnicos/components/CreateTecnico
 import { CreateProductorModal } from "@/features/productores/components/CreateProductorModal";
 import { ROUTES } from "@/shared/config/routes.config";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
-import type { DashboardStats } from "../types/dashboard.types";
+import type { DashboardStats, DashboardAlert } from "../types/dashboard.types";
 
 // Tipo de ficha del backend
 interface FichaBackend {
@@ -37,6 +38,7 @@ interface FichaConDias extends FichaBackend {
 export function GerenteDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [alertas, setAlertas] = useState<DashboardAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fichasPendientes, setFichasPendientes] = useState<FichaConDias[]>([]);
   const [loadingFichas, setLoadingFichas] = useState(true);
@@ -45,6 +47,7 @@ export function GerenteDashboard() {
 
   useEffect(() => {
     fetchStats();
+    fetchAlertas();
     fetchFichasPendientes();
   }, []);
 
@@ -54,9 +57,16 @@ export function GerenteDashboard() {
       const statsData = await dashboardService.getGerenteStats();
       setStats(statsData);
     } catch (error) {
-      console.error("Error fetching gerente stats:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAlertas = async () => {
+    try {
+      const alertasData = await dashboardService.getAlertasGerente();
+      setAlertas(alertasData);
+    } catch (error) {
     }
   };
 
@@ -86,7 +96,6 @@ export function GerenteDashboard() {
 
       setFichasPendientes(fichasConDias);
     } catch (error) {
-      console.error("Error fetching fichas pendientes:", error);
     } finally {
       setLoadingFichas(false);
     }
@@ -94,6 +103,7 @@ export function GerenteDashboard() {
 
   const handleRefresh = () => {
     fetchStats();
+    fetchAlertas();
     fetchFichasPendientes();
   };
 
@@ -118,7 +128,7 @@ export function GerenteDashboard() {
       >
         <div className="space-y-6">
           {/* Estadisticas principales */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <StatCard
               title="Comunidades"
               value={stats?.totalComunidades || 0}
@@ -133,14 +143,64 @@ export function GerenteDashboard() {
               color="info"
               loading={isLoading}
             />
-            <StatCard
-              title="Fichas En Revisión"
-              value={stats?.fichasEnRevision || 0}
-              icon={ClipboardList}
-              color="warning"
-              loading={isLoading}
-            />
           </div>
+
+          {/* Estadisticas de fichas */}
+          <div>
+            <h3 className="mb-4 text-lg font-semibold text-text-primary">
+              Estado de Fichas
+            </h3>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              <StatCard
+                title="Borradores"
+                value={stats?.fichasPendientes || 0}
+                icon={ClipboardList}
+                color="warning"
+                loading={isLoading}
+              />
+              <StatCard
+                title="En Revisión"
+                value={stats?.fichasEnRevision || 0}
+                icon={ClipboardList}
+                color="info"
+                loading={isLoading}
+              />
+              <StatCard
+                title="Aprobadas"
+                value={stats?.fichasAprobadas || 0}
+                icon={ClipboardList}
+                color="success"
+                loading={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Alertas */}
+          {alertas.length > 0 && (
+            <div>
+              <h3 className="mb-4 text-lg font-semibold text-text-primary">
+                Alertas Importantes
+              </h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {alertas.map((alerta) => (
+                  <AlertCard
+                    key={alerta.id}
+                    type={alerta.type}
+                    message={alerta.message}
+                    action={
+                      alerta.action
+                        ? {
+                            label: alerta.action.label,
+                            onClick: () => navigate(alerta.action!.path),
+                          }
+                        : undefined
+                    }
+                    dismissible
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Acciones rapidas */}
           <div>
@@ -158,7 +218,7 @@ export function GerenteDashboard() {
 
               <button
                 onClick={() => setProductorModalOpen(true)}
-                className="flex flex-col items-center justify-center gap-3 p-6 text-white transition-colors rounded-lg bg-success hover:bg-green-700"
+                className="flex flex-col items-center justify-center gap-3 p-6 text-white transition-colors rounded-lg bg-success hover:bg-success-700"
               >
                 <Leaf className="w-8 h-8" />
                 <span className="text-sm font-medium">Nuevo Productor</span>
@@ -166,7 +226,7 @@ export function GerenteDashboard() {
 
               <button
                 onClick={() => navigate(`${ROUTES.FICHAS}?estado=revision`)}
-                className="flex flex-col items-center justify-center gap-3 p-6 text-white transition-colors rounded-lg bg-warning hover:bg-orange-700"
+                className="flex flex-col items-center justify-center gap-3 p-6 text-white transition-colors rounded-lg bg-warning hover:bg-warning-700"
               >
                 <ClipboardList className="w-8 h-8" />
                 <span className="text-sm font-medium">

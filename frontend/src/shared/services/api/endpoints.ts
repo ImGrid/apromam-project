@@ -26,6 +26,7 @@ export const ENDPOINTS = {
   COMUNIDADES: {
     BASE: "/api/comunidades",
     BY_ID: (id: string) => `/api/comunidades/${id}`,
+    PERMANENT: (id: string) => `/api/comunidades/${id}/permanent`,
     SIN_TECNICOS: "/api/comunidades/especiales/sin-tecnicos",
   },
 
@@ -33,10 +34,13 @@ export const ENDPOINTS = {
   GEOGRAFICAS: {
     DEPARTAMENTOS: "/api/geograficas/departamentos",
     DEPARTAMENTOS_BY_ID: (id: string) => `/api/geograficas/departamentos/${id}`,
+    DEPARTAMENTOS_PERMANENT: (id: string) => `/api/geograficas/departamentos/${id}/permanent`,
     PROVINCIAS: "/api/geograficas/provincias",
     PROVINCIAS_BY_ID: (id: string) => `/api/geograficas/provincias/${id}`,
+    PROVINCIAS_PERMANENT: (id: string) => `/api/geograficas/provincias/${id}/permanent`,
     MUNICIPIOS: "/api/geograficas/municipios",
     MUNICIPIOS_BY_ID: (id: string) => `/api/geograficas/municipios/${id}`,
+    MUNICIPIOS_PERMANENT: (id: string) => `/api/geograficas/municipios/${id}/permanent`,
   },
 
   // Organizaciones
@@ -49,14 +53,12 @@ export const ENDPOINTS = {
   PRODUCTORES: {
     BASE: "/api/productores",
     BY_CODIGO: (codigo: string) => `/api/productores/${codigo}`,
-    NEARBY: "/api/productores/nearby",
     ESTADISTICAS: "/api/productores/estadisticas",
   },
 
   // Parcelas
   PARCELAS: {
     BY_ID: (id: string) => `/api/parcelas/${id}`,
-    NEARBY: "/api/parcelas/nearby",
     ESTADISTICAS: "/api/parcelas/estadisticas",
     SIN_COORDENADAS: "/api/parcelas/sin-coordenadas",
     BY_PRODUCTOR: (codigoProductor: string) =>
@@ -102,5 +104,10 @@ export const ENDPOINTS = {
       `/api/no-conformidades/${id}/archivos/${idArchivo}`,
     DOWNLOAD_ARCHIVO: (id: string, idArchivo: string) =>
       `/api/no-conformidades/${id}/archivos/${idArchivo}/download`,
+  },
+
+  // Reportes
+  REPORTES: {
+    PRODUCTORES_ORGANICOS: "/api/reportes/productores-organicos",
   },
 } as const;

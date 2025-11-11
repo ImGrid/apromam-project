@@ -25,7 +25,9 @@ export interface UpdateComunidadInput {
 }
 
 export interface ComunidadFilters {
-  municipio_id?: string;
-  provincia_id?: string;
+  nombre?: string;
+  municipio?: string;
+  provincia?: string;
   sin_tecnicos?: boolean;
+  activo?: boolean;
 }

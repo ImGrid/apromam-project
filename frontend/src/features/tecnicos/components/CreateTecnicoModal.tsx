@@ -9,7 +9,7 @@ import {
   Modal,
   Button,
   Input,
-  Select,
+  MultiSelect,
   FormField,
   FormSection,
   type SelectOption,
@@ -17,6 +17,7 @@ import {
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
 import { showToast } from "@/shared/hooks/useToast";
 import { useState } from "react";
+import { logger } from "@/shared/utils/logger";
 
 const tecnicoSchema = z.object({
   username: z
@@ -34,7 +35,11 @@ const tecnicoSchema = z.object({
     .regex(/[a-z]/, "Debe contener al menos una minúscula")
     .regex(/[0-9]/, "Debe contener al menos un número"),
   nombre_completo: z.string().min(3, "Mínimo 3 caracteres"),
-  id_comunidad: z.string().optional(),
+  comunidades_ids: z
+    .array(z.string().uuid("ID de comunidad inválido"))
+    .min(1, "Debe asignar al menos una comunidad")
+    .max(15, "Máximo 15 comunidades")
+    .optional(),
 });
 
 type TecnicoFormData = z.infer<typeof tecnicoSchema>;
@@ -99,7 +104,7 @@ export function CreateTecnicoModal({
         setIdRolTecnico(rolTecnico.id_rol);
       }
     } catch (error) {
-      console.error("Error cargando datos:", error);
+      logger.error("Error cargando datos:", error);
     }
   }, []);
 
@@ -125,7 +130,7 @@ export function CreateTecnicoModal({
         password: data.password,
         nombre_completo: data.nombre_completo,
         id_rol: idRolTecnico,
-        id_comunidad: data.id_comunidad || undefined,
+        comunidades_ids: data.comunidades_ids || [],
       });
 
       showToast.success("Técnico creado exitosamente");
@@ -202,16 +207,17 @@ export function CreateTecnicoModal({
           </FormField>
 
           <FormField
-            label="Comunidad"
-            error={errors.id_comunidad?.message}
-            helperText="Opcional: La comunidad puede ser asignada después"
+            label="Comunidades"
+            error={errors.comunidades_ids?.message}
+            helperText="Opcional: Las comunidades pueden ser asignadas después"
           >
-            <Select
+            <MultiSelect
               options={comunidades}
-              value={watch("id_comunidad") || ""}
-              onChange={(value) => setValue("id_comunidad", value)}
-              placeholder="Selecciona una comunidad (opcional)"
+              value={watch("comunidades_ids") || []}
+              onChange={(values) => setValue("comunidades_ids", values)}
+              placeholder="Selecciona comunidades (opcional)"
               searchable
+              maxSelected={15}
             />
           </FormField>
         </FormSection>

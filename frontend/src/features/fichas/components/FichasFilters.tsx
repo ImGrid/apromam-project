@@ -90,9 +90,9 @@ export function FichasFilters({
   ];
 
   return (
-    <div className="p-3 bg-white border rounded-lg border-neutral-border">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-primary" />
           <h3 className="text-base font-semibold text-text-primary">Filtros</h3>
@@ -125,9 +125,9 @@ export function FichasFilters({
         <Input
           label="Código Productor"
           placeholder="Buscar por código..."
-          value={localFilters.codigo_productor || ""}
+          value={localFilters.productor || ""}
           onChange={(e) =>
-            handleInputChange("codigo_productor", e.target.value)
+            handleInputChange("productor", e.target.value)
           }
         />
 
@@ -135,8 +135,8 @@ export function FichasFilters({
         <Select
           label="Estado"
           options={estadoOptions}
-          value={localFilters.estado_ficha || ""}
-          onChange={(value) => handleInputChange("estado_ficha", value)}
+          value={localFilters.estado || ""}
+          onChange={(value) => handleInputChange("estado", value)}
         />
 
         {/* Filtro por gestión */}

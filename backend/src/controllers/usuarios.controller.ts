@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { UsuariosService } from "../services/usuarios.service.js";
-import type {
+import {
   CreateUsuarioInput,
   UpdateUsuarioInput,
   UsuarioParams,
@@ -21,7 +21,7 @@ export class UsuariosController {
     reply: FastifyReply
   ) {
     try {
-      const { rol, activo } = request.query;
+      const { nombre, rol, comunidad, activo } = request.query;
 
       // Extraer informacion del usuario autenticado
       // Type assertion segura para acceder a request.user
@@ -34,7 +34,9 @@ export class UsuariosController {
         : undefined;
 
       const result = await this.usuariosService.listUsuarios(
+        nombre,
         rol,
+        comunidad,
         activo,
         usuarioActual
       );

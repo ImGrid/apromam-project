@@ -178,13 +178,13 @@ export default function Step7ManejoCultivo() {
 
   return (
     <FormSection>
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-900">
+      <div className="mb-4 p-3 bg-info-50 border border-info-200 rounded-lg">
+        <p className="text-sm text-info-900">
           <span className="font-semibold">Cultivo:</span>{" "}
           {cultivoCertificable.nombre_cultivo}
         </p>
         {indicesCertificables.length > 1 && (
-          <p className="text-xs text-blue-700 mt-1">
+          <p className="text-xs text-info-700 mt-1">
             Los valores se aplicarán a todos los cultivos de{" "}
             {cultivoCertificable.nombre_cultivo.toLowerCase()} registrados (
             {indicesCertificables.length} cultivos)
@@ -223,7 +223,7 @@ export default function Step7ManejoCultivo() {
                   <input
                     type="text"
                     placeholder="Describa..."
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-md focus:ring-2 focus:ring-info-500 focus:border-info-500"
                     value={
                       watch(
                         `detalles_cultivo.${primerIndiceCertificable}.${config.campoOtro}`

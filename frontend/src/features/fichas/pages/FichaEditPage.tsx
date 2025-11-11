@@ -29,7 +29,7 @@ export default function FichaEditPage() {
   const handleSubmit = async (data: any) => {
     if (!id) return;
 
-    console.log('[EDIT] Datos recibidos del formulario:', data);
+    console.log("[FichaEditPage] handleSubmit - data recibida:", data);
 
     // Los datos vienen PLANOS del FichaMultiStepForm (ya transformados)
     // Necesitamos re-estructurarlos al formato que espera el backend
@@ -51,15 +51,15 @@ export default function FichaEditPage() {
       parcelas_inspeccionadas: data.parcelas_inspeccionadas || [],
       detalles_cultivo: data.detalle_cultivos_parcelas || data.detalles_cultivo,
       cosecha_ventas: data.cosecha_ventas,
+      planificacion_siembras: data.planificacion_siembras,
     };
 
-    console.log('[EDIT] Datos transformados para backend:', updateData);
+    console.log("[FichaEditPage] updateData a enviar:", updateData);
 
     // 1. Primero actualizar el contenido
     await updateCompleta(id, updateData);
 
     // 2. Luego enviar a revisión automáticamente
-    console.log('[EDIT] Enviando ficha a revisión...');
     await enviarRevision(id, {});
 
     // 3. Navegar a la lista de fichas
@@ -161,8 +161,29 @@ export default function FichaEditPage() {
     );
   }
 
-  // Usar la ficha completa como initialData (el formulario lo convertirá a CreateFichaCompletaInput)
-  const initialData = ficha;
+  // Transformar ficha completa para modo edit
+  // IMPORTANTE: Separar parcelas_inspeccionadas de detalles_cultivo
+  // El backend devuelve datos de parcela MEZCLADOS en cada detalle_cultivo
+  // pero el frontend necesita dos arrays separados
+  const initialData = {
+    ...ficha,
+    parcelas_inspeccionadas: Array.from(
+      new Map(
+        ficha.detalles_cultivo.map(detalle => [
+          detalle.id_parcela,
+          {
+            id_parcela: detalle.id_parcela,
+            rotacion: detalle.rotacion,
+            utiliza_riego: detalle.utiliza_riego,
+            tipo_barrera: detalle.tipo_barrera,
+            insumos_organicos: detalle.insumos_organicos,
+            latitud_sud: detalle.latitud_sud,
+            longitud_oeste: detalle.longitud_oeste,
+          }
+        ])
+      ).values()
+    ),
+  };
 
   return (
     <FichaLayout

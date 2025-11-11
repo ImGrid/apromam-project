@@ -29,14 +29,14 @@ export function Accordion({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors ${headerClassName}`}
+        className={`w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50 transition-colors ${headerClassName}`}
       >
         <div className="flex-1">{title}</div>
         <div className="flex-shrink-0 ml-4">
           {isOpen ? (
-            <ChevronUp className="w-5 h-5 text-gray-500" />
+            <ChevronUp className="w-5 h-5 text-tertiary" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-gray-500" />
+            <ChevronDown className="w-5 h-5 text-tertiary" />
           )}
         </div>
       </button>

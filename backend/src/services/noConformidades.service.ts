@@ -34,8 +34,8 @@ export class NoConformidadesService {
   // Obtiene una NC por ID con validacion de acceso
   async getById(
     id: string,
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean
   ): Promise<NoConformidadEnriquecidaResponse> {
     const nc = await this.ncRepository.findByIdEnriquecida(id);
 
@@ -43,8 +43,8 @@ export class NoConformidadesService {
       throw new Error("No conformidad no encontrada");
     }
 
-    // Validar acceso por comunidad si no es gerente
-    if (!esGerente && usuarioComunidadId) {
+    // Validar acceso por comunidad si no es admin/gerente
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const ficha = await this.fichaRepository.findById(nc.id_ficha);
       if (!ficha) {
         throw new Error("Ficha asociada no encontrada");
@@ -53,7 +53,7 @@ export class NoConformidadesService {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta no conformidad");
       }
     }
@@ -65,8 +65,8 @@ export class NoConformidadesService {
   async getByFicha(
     idFicha: string,
     estadoSeguimiento: string | undefined,
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean
   ): Promise<NoConformidadEnriquecidaResponse[]> {
     // Validar acceso a la ficha
     const ficha = await this.fichaRepository.findById(idFicha);
@@ -74,11 +74,11 @@ export class NoConformidadesService {
       throw new Error("Ficha no encontrada");
     }
 
-    if (!esGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta ficha");
       }
     }
@@ -95,8 +95,8 @@ export class NoConformidadesService {
       accion_correctiva_propuesta?: string;
       fecha_limite_implementacion?: string;
     },
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean
   ): Promise<NoConformidadResponse> {
     // Validar acceso
     const ncExistente = await this.ncRepository.findByIdEnriquecida(id);
@@ -104,7 +104,7 @@ export class NoConformidadesService {
       throw new Error("No conformidad no encontrada");
     }
 
-    if (!esGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const ficha = await this.fichaRepository.findById(ncExistente.id_ficha);
       if (!ficha) {
         throw new Error("Ficha asociada no encontrada");
@@ -113,7 +113,7 @@ export class NoConformidadesService {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta no conformidad");
       }
     }
@@ -156,8 +156,8 @@ export class NoConformidadesService {
     estadoSeguimiento: string,
     comentarioSeguimiento: string | undefined,
     usuarioId: string,
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean
   ): Promise<NoConformidadResponse> {
     // Validar acceso
     const ncExistente = await this.ncRepository.findByIdEnriquecida(id);
@@ -165,7 +165,7 @@ export class NoConformidadesService {
       throw new Error("No conformidad no encontrada");
     }
 
-    if (!esGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const ficha = await this.fichaRepository.findById(ncExistente.id_ficha);
       if (!ficha) {
         throw new Error("Ficha asociada no encontrada");
@@ -174,7 +174,7 @@ export class NoConformidadesService {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta no conformidad");
       }
     }
@@ -206,13 +206,14 @@ export class NoConformidadesService {
   async getEstadisticas(
     gestion: number | undefined,
     idComunidad: string | undefined,
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean
   ): Promise<EstadisticasNC> {
-    // Si no es gerente, forzar filtro por su comunidad
+    // Si no es admin/gerente con una sola comunidad, forzar filtro por esa comunidad
+    // Si tiene múltiples comunidades, no filtra (ve estadísticas globales de sus comunidades)
     let comunidadFiltro = idComunidad;
-    if (!esGerente && usuarioComunidadId) {
-      comunidadFiltro = usuarioComunidadId;
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length === 1) {
+      comunidadFiltro = usuarioComunidadesIds[0];
     }
 
     return await this.ncRepository.getEstadisticas(gestion, comunidadFiltro);
@@ -224,13 +225,14 @@ export class NoConformidadesService {
     idComunidad?: string,
     gestion?: number,
     codigoProductor?: string,
-    usuarioComunidadId?: string,
-    esGerente?: boolean
+    usuarioComunidadesIds?: string[],
+    esAdminOGerente?: boolean
   ): Promise<NoConformidadEnriquecidaResponse[]> {
-    // Si no es gerente, forzar filtro por su comunidad
+    // Si no es admin/gerente con una sola comunidad, forzar filtro por esa comunidad
+    // Si tiene múltiples comunidades, no filtra (ve todas sus NCs)
     let comunidadFiltro = idComunidad;
-    if (!esGerente && usuarioComunidadId) {
-      comunidadFiltro = usuarioComunidadId;
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length === 1) {
+      comunidadFiltro = usuarioComunidadesIds[0];
     }
 
     const ncs = await this.ncRepository.findAll({
@@ -247,8 +249,8 @@ export class NoConformidadesService {
   async addArchivo(
     ncId: string,
     usuarioId: string,
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean,
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean,
     fileData: MultipartFile,
     tipoArchivo: string
   ): Promise<ArchivoNCResponse> {
@@ -268,7 +270,7 @@ export class NoConformidadesService {
       throw new Error("No conformidad no encontrada");
     }
 
-    if (!esGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const ficha = await this.fichaRepository.findById(nc.id_ficha);
       if (!ficha) {
         throw new Error("Ficha asociada no encontrada");
@@ -277,7 +279,7 @@ export class NoConformidadesService {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta no conformidad");
       }
     }
@@ -401,8 +403,8 @@ export class NoConformidadesService {
   // Lista archivos de una NC
   async getArchivos(
     ncId: string,
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean
   ): Promise<ArchivoNCResponse[]> {
     // Validar acceso a la NC
     const nc = await this.ncRepository.findByIdEnriquecida(ncId);
@@ -410,7 +412,7 @@ export class NoConformidadesService {
       throw new Error("No conformidad no encontrada");
     }
 
-    if (!esGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const ficha = await this.fichaRepository.findById(nc.id_ficha);
       if (!ficha) {
         throw new Error("Ficha asociada no encontrada");
@@ -419,7 +421,7 @@ export class NoConformidadesService {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta no conformidad");
       }
     }
@@ -432,8 +434,8 @@ export class NoConformidadesService {
   async deleteArchivo(
     ncId: string,
     archivoId: string,
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean
   ): Promise<void> {
     // Validar acceso a la NC
     const nc = await this.ncRepository.findByIdEnriquecida(ncId);
@@ -441,7 +443,7 @@ export class NoConformidadesService {
       throw new Error("No conformidad no encontrada");
     }
 
-    if (!esGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const ficha = await this.fichaRepository.findById(nc.id_ficha);
       if (!ficha) {
         throw new Error("Ficha asociada no encontrada");
@@ -450,7 +452,7 @@ export class NoConformidadesService {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta no conformidad");
       }
     }
@@ -503,8 +505,8 @@ export class NoConformidadesService {
   async getArchivoPath(
     ncId: string,
     archivoId: string,
-    usuarioComunidadId: string | undefined,
-    esGerente: boolean
+    usuarioComunidadesIds: string[] | undefined,
+    esAdminOGerente: boolean
   ): Promise<string> {
     // Validar acceso a la NC
     const nc = await this.ncRepository.findByIdEnriquecida(ncId);
@@ -512,7 +514,7 @@ export class NoConformidadesService {
       throw new Error("No conformidad no encontrada");
     }
 
-    if (!esGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const ficha = await this.fichaRepository.findById(nc.id_ficha);
       if (!ficha) {
         throw new Error("Ficha asociada no encontrada");
@@ -521,7 +523,7 @@ export class NoConformidadesService {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta no conformidad");
       }
     }

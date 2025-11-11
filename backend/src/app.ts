@@ -1,6 +1,5 @@
 import { createServer } from "./config/server.js";
 import { checkDatabaseConnection } from "./config/database.js";
-import { initializePostGIS } from "./config/postgis.js";
 import { config } from "./config/environment.js";
 import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -14,6 +13,7 @@ import usuariosRoutes from "./routes/usuarios.routes.js";
 import parcelasRoutes from "./routes/parcelas.routes.js";
 import fichasRoutes from "./routes/fichas.routes.js";
 import noConformidadesRoutes from "./routes/noConformidades.routes.js";
+import reportesRoutes from "./routes/reportes.routes.js";
 import { gestionActivaMiddleware } from "./middleware/gestionActiva.middleware.js";
 
 // Funcion principal de inicializacion
@@ -47,16 +47,10 @@ const startServer = async () => {
     logger.info(
       {
         postgres_version: dbStatus.version,
-        postgis_version: dbStatus.postgis_version,
         pool_stats: dbStatus.pool_stats,
       },
       "Database connection verified"
     );
-
-    // Inicializar parsers PostGIS
-    logger.info("Initializing PostGIS type parsers...");
-    await initializePostGIS();
-    logger.info("PostGIS initialized successfully");
 
     // Inicializar estructura de directorios para uploads
     logger.info("Initializing uploads directory structure...");
@@ -81,16 +75,10 @@ const startServer = async () => {
 
       // Si es ruta publica, saltar middleware
       if (publicRoutes.some((route) => request.url.startsWith(route))) {
-        console.log(
-          `[GESTION-MIDDLEWARE] 🟢 Ruta pública, saltando middleware: ${request.url}`
-        );
         return;
       }
 
       // Aplicar middleware de gestion activa
-      console.log(
-        `[GESTION-MIDDLEWARE] 🔵 Aplicando middleware a: ${request.method} ${request.url}`
-      );
       await gestionActivaMiddleware(request, reply);
     });
 
@@ -104,6 +92,7 @@ const startServer = async () => {
     await server.register(parcelasRoutes, { prefix: "/api" });
     await server.register(fichasRoutes, { prefix: "/api/fichas" });
     await server.register(noConformidadesRoutes, { prefix: "/api/no-conformidades" });
+    await server.register(reportesRoutes, { prefix: "/api/reportes" });
     // Iniciar servidor HTTP
     await server.listen({
       port: config.port,
@@ -122,7 +111,6 @@ const startServer = async () => {
             min: config.database.pool.min,
             max: config.database.pool.max,
           },
-          postgis_srid: config.postgis.srid,
           upload_max_size: config.upload.maxFileSize,
           jwt_expires: config.jwt.expiresIn,
           rate_limit_max: config.rateLimit.max,

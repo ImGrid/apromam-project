@@ -208,11 +208,11 @@ export function getAvailableActions(estado: EstadoFicha, rol: string): string[] 
  */
 export function getEstadoColor(estado: EstadoFicha): string {
   const colorMap: Record<EstadoFicha, string> = {
-    borrador: "text-gray-600",
+    borrador: "text-neutral-600",
     revision: "text-warning",
     aprobado: "text-success",
     rechazado: "text-error",
-    archivado: "text-gray-400",
+    archivado: "text-disabled",
   };
 
   return colorMap[estado];

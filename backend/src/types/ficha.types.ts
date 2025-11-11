@@ -134,6 +134,11 @@ export interface ActividadPecuariaData {
 import type { DetalleCultivoParcelaData } from "../entities/DetalleCultivoParcela.js";
 export type { DetalleCultivoParcelaData };
 
+// Sección 12: Planificación de Siembras (proyección futura)
+// IMPORTAR desde entities/PlanificacionSiembra.ts - NO duplicar aquí
+import type { PlanificacionSiembraData } from "../entities/PlanificacionSiembra.js";
+export type { PlanificacionSiembraData };
+
 // Sección 8: Cosecha y ventas
 export interface CosechaVentasData {
   id_cosecha: string;
@@ -252,6 +257,12 @@ export interface CreateFichaCompletaInput {
     "id_cosecha" | "id_ficha" | "created_at"
   >[];
 
+  // Sección 12: Planificación de Siembras (opcional)
+  planificacion_siembras?: Omit<
+    PlanificacionSiembraData,
+    "id_planificacion" | "id_ficha" | "created_at" | "updated_at"
+  >[];
+
   // Contenido final (solo en envío a revisión)
   comentarios_evaluacion?: string;
 }
@@ -294,6 +305,13 @@ export interface UpdateFichaCompletaInput {
     CosechaVentasData,
     "id_cosecha" | "id_ficha" | "created_at"
   >[];
+
+  // Sección 12: Planificación de Siembras (opcional)
+  planificacion_siembras?: Omit<
+    PlanificacionSiembraData,
+    "id_planificacion" | "id_ficha" | "created_at" | "updated_at"
+  >[];
+
   comentarios_evaluacion?: string;
 }
 

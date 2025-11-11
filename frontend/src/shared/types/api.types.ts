@@ -69,8 +69,11 @@ export interface UserPublicData {
   nombre_completo: string;
   id_rol: string;
   nombre_rol: string;
-  id_comunidad?: string;
-  nombre_comunidad?: string;
+  comunidades_ids?: string[];
+  comunidades?: Array<{
+    id_comunidad: string;
+    nombre_comunidad: string;
+  }>;
   activo: boolean;
   created_at: string;
   updated_at: string;

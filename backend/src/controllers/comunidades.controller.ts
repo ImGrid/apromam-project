@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ComunidadesService } from "../services/comunidades.service.js";
-import type {
+import {
   CreateComunidadInput,
   UpdateComunidadInput,
   ComunidadParams,
@@ -15,18 +15,21 @@ export class ComunidadesController {
 
   // GET /api/comunidades
   // Lista todas las comunidades con filtros opcionales
-  // Puede filtrar por municipio, provincia o comunidades sin tecnicos
+  // Puede filtrar por nombre, municipio, provincia, sin_tecnicos o activo
   // Acceso: tecnico, gerente, admin
   async list(
     request: FastifyRequest<{ Querystring: ComunidadQuery }>,
     reply: FastifyReply
   ) {
     try {
-      const { municipio, provincia, sin_tecnicos } = request.query;
+      const { nombre, municipio, provincia, sin_tecnicos, activo } =
+        request.query;
       const result = await this.comunidadesService.listAll(
+        nombre,
         municipio,
         provincia,
-        sin_tecnicos
+        sin_tecnicos,
+        activo
       );
       return reply.status(200).send(result);
     } catch (error) {
@@ -186,6 +189,49 @@ export class ComunidadesController {
       return reply.status(500).send({
         error: "internal_server_error",
         message: "Error al eliminar comunidad",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // DELETE /api/comunidades/:id/permanent
+  // Elimina PERMANENTEMENTE una comunidad
+  // Verifica que no tenga usuarios ni productores asociados
+  // Acceso: admin
+  async hardDelete(
+    request: FastifyRequest<{ Params: ComunidadParams }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      request.log.info({ comunidad_id: id }, "Hard deleting comunidad");
+
+      await this.comunidadesService.hardDelete(id);
+
+      request.log.info({ comunidad_id: id }, "Comunidad permanently deleted");
+      return reply.status(204).send();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Comunidad no encontrada") {
+          return reply.status(404).send({
+            error: "not_found",
+            message: "Comunidad no encontrada",
+            timestamp: new Date().toISOString(),
+          });
+        }
+        // Error 409: No se puede eliminar por tener dependencias
+        if (error.message.includes("tiene") || error.message.includes("asociado")) {
+          return reply.status(409).send({
+            error: "conflict",
+            message: error.message,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+      request.log.error(error, "Error hard deleting comunidad");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al eliminar permanentemente comunidad",
         timestamp: new Date().toISOString(),
       });
     }

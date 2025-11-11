@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { Gestion, GestionData } from "../entities/Gestion.js";
 
@@ -122,14 +123,16 @@ export class GestionRepository {
     }
 
     const insertData = gestion.toDatabaseInsert();
+    const idGestion = randomUUID();
 
     const query = {
       text: `
         INSERT INTO gestiones (
+          id_gestion,
           anio_gestion,
           activa,
           activo_sistema
-        ) VALUES ($1, $2, $3)
+        ) VALUES ($1, $2, $3, $4)
         RETURNING
           id_gestion,
           anio_gestion,
@@ -137,6 +140,7 @@ export class GestionRepository {
           activo_sistema
       `,
       values: [
+        idGestion,
         insertData.anio_gestion,
         insertData.activa,
         insertData.activo_sistema,

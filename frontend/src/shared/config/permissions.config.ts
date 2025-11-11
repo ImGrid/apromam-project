@@ -43,6 +43,7 @@ export const PERMISSIONS: PermissionsMap = {
     delete: true,
     approve: true,
     reject: true,
+    report: true,
     createProductor: true,
     createTecnico: true,
   },
@@ -79,7 +80,7 @@ export const RESOURCE_PERMISSIONS = {
   },
   productores: {
     create: ["create", "createProductor", "all"],
-    edit: ["edit", "all"],
+    edit: ["edit", "editOwn", "all"],
     delete: ["delete", "all"],
     read: ["read", "readOwn", "all"],
   },

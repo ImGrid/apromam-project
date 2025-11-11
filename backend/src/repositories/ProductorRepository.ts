@@ -33,11 +33,11 @@ export class ProductorRepository {
           o.nombre_organizacion,
           o.abreviatura_organizacion
         FROM productores p
-        INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
-        INNER JOIN municipios m ON c.id_municipio = m.id_municipio
-        INNER JOIN provincias pr ON m.id_provincia = pr.id_provincia
+        LEFT JOIN comunidades c ON p.id_comunidad = c.id_comunidad
+        LEFT JOIN municipios m ON c.id_municipio = m.id_municipio
+        LEFT JOIN provincias pr ON m.id_provincia = pr.id_provincia
         LEFT JOIN organizaciones o ON p.id_organizacion = o.id_organizacion
-        WHERE p.codigo_productor = $1 AND p.activo = true
+        WHERE p.codigo_productor = $1
       `,
       values: [codigo],
     };
@@ -129,10 +129,54 @@ export class ProductorRepository {
         FROM productores p
         INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
         LEFT JOIN organizaciones o ON p.id_organizacion = o.id_organizacion
-        WHERE p.id_comunidad = $1 AND p.activo = true
+        WHERE p.id_comunidad = $1
         ORDER BY p.codigo_productor
       `,
       values: [comunidadId],
+    };
+
+    const results = await ReadQuery.execute<ProductorData>(query);
+    return results.map((data) => Productor.fromDatabase(data));
+  }
+
+  // Lista productores por multiples comunidades
+  // Usado por tecnicos con varias comunidades asignadas
+  async findByComunidades(comunidadesIds: string[]): Promise<Productor[]> {
+    if (comunidadesIds.length === 0) {
+      return [];
+    }
+
+    const query = {
+      name: "find-productores-by-comunidades",
+      text: `
+        SELECT
+          p.codigo_productor,
+          p.nombre_productor,
+          p.ci_documento,
+          p.id_comunidad,
+          p.id_organizacion,
+          p.año_ingreso_programa,
+          p.latitud_domicilio,
+          p.longitud_domicilio,
+          p.altitud_domicilio,
+          p.categoria_actual,
+          p.superficie_total_has,
+          p.numero_parcelas_total,
+          p.inicio_conversion_organica,
+          p.activo,
+          p.created_at,
+          p.updated_at,
+          c.nombre_comunidad,
+          c.abreviatura_comunidad,
+          o.nombre_organizacion,
+          o.abreviatura_organizacion
+        FROM productores p
+        INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
+        LEFT JOIN organizaciones o ON p.id_organizacion = o.id_organizacion
+        WHERE p.id_comunidad = ANY($1)
+        ORDER BY p.codigo_productor
+      `,
+      values: [comunidadesIds],
     };
 
     const results = await ReadQuery.execute<ProductorData>(query);
@@ -167,17 +211,16 @@ export class ProductorRepository {
         o.nombre_organizacion,
         o.abreviatura_organizacion
       FROM productores p
-      INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
-      INNER JOIN municipios m ON c.id_municipio = m.id_municipio
-      INNER JOIN provincias pr ON m.id_provincia = pr.id_provincia
+      LEFT JOIN comunidades c ON p.id_comunidad = c.id_comunidad
+      LEFT JOIN municipios m ON c.id_municipio = m.id_municipio
+      LEFT JOIN provincias pr ON m.id_provincia = pr.id_provincia
       LEFT JOIN organizaciones o ON p.id_organizacion = o.id_organizacion
-      WHERE p.activo = true
     `;
 
     const values: any[] = [];
 
     if (categoria) {
-      queryText += ` AND p.categoria_actual = $1`;
+      queryText += ` WHERE p.categoria_actual = $1`;
       values.push(categoria);
     }
 
@@ -192,57 +235,6 @@ export class ProductorRepository {
     return results.map((data) => Productor.fromDatabase(data));
   }
 
-  // Busca productores cercanos a una ubicacion
-  // Usa funciones PostGIS para calcular distancia
-  async findNearby(
-    latitude: number,
-    longitude: number,
-    radiusMeters: number = 1000
-  ): Promise<Productor[]> {
-    const query = {
-      name: "find-productores-nearby",
-      text: `
-        SELECT 
-          p.codigo_productor,
-          p.nombre_productor,
-          p.ci_documento,
-          p.id_comunidad,
-          p.año_ingreso_programa,
-          p.latitud_domicilio,
-          p.longitud_domicilio,
-          p.altitud_domicilio,
-          p.categoria_actual,
-          p.superficie_total_has,
-          p.numero_parcelas_total,
-          p.inicio_conversion_organica,
-          p.activo,
-          p.created_at,
-          p.updated_at,
-          c.nombre_comunidad,
-          c.abreviatura_comunidad,
-          ROUND(
-            ST_Distance(
-              p.coordenadas_domicilio::geography,
-              ST_SetSRID(ST_Point($2, $1), 4326)::geography
-            )::NUMERIC, 2
-          ) as distancia_metros
-        FROM productores p
-        INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
-        WHERE p.coordenadas_domicilio IS NOT NULL
-          AND p.activo = true
-          AND ST_DWithin(
-            p.coordenadas_domicilio::geography,
-            ST_SetSRID(ST_Point($2, $1), 4326)::geography,
-            $3
-          )
-        ORDER BY p.coordenadas_domicilio <-> ST_SetSRID(ST_Point($2, $1), 4326)
-      `,
-      values: [latitude, longitude, radiusMeters],
-    };
-
-    const results = await ReadQuery.execute<ProductorData>(query);
-    return results.map((data) => Productor.fromDatabase(data));
-  }
 
   // Verifica si existe productor con el codigo
   // Para evitar duplicados
@@ -280,9 +272,6 @@ export class ProductorRepository {
 
     const insertData = productor.toDatabaseInsert();
 
-    // Generar SQL para coordenadas PostGIS si existen
-    const coordenadasWKT = productor.getCoordenadasWKT();
-
     const query = {
       text: `
       INSERT INTO productores (
@@ -295,13 +284,12 @@ export class ProductorRepository {
         latitud_domicilio,
         longitud_domicilio,
         altitud_domicilio,
-        coordenadas_domicilio,
         categoria_actual,
         superficie_total_has,
         numero_parcelas_total,
         inicio_conversion_organica,
         activo
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ST_GeomFromText($10, 4326), $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       `,
       values: [
         insertData.codigo_productor,
@@ -313,7 +301,6 @@ export class ProductorRepository {
         insertData.latitud_domicilio || null,
         insertData.longitud_domicilio || null,
         insertData.altitud_domicilio || null,
-        coordenadasWKT,
         insertData.categoria_actual,
         insertData.superficie_total_has,
         insertData.numero_parcelas_total,
@@ -344,25 +331,23 @@ export class ProductorRepository {
     }
 
     const updateData = productor.toDatabaseUpdate();
-    const coordenadasWKT = productor.getCoordenadasWKT();
 
     const query = {
       text: `
       UPDATE productores
-      SET 
+      SET
         nombre_productor = $2,
         ci_documento = $3,
         latitud_domicilio = $4,
         longitud_domicilio = $5,
         altitud_domicilio = $6,
-        coordenadas_domicilio = ST_GeomFromText($7, 4326),
-        categoria_actual = $8,
-        superficie_total_has = $9,
-        numero_parcelas_total = $10,
-        inicio_conversion_organica = $11,
-        activo = $12,
+        categoria_actual = $7,
+        superficie_total_has = $8,
+        numero_parcelas_total = $9,
+        inicio_conversion_organica = $10,
+        activo = $11,
         updated_at = CURRENT_TIMESTAMP
-      WHERE codigo_productor = $1 AND activo = true
+      WHERE codigo_productor = $1
       `,
       values: [
         codigo,
@@ -371,7 +356,6 @@ export class ProductorRepository {
         updateData.latitud_domicilio || null,
         updateData.longitud_domicilio || null,
         updateData.altitud_domicilio || null,
-        coordenadasWKT,
         updateData.categoria_actual,
         updateData.superficie_total_has,
         updateData.numero_parcelas_total,
@@ -382,7 +366,7 @@ export class ProductorRepository {
 
     const result = await WriteQuery.execute(query);
     if (!result.success || result.affectedRows === 0) {
-      throw new Error(result.error || "Productor no encontrado o ya inactivo");
+      throw new Error(result.error || "Productor no encontrado");
     }
 
     const productorActualizado = await this.findByCodigo(codigo);
@@ -433,7 +417,7 @@ export class ProductorRepository {
       text: `
         SELECT COUNT(*) as count
         FROM productores
-        WHERE id_comunidad = $1 AND activo = true
+        WHERE id_comunidad = $1
       `,
       values: [comunidadId],
     };
@@ -448,7 +432,7 @@ export class ProductorRepository {
       text: `
         SELECT COUNT(*) as count
         FROM productores
-        WHERE categoria_actual = $1 AND activo = true
+        WHERE categoria_actual = $1
       `,
       values: [categoria],
     };
@@ -463,7 +447,8 @@ export class ProductorRepository {
       text: `
         SELECT COUNT(*) as count
         FROM productores
-        WHERE coordenadas_domicilio IS NOT NULL AND activo = true
+        WHERE latitud_domicilio IS NOT NULL
+          AND longitud_domicilio IS NOT NULL
       `,
       values: [],
     };

@@ -1,7 +1,6 @@
 import {
   validateBolivianCoordinates,
   validateGPSPrecision,
-  createPointWKT,
   type Coordinates,
 } from "../utils/postgis.utils.js";
 
@@ -262,6 +261,7 @@ export class Parcela {
 
   // Convierte a formato para actualizar en BD
   toDatabaseUpdate(): {
+    superficie_ha?: number;
     latitud_sud?: number;
     longitud_oeste?: number;
     utiliza_riego?: boolean;
@@ -271,6 +271,7 @@ export class Parcela {
     activo?: boolean;
   } {
     return {
+      superficie_ha: this.data.superficie_ha,
       latitud_sud: this.data.latitud_sud,
       longitud_oeste: this.data.longitud_oeste,
       utiliza_riego: this.data.utiliza_riego,
@@ -299,22 +300,6 @@ export class Parcela {
     };
   }
 
-  // Genera string WKT para coordenadas PostGIS
-  // Usa latitud_sud y longitud_oeste
-  getCoordenadasWKT(): string | null {
-    if (
-      this.data.latitud_sud === undefined ||
-      this.data.longitud_oeste === undefined
-    ) {
-      return null;
-    }
-
-    try {
-      return createPointWKT(this.data.latitud_sud, this.data.longitud_oeste);
-    } catch (error) {
-      return null;
-    }
-  }
 
   // Verifica si la parcela puede ser desactivada
   puedeDesactivar(): { valid: boolean; error?: string } {

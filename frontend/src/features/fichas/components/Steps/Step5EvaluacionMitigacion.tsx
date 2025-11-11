@@ -87,7 +87,7 @@ export default function Step5EvaluacionMitigacion() {
           {/* Vista Desktop - Tabla */}
           <div className="hidden overflow-hidden border rounded-lg md:block border-neutral-border">
             {/* Header */}
-            <div className="grid grid-cols-[40%,60%] bg-gray-50 border-b border-neutral-border">
+            <div className="grid grid-cols-[40%,60%] bg-neutral-50 border-b border-neutral-border">
               <div className="px-4 py-3 text-sm font-semibold text-text-primary">
                 PREGUNTA
               </div>
@@ -105,7 +105,7 @@ export default function Step5EvaluacionMitigacion() {
                     index !== preguntas.length - 1 && !pregunta.campoTexto
                       ? "border-b border-neutral-border"
                       : ""
-                  } hover:bg-gray-50 transition-colors`}
+                  } hover:bg-neutral-50 transition-colors`}
                 >
                   {/* Columna 1: Pregunta */}
                   <div className="flex items-center px-4 py-4 text-sm text-text-secondary">
@@ -139,7 +139,7 @@ export default function Step5EvaluacionMitigacion() {
                 {/* Fila adicional: Campo de texto (solo para preguntas 1 y 2) */}
                 {pregunta.campoTexto && (
                   <div
-                    className={`grid grid-cols-[40%,60%] bg-gray-50 ${
+                    className={`grid grid-cols-[40%,60%] bg-neutral-50 ${
                       index !== preguntas.length - 1
                         ? "border-b border-neutral-border"
                         : ""
@@ -162,12 +162,12 @@ export default function Step5EvaluacionMitigacion() {
                             autoComplete="off"
                             spellCheck={false}
                             placeholder="Describa la práctica implementada..."
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500"
                           />
                         )}
                       />
                       {errors.evaluacion_mitigacion?.[pregunta.campoTexto] && (
-                        <p className="mt-1 text-xs text-red-600">
+                        <p className="mt-1 text-xs text-error-600">
                           {
                             errors.evaluacion_mitigacion[pregunta.campoTexto]
                               ?.message
@@ -186,7 +186,7 @@ export default function Step5EvaluacionMitigacion() {
             {preguntas.map((pregunta) => (
               <div
                 key={pregunta.campo}
-                className="p-4 border rounded-lg border-neutral-border bg-gray-50"
+                className="p-4 border rounded-lg border-neutral-border bg-neutral-50"
               >
                 {/* Pregunta */}
                 <div className="mb-3">
@@ -231,12 +231,12 @@ export default function Step5EvaluacionMitigacion() {
                           autoComplete="off"
                           spellCheck={false}
                           placeholder="Describa la práctica implementada..."
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500"
                         />
                       )}
                     />
                     {errors.evaluacion_mitigacion?.[pregunta.campoTexto] && (
-                      <p className="mt-1 text-xs text-red-600">
+                      <p className="mt-1 text-xs text-error-600">
                         {
                           errors.evaluacion_mitigacion[pregunta.campoTexto]
                             ?.message
@@ -257,11 +257,11 @@ export default function Step5EvaluacionMitigacion() {
           <textarea
             {...register("evaluacion_mitigacion.comentarios_sobre_practica_mitigacion")}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500"
             placeholder="Observaciones adicionales sobre riesgos y mitigación..."
           />
           {errors.evaluacion_mitigacion?.comentarios_sobre_practica_mitigacion && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-error-600">
               {errors.evaluacion_mitigacion.comentarios_sobre_practica_mitigacion.message}
             </p>
           )}

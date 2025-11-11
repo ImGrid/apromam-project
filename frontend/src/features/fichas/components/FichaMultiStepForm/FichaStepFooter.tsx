@@ -53,7 +53,7 @@ export default function FichaStepFooter({
   };
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-gray-200 shadow-lg z-30">
+    <footer className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-neutral-200 shadow-lg z-30">
       <div className="max-w-7xl mx-auto px-4 py-2">
         <div className="flex items-center justify-between gap-2">
           {/* Previous Button */}
@@ -97,7 +97,7 @@ export default function FichaStepFooter({
 
           {/* Progress indicator */}
           <div className="flex-1 text-center">
-            <span className="text-xs text-gray-600 font-medium">
+            <span className="text-xs text-text-secondary font-medium">
               Paso {currentStep} de {totalSteps}
             </span>
           </div>

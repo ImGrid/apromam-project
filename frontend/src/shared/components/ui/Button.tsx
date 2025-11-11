@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 // Variantes de estilo del botón
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "danger" | "warning" | "ghost";
 
 // Tamaños del botón (todos touch-safe)
 type ButtonSize = "small" | "medium" | "large";
@@ -47,7 +47,9 @@ export function Button({
     secondary:
       "bg-white text-primary border-2 border-primary hover:bg-neutral-bg focus:ring-primary active:bg-neutral-bg",
     danger:
-      "bg-error text-white hover:bg-red-700 focus:ring-error active:bg-red-700",
+      "bg-error text-white hover:bg-error-700 focus:ring-error active:bg-error-700",
+    warning:
+      "bg-yellow-500 text-white hover:bg-yellow-600 focus:ring-yellow-500 active:bg-yellow-600",
     ghost:
       "bg-transparent text-primary hover:bg-neutral-bg focus:ring-primary active:bg-neutral-bg",
   };

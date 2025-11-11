@@ -1,8 +1,10 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { GestionesService } from "../services/gestiones.service.js";
-import type {
+import {
   CreateGestionInput,
   UpdateGestionInput,
+  CatalogoParams,
+  CatalogoQuery,
 } from "../schemas/catalogos.schema.js";
 
 /**
@@ -21,9 +23,7 @@ export class GestionesController {
    * Lista todas las gestiones
    */
   async listGestiones(
-    request: FastifyRequest<{
-      Querystring: { activo?: boolean };
-    }>,
+    request: FastifyRequest<{ Querystring: CatalogoQuery }>,
     reply: FastifyReply
   ) {
     try {
@@ -89,9 +89,7 @@ export class GestionesController {
    * Obtiene una gestión por ID
    */
   async getGestionById(
-    request: FastifyRequest<{
-      Params: { id: string };
-    }>,
+    request: FastifyRequest<{ Params: CatalogoParams }>,
     reply: FastifyReply
   ) {
     try {
@@ -133,9 +131,7 @@ export class GestionesController {
    * Requiere: rol admin
    */
   async createGestion(
-    request: FastifyRequest<{
-      Body: CreateGestionInput;
-    }>,
+    request: FastifyRequest<{ Body: CreateGestionInput }>,
     reply: FastifyReply
   ) {
     try {
@@ -178,7 +174,7 @@ export class GestionesController {
    */
   async updateGestion(
     request: FastifyRequest<{
-      Params: { id: string };
+      Params: CatalogoParams;
       Body: UpdateGestionInput;
     }>,
     reply: FastifyReply
@@ -227,9 +223,7 @@ export class GestionesController {
    * Requiere: rol admin
    */
   async deleteGestion(
-    request: FastifyRequest<{
-      Params: { id: string };
-    }>,
+    request: FastifyRequest<{ Params: CatalogoParams }>,
     reply: FastifyReply
   ) {
     try {
@@ -273,9 +267,7 @@ export class GestionesController {
    * Requiere: rol admin
    */
   async activarGestion(
-    request: FastifyRequest<{
-      Params: { id: string };
-    }>,
+    request: FastifyRequest<{ Params: CatalogoParams }>,
     reply: FastifyReply
   ) {
     try {

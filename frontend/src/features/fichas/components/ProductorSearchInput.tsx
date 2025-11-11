@@ -86,7 +86,7 @@ export function ProductorSearchInput({
             <button
               type="button"
               onClick={handleClearSelection}
-              className="p-2 transition-colors rounded-lg text-text-secondary hover:bg-gray-100"
+              className="p-2 transition-colors rounded-lg text-text-secondary hover:bg-neutral-100"
               title="Cambiar productor"
             >
               <X className="w-5 h-5" />
@@ -99,9 +99,9 @@ export function ProductorSearchInput({
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               {isLoading ? (
-                <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                <Loader2 className="w-5 h-5 text-disabled animate-spin" />
               ) : (
-                <Search className="w-5 h-5 text-gray-400" />
+                <Search className="w-5 h-5 text-disabled" />
               )}
             </div>
             <input
@@ -111,7 +111,7 @@ export function ProductorSearchInput({
               onChange={handleInputChange}
               onFocus={() => query && setShowDropdown(true)}
               disabled={disabled}
-              className="w-full py-3 pl-10 pr-4 text-base border rounded-lg border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full py-3 pl-10 pr-4 text-base border rounded-lg border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-neutral-100 disabled:cursor-not-allowed"
               placeholder={placeholder}
             />
           </div>
@@ -120,13 +120,13 @@ export function ProductorSearchInput({
           {showDropdown && (query.length >= 2) && (
             <div className="absolute z-50 w-full mt-2 overflow-hidden bg-white border rounded-lg shadow-lg border-neutral-border max-h-80">
               {error && (
-                <div className="p-4 text-sm text-red-600 bg-red-50">
+                <div className="p-4 text-sm text-error-600 bg-error-50">
                   {error}
                 </div>
               )}
 
               {!error && productores.length === 0 && !isLoading && (
-                <div className="p-4 text-sm text-center text-gray-500">
+                <div className="p-4 text-sm text-center text-tertiary">
                   No se encontraron productores
                 </div>
               )}
@@ -138,7 +138,7 @@ export function ProductorSearchInput({
                       key={productor.codigo_productor}
                       type="button"
                       onClick={() => handleSelectProductor(productor)}
-                      className="w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 focus:bg-gray-100 focus:outline-none"
+                      className="w-full px-4 py-3 text-left transition-colors hover:bg-neutral-50 focus:bg-neutral-100 focus:outline-none"
                     >
                       <p className="font-medium text-text-primary">
                         {productor.nombre_productor}

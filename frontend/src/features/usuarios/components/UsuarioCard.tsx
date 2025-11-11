@@ -68,16 +68,23 @@ export function UsuarioCard({
           </div>
         </div>
 
-        {usuario.nombre_comunidad && (
+        {usuario.comunidades && usuario.comunidades.length > 0 && (
           <div className="flex items-start gap-4">
             <MapPin className="flex-shrink-0 w-6 h-6 mt-1 text-text-secondary" />
             <div className="min-w-0">
               <p className="text-sm font-medium text-text-secondary">
-                Comunidad
+                {usuario.comunidades.length === 1 ? "Comunidad" : "Comunidades"}
               </p>
-              <p className="mt-1 text-base font-medium text-text-primary">
-                {usuario.nombre_comunidad}
-              </p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {usuario.comunidades.map((c) => (
+                  <span
+                    key={c.id_comunidad}
+                    className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary"
+                  >
+                    {c.nombre_comunidad}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         )}

@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { FichasService } from "../services/fichas.service.js";
 import { FichaDraftEntity } from "../entities/FichaDraft.js";
-import type {
+import {
   CreateFichaInput,
   UpdateFichaInput,
   UpdateFichaCompletaInput,
@@ -11,7 +11,6 @@ import type {
   AprobarFichaInput,
   RechazarFichaInput,
   CreateFichaDraftInput,
-  FichaDraftParams,
   GetDraftParams,
 } from "../schemas/fichas.schema.js";
 
@@ -26,14 +25,22 @@ export class FichasController {
   // Tecnico: solo su comunidad
   // Gerente/Admin: todas las comunidades
   // IMPORTANTE: Filtra automaticamente por gestion activa del sistema
-  async list(
-    request: FastifyRequest<{ Querystring: FichaQuery }>,
-    reply: FastifyReply
-  ) {
+  async list(request: FastifyRequest<{ Querystring: FichaQuery }>, reply: FastifyReply) {
     try {
-      const { gestion, estado, productor, comunidad, estado_sync, page, limit } =
-        request.query;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const {
+        gestion,
+        estado,
+        productor,
+        comunidad,
+        estado_sync,
+        inspector_interno,
+        resultado_certificacion,
+        fecha_desde,
+        fecha_hasta,
+        page,
+        limit
+      } = request.query;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -41,17 +48,7 @@ export class FichasController {
       // Obtener gestion activa del sistema
       const gestionActiva = (request as any).gestionActiva;
 
-      console.log('🔍 [FICHAS-CONTROLLER] request.gestionActiva:', {
-        existe: !!gestionActiva,
-        valor: gestionActiva ? {
-          id: gestionActiva.id,
-          anio: gestionActiva.anio,
-          tipo: typeof gestionActiva.anio
-        } : 'undefined'
-      });
-
       if (!gestionActiva) {
-        console.log('❌ [FICHAS-CONTROLLER] NO HAY GESTIÓN ACTIVA en request');
         return reply.status(500).send({
           error: "NO_ACTIVE_GESTION",
           message: "No hay gestion activa configurada en el sistema",
@@ -59,40 +56,25 @@ export class FichasController {
         });
       }
 
-      console.log('✅ [FICHAS-CONTROLLER] Gestión activa del sistema:', {
-        id: gestionActiva.id,
-        anio: gestionActiva.anio,
-        tipo: typeof gestionActiva.anio
-      });
-
       // Usar gestión del query param si existe, sino usar gestión activa como fallback
       // Nota: gestion ya viene como number gracias al transform de Zod
       const gestionAUsar = gestion || gestionActiva.anio;
 
-      console.log('🔍 [CONTROLLER] Gestión a usar para listado:', {
-        gestionQueryParam: gestion,
-        gestionActiva: gestionActiva.anio,
-        gestionFinal: gestionAUsar,
-        origen: gestion ? 'query_param' : 'gestion_activa'
-      });
-
       const result = await this.fichasService.listFichas(
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente,
         gestionAUsar,
         comunidad,
         productor,
         estado,
         estado_sync,
+        inspector_interno,
+        resultado_certificacion,
+        fecha_desde,
+        fecha_hasta,
         page,
         limit
       );
-
-      console.log('🔍 [CONTROLLER] Fichas retornadas:', {
-        total: result.total,
-        gestion_usada: gestionAUsar,
-        page: result.page
-      });
 
       return reply.status(200).send(result);
     } catch (error) {
@@ -110,13 +92,10 @@ export class FichasController {
   // Tecnico: solo si es de su comunidad
   // Gerente/Admin: cualquier ficha
   // IMPORTANTE: Verifica que la ficha pertenezca a la gestion activa
-  async getById(
-    request: FastifyRequest<{ Params: FichaParams }>,
-    reply: FastifyReply
-  ) {
+  async getById(request: FastifyRequest<{ Params: FichaParams }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -134,16 +113,9 @@ export class FichasController {
 
       const fichaCompleta = await this.fichasService.getFichaCompleta(
         id,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
-
-      console.log('🔍 [CONTROLLER] Ficha obtenida:', {
-        id_ficha: fichaCompleta.ficha.id,
-        gestion: fichaCompleta.ficha.gestion,
-        gestion_activa_sistema: gestionActiva.anio,
-        permite_gestion_diferente: true
-      });
 
       // No verificamos gestión - permitimos ver fichas de cualquier gestión (pasadas o activas)
       // El control de acceso se hace por comunidad, no por gestión
@@ -180,13 +152,10 @@ export class FichasController {
   // Tecnico: solo en su comunidad
   // Admin: en cualquier comunidad
   // IMPORTANTE: Fuerza la gestion activa del sistema, ignora la gestion del frontend
-  async create(
-    request: FastifyRequest<{ Body: CreateFichaInput }>,
-    reply: FastifyReply
-  ) {
+  async create(request: FastifyRequest<{ Body: CreateFichaInput }>, reply: FastifyReply) {
     try {
       const usuarioId = request.user!.userId;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -194,16 +163,7 @@ export class FichasController {
       // Obtener gestion activa del sistema
       const gestionActiva = (request as any).gestionActiva;
 
-      console.log('🔍 [FICHAS-CREATE] request.gestionActiva:', {
-        existe: !!gestionActiva,
-        valor: gestionActiva ? {
-          id: gestionActiva.id,
-          anio: gestionActiva.anio,
-        } : 'undefined'
-      });
-
       if (!gestionActiva) {
-        console.log('❌ [FICHAS-CREATE] NO HAY GESTIÓN ACTIVA en request');
         return reply.status(500).send({
           error: "NO_ACTIVE_GESTION",
           message: "No hay gestion activa configurada en el sistema",
@@ -215,13 +175,6 @@ export class FichasController {
       const gestionBody = request.body.gestion;
       const gestionAUsar = gestionBody || gestionActiva.anio;
 
-      console.log('✅ [FICHAS-CREATE] Gestión para crear ficha:', {
-        gestion_body: gestionBody,
-        gestion_activa: gestionActiva.anio,
-        gestion_final: gestionAUsar,
-        origen: gestionBody ? 'request_body' : 'gestion_activa'
-      });
-
       const inputConGestion = {
         ...request.body,
         gestion: gestionAUsar,
@@ -230,15 +183,9 @@ export class FichasController {
       const fichaCompleta = await this.fichasService.createFichaCompleta(
         inputConGestion,
         usuarioId,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
-
-      console.log('🔍 [CONTROLLER] Ficha creada exitosamente:', {
-        id_ficha: fichaCompleta.ficha.id,
-        gestion: fichaCompleta.ficha.gestion,
-        codigo_productor: fichaCompleta.ficha.codigoProductor
-      });
 
       return reply.status(201).send({
         ficha: fichaCompleta,
@@ -289,16 +236,10 @@ export class FichasController {
   // Solo se puede actualizar si esta en borrador
   // Tecnico: solo de su comunidad
   // Admin: cualquier ficha
-  async update(
-    request: FastifyRequest<{
-      Params: FichaParams;
-      Body: UpdateFichaInput;
-    }>,
-    reply: FastifyReply
-  ) {
+  async update(request: FastifyRequest<{ Params: FichaParams; Body: UpdateFichaInput }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -306,7 +247,7 @@ export class FichasController {
       const ficha = await this.fichasService.updateFicha(
         id,
         request.body,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -350,13 +291,7 @@ export class FichasController {
   // PUT /api/fichas/:id/completa
   // Actualiza una ficha completa con todas las secciones
   // Solo se puede actualizar si esta en borrador
-  async updateCompleta(
-    request: FastifyRequest<{
-      Params: FichaParams;
-      Body: UpdateFichaCompletaInput;
-    }>,
-    reply: FastifyReply
-  ) {
+  async updateCompleta(request: FastifyRequest<{ Params: FichaParams; Body: UpdateFichaCompletaInput }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
       const usuarioId = request.user.userId;
@@ -408,10 +343,7 @@ export class FichasController {
   // Elimina (desactiva) una ficha
   // Solo admin puede eliminar
   // Solo se puede eliminar si esta en borrador
-  async delete(
-    request: FastifyRequest<{ Params: FichaParams }>,
-    reply: FastifyReply
-  ) {
+  async delete(request: FastifyRequest<{ Params: FichaParams }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
       await this.fichasService.deleteFicha(id);
@@ -446,16 +378,10 @@ export class FichasController {
   // Envia una ficha a revision
   // Solo se puede enviar desde borrador
   // Tecnico puede enviar fichas de su comunidad
-  async enviarRevision(
-    request: FastifyRequest<{
-      Params: FichaParams;
-      Body: EnviarRevisionInput;
-    }>,
-    reply: FastifyReply
-  ) {
+  async enviarRevision(request: FastifyRequest<{ Params: FichaParams; Body: EnviarRevisionInput }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -463,7 +389,7 @@ export class FichasController {
       const ficha = await this.fichasService.enviarRevision(
         id,
         request.body,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -508,13 +434,7 @@ export class FichasController {
   // Aprueba una ficha
   // Solo gerente/admin pueden aprobar
   // Solo se puede aprobar si esta en revision
-  async aprobar(
-    request: FastifyRequest<{
-      Params: FichaParams;
-      Body: AprobarFichaInput;
-    }>,
-    reply: FastifyReply
-  ) {
+  async aprobar(request: FastifyRequest<{ Params: FichaParams; Body: AprobarFichaInput }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
 
@@ -554,13 +474,7 @@ export class FichasController {
   // Rechaza una ficha
   // Solo gerente/admin pueden rechazar
   // Solo se puede rechazar si esta en revision
-  async rechazar(
-    request: FastifyRequest<{
-      Params: FichaParams;
-      Body: RechazarFichaInput;
-    }>,
-    reply: FastifyReply
-  ) {
+  async rechazar(request: FastifyRequest<{ Params: FichaParams; Body: RechazarFichaInput }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
 
@@ -601,21 +515,18 @@ export class FichasController {
   // Obtiene estadisticas de fichas
   // Tecnico: solo su comunidad
   // Gerente/Admin: estadisticas globales
-  async getEstadisticas(
-    request: FastifyRequest<{ Querystring: { gestion?: string } }>,
-    reply: FastifyReply
-  ) {
+  async getEstadisticas(request: FastifyRequest<{ Querystring: { gestion?: string } }>, reply: FastifyReply) {
     try {
       const gestion = request.query.gestion
         ? parseInt(request.query.gestion, 10)
         : undefined;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const estadisticas = await this.fichasService.getEstadisticas(
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente,
         gestion
       );
@@ -634,10 +545,7 @@ export class FichasController {
   // POST /api/fichas/:id/archivos
   // Sube un archivo y lo asocia a una ficha
   // Usa request.file() para streaming y validación de magic numbers
-  async uploadArchivo(
-    request: FastifyRequest<{ Params: FichaParams }>,
-    reply: FastifyReply
-  ) {
+  async uploadArchivo(request: FastifyRequest<{ Params: FichaParams }>, reply: FastifyReply) {
     try {
       if (!request.isMultipart()) {
         return reply.status(400).send({
@@ -668,7 +576,7 @@ export class FichasController {
 
       const { id: fichaId } = request.params;
       const usuarioId = request.user!.userId;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -676,7 +584,7 @@ export class FichasController {
       const nuevoArchivo = await this.fichasService.addArchivoToFicha(
         fichaId,
         usuarioId,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente,
         fileData,
         tipoArchivo.value
@@ -688,7 +596,7 @@ export class FichasController {
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes("no encontrado" || error.message.includes("no encontrada"))) {
+        if (error.message.includes("no encontrado") || error.message.includes("no encontrada")) {
           return reply.status(404).send({
             error: "not_found",
             message: error.message,
@@ -720,20 +628,17 @@ export class FichasController {
 
   // GET /api/fichas/:id/archivos
   // Lista todos los archivos de una ficha
-  async listArchivos(
-    request: FastifyRequest<{ Params: FichaParams }>,
-    reply: FastifyReply
-  ) {
+  async listArchivos(request: FastifyRequest<{ Params: FichaParams }>, reply: FastifyReply) {
     try {
       const { id: fichaId } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const archivos = await this.fichasService.listArchivos(
         fichaId,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -766,13 +671,10 @@ export class FichasController {
 
   // GET /api/fichas/:id/archivos/:idArchivo/download
   // Descarga un archivo específico
-  async downloadArchivo(
-    request: FastifyRequest<{ Params: { id: string; idArchivo: string } }>,
-    reply: FastifyReply
-  ) {
+  async downloadArchivo(request: FastifyRequest<{ Params: { id: string; idArchivo: string } }>, reply: FastifyReply) {
     try {
       const { id: fichaId, idArchivo } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -808,11 +710,11 @@ export class FichasController {
         });
       }
 
-      if (!esAdminOGerente && usuarioComunidadId) {
+      if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
         const productor = await this.fichasService[
           "productorRepository"
         ].findByCodigo(ficha.codigoProductor);
-        if (!productor || productor.idComunidad !== usuarioComunidadId) {
+        if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
           return reply.status(403).send({
             error: "forbidden",
             message: "No tiene acceso a esta ficha",
@@ -877,20 +779,17 @@ export class FichasController {
 
   // DELETE /api/fichas/:id/archivos/:idArchivo
   // Elimina un archivo de una ficha
-  async deleteArchivoFicha(
-    request: FastifyRequest<{ Params: { id: string; idArchivo: string } }>,
-    reply: FastifyReply
-  ) {
+  async deleteArchivoFicha(request: FastifyRequest<{ Params: { id: string; idArchivo: string } }>, reply: FastifyReply) {
     try {
-      const { id: fichaId, idArchivo } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const { idArchivo } = request.params;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       await this.fichasService.deleteArchivo(
         idArchivo,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -922,12 +821,7 @@ export class FichasController {
 
   // POST /api/fichas/draft
   // Guarda o actualiza un borrador
-  async saveDraft(
-    request: FastifyRequest<{
-      Body: CreateFichaDraftInput;
-    }>,
-    reply: FastifyReply
-  ) {
+  async saveDraft(request: FastifyRequest<{ Body: CreateFichaDraftInput }>, reply: FastifyReply) {
     try {
       const { codigo_productor, gestion, draft_data, step_actual } =
         request.body;
@@ -959,12 +853,7 @@ export class FichasController {
 
   // GET /api/fichas/draft/:codigoProductor/:gestion
   // Obtiene un borrador por código de productor y gestión
-  async getDraft(
-    request: FastifyRequest<{
-      Params: GetDraftParams;
-    }>,
-    reply: FastifyReply
-  ) {
+  async getDraft(request: FastifyRequest<{ Params: GetDraftParams }>, reply: FastifyReply) {
     try {
       const { codigoProductor, gestion } = request.params;
       const userId = request.user!.userId;
@@ -1021,12 +910,7 @@ export class FichasController {
 
   // DELETE /api/fichas/draft/:id
   // Elimina un borrador
-  async deleteDraft(
-    request: FastifyRequest<{
-      Params: FichaDraftParams;
-    }>,
-    reply: FastifyReply
-  ) {
+  async deleteDraft(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
     try {
       const { id } = request.params;
       const userId = request.user!.userId;
@@ -1062,12 +946,7 @@ export class FichasController {
 
   // GET /api/fichas/check-exists
   // Verifica si existe una ficha para un productor en una gestion
-  async checkExists(
-    request: FastifyRequest<{
-      Querystring: { codigo_productor: string; gestion: string };
-    }>,
-    reply: FastifyReply
-  ) {
+  async checkExists(request: FastifyRequest<{ Querystring: { codigo_productor: string; gestion: string } }>, reply: FastifyReply) {
     try {
       const { codigo_productor, gestion } = request.query;
       const gestionNum = parseInt(gestion, 10);

@@ -1,11 +1,10 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ProductoresService } from "../services/productores.service.js";
-import type {
+import {
   CreateProductorInput,
   UpdateProductorInput,
   ProductorParams,
   ProductorQuery,
-  ProximitySearchInput,
 } from "../schemas/productores.schema.js";
 
 // Controlador para endpoints de productores
@@ -24,13 +23,13 @@ export class ProductoresController {
   ) {
     try {
       const { comunidad, categoria } = request.query;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const result = await this.productoresService.listProductores(
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente,
         comunidad,
         categoria
@@ -56,14 +55,14 @@ export class ProductoresController {
   ) {
     try {
       const { codigo } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const productor = await this.productoresService.getProductorByCodigo(
         codigo,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -94,37 +93,6 @@ export class ProductoresController {
     }
   }
 
-  // POST /api/productores/nearby
-  // Busca productores cercanos a una ubicacion
-  // Usa funciones PostGIS
-  // Acceso: tecnico (su comunidad), gerente/admin (todos)
-  async searchNearby(
-    request: FastifyRequest<{ Body: ProximitySearchInput }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esAdminOGerente =
-        request.user?.role === "administrador" ||
-        request.user?.role === "gerente";
-
-      const result = await this.productoresService.searchNearby(
-        request.body,
-        usuarioComunidadId,
-        esAdminOGerente
-      );
-
-      return reply.status(200).send(result);
-    } catch (error) {
-      request.log.error(error, "Error searching nearby productores");
-      return reply.status(500).send({
-        error: "internal_server_error",
-        message: "Error al buscar productores cercanos",
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
   // POST /api/productores
   // Crea un nuevo productor
   // Acceso: tecnico (su comunidad), admin (cualquier comunidad)
@@ -133,14 +101,14 @@ export class ProductoresController {
     reply: FastifyReply
   ) {
     try {
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const productor = await this.productoresService.createProductor(
         request.body,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -193,7 +161,7 @@ export class ProductoresController {
   ) {
     try {
       const { codigo } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -201,7 +169,7 @@ export class ProductoresController {
       const productor = await this.productoresService.updateProductor(
         codigo,
         request.body,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -271,13 +239,13 @@ export class ProductoresController {
   // Acceso: tecnico (su comunidad), gerente/admin (globales)
   async getEstadisticas(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const estadisticas = await this.productoresService.getEstadisticas(
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 

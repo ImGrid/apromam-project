@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { Parcela, ParcelaData } from "../entities/Parcela.js";
 
@@ -98,55 +99,6 @@ export class ParcelaRepository {
     return results.map((data) => Parcela.fromDatabase(data));
   }
 
-  // Busca parcelas cercanas a una ubicacion
-  // Usa PostGIS para calcular distancias
-  async findNearby(
-    latitude: number,
-    longitude: number,
-    radiusMeters: number = 1000
-  ): Promise<Parcela[]> {
-    const query = {
-      name: "find-parcelas-nearby",
-      text: `
-        SELECT
-          pa.id_parcela,
-          pa.codigo_productor,
-          pa.numero_parcela,
-          pa.superficie_ha,
-          pa.latitud_sud,
-          pa.longitud_oeste,
-          pa.utiliza_riego,
-          pa.tipo_barrera,
-          pa.insumos_organicos,
-          pa.rotacion,
-          pa.activo,
-          pa.created_at,
-          p.nombre_productor,
-          c.nombre_comunidad,
-          ROUND(
-            ST_Distance(
-              pa.coordenadas::geography,
-              ST_SetSRID(ST_Point($2, $1), 4326)::geography
-            )::NUMERIC, 2
-          ) as distancia_metros
-        FROM parcelas pa
-        INNER JOIN productores p ON pa.codigo_productor = p.codigo_productor
-        INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
-        WHERE pa.coordenadas IS NOT NULL
-          AND pa.activo = true
-          AND ST_DWithin(
-            pa.coordenadas::geography,
-            ST_SetSRID(ST_Point($2, $1), 4326)::geography,
-            $3
-          )
-        ORDER BY pa.coordenadas <-> ST_SetSRID(ST_Point($2, $1), 4326)
-      `,
-      values: [latitude, longitude, radiusMeters],
-    };
-
-    const results = await ReadQuery.execute<ParcelaData>(query);
-    return results.map((data) => Parcela.fromDatabase(data));
-  }
 
   // Verifica si existe una parcela con ese numero para el productor
   async existsByNumero(
@@ -189,15 +141,15 @@ export class ParcelaRepository {
     }
 
     const insertData = parcela.toDatabaseInsert();
-    const coordenadasWKT = parcela.getCoordenadasWKT();
+    const idParcela = randomUUID();
 
     const query = {
       text: `
         INSERT INTO parcelas (
+          id_parcela,
           codigo_productor,
           numero_parcela,
           superficie_ha,
-          coordenadas,
           latitud_sud,
           longitud_oeste,
           utiliza_riego,
@@ -205,14 +157,14 @@ export class ParcelaRepository {
           insumos_organicos,
           rotacion,
           activo
-        ) VALUES ($1, $2, $3, ST_GeomFromText($4, 4326), $5, $6, $7, $8, $9, $10, $11)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING id_parcela
       `,
       values: [
+        idParcela,
         insertData.codigo_productor,
         insertData.numero_parcela,
         insertData.superficie_ha,
-        coordenadasWKT,
         insertData.latitud_sud || null,
         insertData.longitud_oeste || null,
         insertData.utiliza_riego,
@@ -283,13 +235,12 @@ export class ParcelaRepository {
     }
 
     const updateData = parcela.toDatabaseUpdate();
-    const coordenadasWKT = parcela.getCoordenadasWKT();
 
     const query = {
       text: `
         UPDATE parcelas
         SET
-          coordenadas = ST_GeomFromText($2, 4326),
+          superficie_ha = $2,
           latitud_sud = $3,
           longitud_oeste = $4,
           utiliza_riego = $5,
@@ -302,7 +253,7 @@ export class ParcelaRepository {
       `,
       values: [
         id,
-        coordenadasWKT,
+        updateData.superficie_ha,
         updateData.latitud_sud || null,
         updateData.longitud_oeste || null,
         updateData.utiliza_riego,
@@ -378,13 +329,30 @@ export class ParcelaRepository {
       text: `
         SELECT COUNT(*) as count
         FROM parcelas
-        WHERE coordenadas IS NOT NULL AND activo = true
+        WHERE latitud_sud IS NOT NULL
+          AND longitud_oeste IS NOT NULL
+          AND activo = true
       `,
       values: [],
     };
 
     const result = await ReadQuery.findOne<{ count: string }>(query);
     return parseInt(result?.count || "0", 10);
+  }
+
+  // Suma superficie total de parcelas de un productor
+  async sumSuperficieByProductor(codigoProductor: string): Promise<number> {
+    const query = {
+      text: `
+        SELECT COALESCE(SUM(superficie_ha), 0) as total
+        FROM parcelas
+        WHERE codigo_productor = $1 AND activo = true
+      `,
+      values: [codigoProductor],
+    };
+
+    const result = await ReadQuery.findOne<{ total: number | string }>(query);
+    return typeof result?.total === 'string' ? parseFloat(result.total) : (result?.total || 0);
   }
 
   // Obtiene parcelas sin coordenadas
@@ -409,7 +377,8 @@ export class ParcelaRepository {
         FROM parcelas pa
         INNER JOIN productores p ON pa.codigo_productor = p.codigo_productor
         INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
-        WHERE pa.coordenadas IS NULL AND pa.activo = true
+        WHERE (pa.latitud_sud IS NULL OR pa.longitud_oeste IS NULL)
+          AND pa.activo = true
         ORDER BY p.codigo_productor, pa.numero_parcela
       `,
       values: [],
@@ -430,8 +399,8 @@ export class ParcelaRepository {
       text: `
         SELECT
           COUNT(*) as total,
-          COUNT(*) FILTER (WHERE coordenadas IS NOT NULL) as con_coordenadas,
-          COUNT(*) FILTER (WHERE coordenadas IS NULL) as sin_coordenadas,
+          COUNT(*) FILTER (WHERE latitud_sud IS NOT NULL AND longitud_oeste IS NOT NULL) as con_coordenadas,
+          COUNT(*) FILTER (WHERE latitud_sud IS NULL OR longitud_oeste IS NULL) as sin_coordenadas,
           COUNT(*) FILTER (WHERE utiliza_riego = true) as con_riego
         FROM parcelas
         WHERE activo = true

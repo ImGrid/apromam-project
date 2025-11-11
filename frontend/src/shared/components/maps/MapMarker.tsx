@@ -88,15 +88,21 @@ export function MapMarker({
     onDragEnd?.({ lat: position.lat, lng: position.lng });
   };
 
+  // Solo incluir event handlers que estén definidos
+  const eventHandlers: any = {};
+  if (onClick) {
+    eventHandlers.click = onClick;
+  }
+  if (onDragEnd) {
+    eventHandlers.dragend = handleDragEnd;
+  }
+
   return (
     <Marker
       position={position}
       icon={icon}
       draggable={draggable}
-      eventHandlers={{
-        click: onClick,
-        dragend: handleDragEnd,
-      }}
+      eventHandlers={eventHandlers}
     >
       {tooltip && <Tooltip>{tooltip}</Tooltip>}
       {popup && <Popup>{popup}</Popup>}

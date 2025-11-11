@@ -31,21 +31,19 @@ export function useCreateFicha() {
       // Limpiar borradores guardados después de crear exitosamente
       // Los borradores ya no son necesarios porque la ficha está en el servidor
       if (codigoProductor && gestion) {
-        console.log('[CREATE_FICHA] Limpiando borradores - Productor:', codigoProductor, 'Gestion:', gestion);
-
         // Limpiar localStorage
         const localStorageKey = `apromam-ficha-draft-${codigoProductor}-${gestion}`;
         try {
           localStorage.removeItem(localStorageKey);
         } catch (e) {
-          console.warn('[CREATE_FICHA] Error al limpiar localStorage:', e);
+          // Error al limpiar localStorage
         }
 
         // Limpiar IndexedDB
         try {
           await deleteDraftFromIndexedDB(codigoProductor, gestion);
         } catch (e) {
-          console.warn('[CREATE_FICHA] Error al limpiar IndexedDB:', e);
+          // Error al limpiar IndexedDB
         }
 
         // TODO: Limpiar borrador del servidor si existe

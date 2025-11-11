@@ -25,7 +25,7 @@ export async function initializeUploadsDirectory(): Promise<void> {
     await fs.mkdir(baseDir, { recursive: true });
 
     // Crear subdirectorios
-    for (const [tipo, subdir] of Object.entries(UPLOAD_SUBDIRS)) {
+    for (const subdir of Object.values(UPLOAD_SUBDIRS)) {
       const dirPath = path.join(baseDir, subdir);
       await fs.mkdir(dirPath, { recursive: true });
       logger.debug(`Created upload subdirectory: ${dirPath}`);

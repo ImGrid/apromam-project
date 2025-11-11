@@ -35,11 +35,10 @@ export function useTiposCultivo(
       const errorMessage =
         err instanceof Error ? err.message : "Error al cargar tipos de cultivo";
       setError(errorMessage);
-      console.error("Error fetching tipos cultivo:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filters?.activo]);
 
   useEffect(() => {
     fetchTiposCultivo();

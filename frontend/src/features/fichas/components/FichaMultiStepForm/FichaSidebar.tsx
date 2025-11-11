@@ -54,30 +54,17 @@ function StepItem({
   onClick,
   canNavigate,
 }: StepItemProps) {
-  console.log(`🎨 [StepItem ${step.id}] Renderizando:`, {
-    isActive,
-    isCompleted,
-    hasErrors,
-    hasWarnings,
-    errorCount,
-    warningCount,
-  });
-
   const getIcon = () => {
     if (hasErrors) {
-      console.log(`❌ [StepItem ${step.id}] Mostrando icono de ERROR`);
       return <AlertCircle className="w-5 h-5 text-error" />;
     }
     if (hasWarnings) {
-      console.log(`⚠️ [StepItem ${step.id}] Mostrando icono de WARNING`);
       return <AlertTriangle className="w-5 h-5 text-warning" />;
     }
     if (isCompleted) {
-      console.log(`✅ [StepItem ${step.id}] Mostrando icono de COMPLETADO`);
       return <CheckCircle2 className="w-5 h-5 text-success" />;
     }
     // Mostrar número de sección en lugar de círculo
-    console.log(`🔢 [StepItem ${step.id}] Mostrando número de step`);
     return (
       <div
         className={`
@@ -95,7 +82,6 @@ function StepItem({
 
   const getBadge = () => {
     if (errorCount > 0) {
-      console.log(`🔴 [StepItem ${step.id}] Mostrando badge con ${errorCount} errores`);
       return (
         <span className="bg-error text-white px-2 py-0.5 rounded-full text-xs font-medium">
           {errorCount}
@@ -103,7 +89,6 @@ function StepItem({
       );
     }
     if (warningCount > 0) {
-      console.log(`🟡 [StepItem ${step.id}] Mostrando badge con ${warningCount} warnings`);
       return (
         <span className="bg-warning text-white px-2 py-0.5 rounded-full text-xs font-medium">
           {warningCount}
@@ -165,6 +150,7 @@ export default function FichaSidebar({
   const step9Validation = useStepValidation(9);
   const step10Validation = useStepValidation(10);
   const step11Validation = useStepValidation(11);
+  const step12Validation = useStepValidation(12);
 
   const validationsMap = {
     1: step1Validation,
@@ -178,6 +164,7 @@ export default function FichaSidebar({
     9: step9Validation,
     10: step10Validation,
     11: step11Validation,
+    12: step12Validation,
   };
 
   const handleStepClick = (stepId: number) => {
@@ -245,14 +232,6 @@ export default function FichaSidebar({
             const errorCount = validation ? validation.errors.length : 0;
             const warningCount = validation ? validation.warnings.length : 0;
             const canNavigate = actions.canNavigateToStep(step.id);
-
-            console.log(`📊 [FichaSidebar] Step ${step.id} validación:`, {
-              hasErrors,
-              hasWarnings,
-              errorCount,
-              warningCount,
-              isCompleted,
-            });
 
             return (
               <li key={step.id}>

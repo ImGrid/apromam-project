@@ -37,9 +37,9 @@ export function ParcelaSelect({
   return (
     <div className={`flex flex-col ${className}`}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-neutral-700 mb-1">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-error-500 ml-1">*</span>}
         </label>
       )}
 
@@ -48,9 +48,9 @@ export function ParcelaSelect({
         disabled={disabled}
         className={`
           w-full px-3 py-2 border rounded-md shadow-sm
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          disabled:bg-gray-100 disabled:cursor-not-allowed
-          ${showError ? "border-red-500" : "border-gray-300"}
+          focus:outline-none focus:ring-2 focus:ring-info-500 focus:border-info-500
+          disabled:bg-neutral-100 disabled:cursor-not-allowed
+          ${showError ? "border-error-500" : "border-neutral-300"}
         `}
       >
         <option value="">
@@ -74,12 +74,12 @@ export function ParcelaSelect({
 
       {/* Mensajes de error */}
       {showError && (
-        <p className="mt-1 text-sm text-red-600">{showError}</p>
+        <p className="mt-1 text-sm text-error-600">{showError}</p>
       )}
 
       {/* Información adicional cuando hay parcelas */}
       {hasData && parcelas.length > 0 && !isLoading && (
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-tertiary">
           {parcelas.length} parcela{parcelas.length !== 1 ? "s" : ""} disponible{parcelas.length !== 1 ? "s" : ""}
         </p>
       )}

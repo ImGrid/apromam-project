@@ -18,7 +18,6 @@ import { useFichaCompleta } from "../hooks/useFichaCompleta";
 import { ROUTES } from "@/shared/config/routes.config";
 import {
   isEditable,
-  EstadoFichaBadge,
   FichaWorkflowActions,
   FichaArchivosSection,
 } from "../components/Specialized";
@@ -82,6 +81,11 @@ export default function FichaDetailPage() {
     );
   }
 
+  // Helper para formatear hectáreas sin ceros innecesarios
+  const formatHectares = (num: number): string => {
+    return parseFloat(num.toFixed(4)).toString();
+  };
+
   // Solo los técnicos pueden editar fichas (en estado borrador o rechazado)
   const canEdit = permissions.isTecnico() && isEditable(ficha.ficha.estado_ficha);
 
@@ -123,18 +127,15 @@ export default function FichaDetailPage() {
                 : "info"
             }
             message={
-              <div className="flex items-center gap-2">
-                <EstadoFichaBadge estado={ficha.ficha.estado_ficha} />
-                <div>
-                  <p className="text-sm font-medium">
-                    Estado: {ficha.ficha.estado_ficha.toUpperCase()}
+              <div>
+                <p className="text-sm font-medium">
+                  Estado: {ficha.ficha.estado_ficha.toUpperCase()}
+                </p>
+                {ficha.ficha.comentarios_evaluacion && (
+                  <p className="mt-1 text-sm">
+                    {ficha.ficha.comentarios_evaluacion}
                   </p>
-                  {ficha.ficha.comentarios_evaluacion && (
-                    <p className="mt-1 text-sm">
-                      {ficha.ficha.comentarios_evaluacion}
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
             }
           />
@@ -474,11 +475,6 @@ export default function FichaDetailPage() {
                       key={detalle.id_detalle || index}
                       className="p-4 border rounded-lg border-neutral-border"
                     >
-                      <div className="mb-3">
-                        <p className="font-medium text-text-primary">
-                          Parcela: {detalle.id_parcela} | Cultivo: {detalle.nombre_cultivo || detalle.id_tipo_cultivo}
-                        </p>
-                      </div>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         {detalle.procedencia_semilla && (
                           <DetailField
@@ -677,6 +673,93 @@ export default function FichaDetailPage() {
                         Fecha límite: {new Date(nc.fecha_limite_implementacion).toLocaleDateString("es-BO")}
                       </p>
                     )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Planificación de Siembras (Step 12) */}
+          {ficha.planificacion_siembras && ficha.planificacion_siembras.length > 0 && (
+            <Card title={`Planificación de Siembras - Próxima Gestión (${ficha.planificacion_siembras.length} parcelas)`}>
+              <div className="space-y-4">
+                {ficha.planificacion_siembras.map((plan, index) => (
+                  <div
+                    key={plan.id_planificacion || index}
+                    className="p-5 border-2 rounded-lg border-primary/20 bg-primary/5"
+                  >
+                    <h4 className="mb-4 text-lg font-bold text-primary">
+                      Parcela {plan.numero_parcela !== undefined ? plan.numero_parcela : index + 1}
+                    </h4>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <DetailField
+                        label="Área Planificada (ha)"
+                        value={formatHectares(plan.area_parcela_planificada_ha)}
+                      />
+                      {plan.superficie_actual_ha !== undefined && (
+                        <DetailField
+                          label="Superficie Actual (ha)"
+                          value={formatHectares(plan.superficie_actual_ha)}
+                        />
+                      )}
+                    </div>
+
+                    <div className="p-4 mt-4 rounded-lg bg-white">
+                      <p className="mb-3 text-sm font-semibold text-text-secondary">
+                        CULTIVOS PLANIFICADOS
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+                        <DetailField label="Maní (ha)" value={formatHectares(plan.mani_ha)} />
+                        <DetailField label="Maíz (ha)" value={formatHectares(plan.maiz_ha)} />
+                        <DetailField label="Papa (ha)" value={formatHectares(plan.papa_ha)} />
+                        <DetailField label="Ají (ha)" value={formatHectares(plan.aji_ha)} />
+                        <DetailField label="Leguminosas (ha)" value={formatHectares(plan.leguminosas_ha)} />
+                        <DetailField label="Otros (ha)" value={formatHectares(plan.otros_cultivos_ha)} />
+                        <DetailField label="Descanso (ha)" value={formatHectares(plan.descanso_ha)} />
+                      </div>
+                      {plan.otros_cultivos_detalle && (
+                        <div className="mt-4">
+                          <p className="text-sm font-medium text-text-secondary">
+                            Detalle de Otros Cultivos
+                          </p>
+                          <p className="mt-1 text-text-primary">
+                            {plan.otros_cultivos_detalle}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3 mt-4 border rounded-lg bg-blue-50 border-blue-200">
+                      <p className="text-sm font-medium text-neutral-900">Resumen</p>
+                      <div className="mt-2 text-sm text-neutral-700">
+                        <p>
+                          Total cultivos: <strong>{formatHectares(
+                            plan.mani_ha +
+                            plan.maiz_ha +
+                            plan.papa_ha +
+                            plan.aji_ha +
+                            plan.leguminosas_ha +
+                            plan.otros_cultivos_ha
+                          )} ha</strong>
+                        </p>
+                        <p>
+                          Porcentaje de uso: <strong>
+                            {plan.area_parcela_planificada_ha > 0
+                              ? ((
+                                  (plan.mani_ha +
+                                    plan.maiz_ha +
+                                    plan.papa_ha +
+                                    plan.aji_ha +
+                                    plan.leguminosas_ha +
+                                    plan.otros_cultivos_ha) /
+                                  plan.area_parcela_planificada_ha
+                                ) * 100).toFixed(1)
+                              : "0.0"}%
+                          </strong>
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

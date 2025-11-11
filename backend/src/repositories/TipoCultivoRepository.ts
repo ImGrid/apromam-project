@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { TipoCultivo, TipoCultivoData } from "../entities/TipoCultivo.js";
 
@@ -100,16 +101,18 @@ export class TipoCultivoRepository {
     }
 
     const insertData = tipoCultivo.toDatabaseInsert();
+    const idTipoCultivo = randomUUID();
 
     const query = {
       text: `
         INSERT INTO tipos_cultivo (
+          id_tipo_cultivo,
           nombre_cultivo,
           descripcion,
           es_principal_certificable,
           rendimiento_promedio_qq_ha,
           activo
-        ) VALUES ($1, $2, $3, $4, $5)
+        ) VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING 
           id_tipo_cultivo,
           nombre_cultivo,
@@ -119,6 +122,7 @@ export class TipoCultivoRepository {
           activo
       `,
       values: [
+        idTipoCultivo,
         insertData.nombre_cultivo,
         insertData.descripcion,
         insertData.es_principal_certificable,

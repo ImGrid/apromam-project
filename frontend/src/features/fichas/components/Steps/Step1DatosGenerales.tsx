@@ -55,6 +55,17 @@ export default function Step1DatosGenerales() {
   });
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
+  // Sincronizar coordenadas con react-hook-form cuando cambien
+  useEffect(() => {
+    if (coordenadas.latitud !== 0 || coordenadas.longitud !== 0) {
+      setValue("coordenadas_domicilio", {
+        latitud: coordenadas.latitud,
+        longitud: coordenadas.longitud,
+        altitud: coordenadas.altitud,
+      }, { shouldDirty: true });
+    }
+  }, [coordenadas, setValue]);
+
   // Observar el codigo_productor y gestion del formulario
   const codigoProductorFromForm = watch("ficha.codigo_productor");
   const gestionFromForm = watch("ficha.gestion");
@@ -101,7 +112,7 @@ export default function Step1DatosGenerales() {
             });
           }
         } catch (error) {
-          console.error('[Step1] Error recuperando productor:', error);
+          // Error al recuperar productor
         }
       }
     };
@@ -173,7 +184,6 @@ export default function Step1DatosGenerales() {
         });
       }
     } catch (error) {
-      console.error('[Step1] Error verificando ficha existente:', error);
       showToast.error('Error al verificar si el productor ya tiene ficha');
     }
   };
@@ -218,7 +228,7 @@ export default function Step1DatosGenerales() {
                 type="text"
                 value={selectedProductor.nombre_productor}
                 readOnly
-                className="w-full px-3 py-2 font-medium bg-gray-50 border border-gray-300 rounded-md text-text-primary cursor-not-allowed"
+                className="w-full px-3 py-2 font-medium bg-neutral-50 border border-neutral-300 rounded-md text-text-primary cursor-not-allowed"
               />
             </FormField>
 
@@ -228,7 +238,7 @@ export default function Step1DatosGenerales() {
                 type="text"
                 value={selectedProductor.codigo_productor}
                 readOnly
-                className="w-full px-3 py-2 font-mono font-semibold uppercase bg-gray-50 border border-gray-300 rounded-md text-text-primary cursor-not-allowed"
+                className="w-full px-3 py-2 font-mono font-semibold uppercase bg-neutral-50 border border-neutral-300 rounded-md text-text-primary cursor-not-allowed"
               />
             </FormField>
 
@@ -238,7 +248,7 @@ export default function Step1DatosGenerales() {
                 type="number"
                 value={selectedProductor.numero_parcelas_total}
                 readOnly
-                className="w-full px-3 py-2 font-medium bg-gray-50 border border-gray-300 rounded-md text-text-primary cursor-not-allowed"
+                className="w-full px-3 py-2 font-medium bg-neutral-50 border border-neutral-300 rounded-md text-text-primary cursor-not-allowed"
               />
             </FormField>
 
@@ -249,7 +259,7 @@ export default function Step1DatosGenerales() {
                 step="0.01"
                 value={selectedProductor.superficie_total_has}
                 readOnly
-                className="w-full px-3 py-2 font-medium bg-gray-50 border border-gray-300 rounded-md text-text-primary cursor-not-allowed"
+                className="w-full px-3 py-2 font-medium bg-neutral-50 border border-neutral-300 rounded-md text-text-primary cursor-not-allowed"
               />
             </FormField>
 
@@ -259,7 +269,7 @@ export default function Step1DatosGenerales() {
                 type="number"
                 value={selectedProductor.año_ingreso_programa}
                 readOnly
-                className="w-full px-3 py-2 font-medium bg-gray-50 border border-gray-300 rounded-md text-text-primary cursor-not-allowed"
+                className="w-full px-3 py-2 font-medium bg-neutral-50 border border-neutral-300 rounded-md text-text-primary cursor-not-allowed"
               />
             </FormField>
 
@@ -272,7 +282,7 @@ export default function Step1DatosGenerales() {
                   "No especificada"
                 }
                 readOnly
-                className="w-full px-3 py-2 font-medium bg-gray-50 border border-gray-300 rounded-md text-text-primary cursor-not-allowed"
+                className="w-full px-3 py-2 font-medium bg-neutral-50 border border-neutral-300 rounded-md text-text-primary cursor-not-allowed"
               />
             </FormField>
           </div>
@@ -335,7 +345,7 @@ export default function Step1DatosGenerales() {
               error={errors.ficha?.categoria_gestion_anterior?.message}
             >
               <div className="flex flex-wrap gap-4 mt-2">
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-neutral-50 transition-colors">
                   <input
                     type="radio"
                     value="E"
@@ -347,7 +357,7 @@ export default function Step1DatosGenerales() {
                   </span>
                 </label>
 
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-neutral-50 transition-colors">
                   <input
                     type="radio"
                     value="T2"
@@ -359,7 +369,7 @@ export default function Step1DatosGenerales() {
                   </span>
                 </label>
 
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-neutral-50 transition-colors">
                   <input
                     type="radio"
                     value="T1"
@@ -371,7 +381,7 @@ export default function Step1DatosGenerales() {
                   </span>
                 </label>
 
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-neutral-50 transition-colors">
                   <input
                     type="radio"
                     value="T0"
@@ -401,16 +411,16 @@ export default function Step1DatosGenerales() {
           </div>
 
           <div className="space-y-4">
-            {/* Campos de coordenadas en una sola fila compacta */}
+            {/* Campos de coordenadas responsive */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
                 Coordenadas del Domicilio
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 {/* Latitud */}
                 <input
                   type="number"
-                  step="0.000001"
+                  step="any"
                   value={coordenadas.latitud || ""}
                   onChange={(e) =>
                     setCoordenadas({
@@ -418,14 +428,14 @@ export default function Step1DatosGenerales() {
                       latitud: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent min-w-0"
                   placeholder="Latitud (°)"
                 />
 
                 {/* Longitud */}
                 <input
                   type="number"
-                  step="0.000001"
+                  step="any"
                   value={coordenadas.longitud || ""}
                   onChange={(e) =>
                     setCoordenadas({
@@ -433,7 +443,7 @@ export default function Step1DatosGenerales() {
                       longitud: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent min-w-0"
                   placeholder="Longitud (°)"
                 />
 
@@ -448,7 +458,7 @@ export default function Step1DatosGenerales() {
                       altitud: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="flex-1 px-3 py-2 border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent min-w-0"
                   placeholder="Altitud (msnm)"
                 />
 
@@ -459,6 +469,7 @@ export default function Step1DatosGenerales() {
                     variant="secondary"
                     size="small"
                     onClick={() => setShowLocationPicker(!showLocationPicker)}
+                    className="w-full sm:w-auto"
                   >
                     <MapPin className="w-4 h-4" />
                   </Button>
@@ -498,8 +509,8 @@ export default function Step1DatosGenerales() {
       {/* Mensaje cuando no hay productor seleccionado */}
       {!selectedProductor && (
         <div className="p-8 text-center border-2 border-dashed rounded-lg border-neutral-border bg-neutral-bg">
-          <User className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-          <p className="text-base font-medium text-gray-600">
+          <User className="w-12 h-12 mx-auto mb-3 text-disabled" />
+          <p className="text-base font-medium text-text-secondary">
             Seleccione un productor para continuar
           </p>
         </div>

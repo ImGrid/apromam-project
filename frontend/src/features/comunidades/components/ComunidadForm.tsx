@@ -13,6 +13,7 @@ import {
 } from "@/shared/components/ui";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
 import type { Comunidad } from "../types/comunidad.types";
+import { logger } from "@/shared/utils/logger";
 
 const comunidadSchema = z.object({
   nombre_comunidad: z.string().min(3, "Mínimo 3 caracteres"),
@@ -88,7 +89,7 @@ export function ComunidadForm({
         }))
       );
     } catch {
-      console.error("Error cargando provincias");
+      logger.error("Error cargando provincias");
     }
   }, []);
 
@@ -106,7 +107,7 @@ export function ComunidadForm({
         }))
       );
     } catch {
-      console.error("Error cargando municipios");
+      logger.error("Error cargando municipios");
     } finally {
       setLoadingMunicipios(false);
     }

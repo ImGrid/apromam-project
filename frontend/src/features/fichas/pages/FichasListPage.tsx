@@ -35,7 +35,8 @@ export default function FichasListPage() {
   const user = useAuthStore((state) => state.user);
   const permissions = usePermissions();
   const { isAdmin, isGerente, isTecnico } = permissions;
-  const canCreate = permissions.canAccess("fichas", "create");
+  // Solo técnicos pueden crear fichas, admin y gerente solo revisan
+  const canCreate = permissions.isTecnico();
 
   // Seleccionar layout según rol
   const Layout = isAdmin()
@@ -257,7 +258,7 @@ export default function FichasListPage() {
           />
 
           {/* Estadísticas rápidas */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <StatCard
               label="Total"
               value={combinedData.length}
@@ -266,7 +267,7 @@ export default function FichasListPage() {
             <StatCard
               label="Borradores"
               value={combinedData.filter((f) => f.isDraft).length}
-              icon={<FileText className="w-5 h-5 text-gray-500" />}
+              icon={<FileText className="w-5 h-5 text-neutral-500" />}
             />
             <StatCard
               label="En Revisión"

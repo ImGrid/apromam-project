@@ -61,3 +61,21 @@ export interface UpdateMunicipioInput {
   nombre_municipio?: string;
   activo?: boolean;
 }
+
+// Tipos para filtros
+export interface DepartamentosFilters {
+  nombre?: string;
+  activo?: boolean;
+}
+
+export interface ProvinciasFilters {
+  nombre?: string;
+  departamento?: string;
+  activo?: boolean;
+}
+
+export interface MunicipiosFilters {
+  nombre?: string;
+  provincia?: string;
+  activo?: boolean;
+}

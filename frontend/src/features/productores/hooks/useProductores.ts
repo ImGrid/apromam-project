@@ -29,7 +29,7 @@ export function useProductores(initialFilters?: ProductorFiltersInput) {
 
   const refetch = useCallback(() => {
     fetchProductores(filters);
-  }, [filters, fetchProductores]);
+  }, [fetchProductores]);
 
   const updateFilters = useCallback((newFilters: ProductorFiltersInput) => {
     setFilters(newFilters);
@@ -44,7 +44,7 @@ export function useProductores(initialFilters?: ProductorFiltersInput) {
   // Fetch inicial
   useEffect(() => {
     fetchProductores(filters);
-  }, [filters, fetchProductores]);
+  }, [fetchProductores]);
 
   return {
     productores,

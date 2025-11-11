@@ -6,7 +6,7 @@ import {
   Modal,
   Button,
   Input,
-  Select,
+  MultiSelect,
   FormField,
   FormSection,
 } from "@/shared/components/ui";
@@ -20,7 +20,11 @@ import { useAuth } from "@/shared/hooks/useAuth";
 const editUsuarioSchema = z.object({
   email: z.string().email("Email inválido"),
   nombre_completo: z.string().min(3, "Mínimo 3 caracteres"),
-  id_comunidad: z.string().optional(),
+  comunidades_ids: z
+    .array(z.string().uuid("ID de comunidad inválido"))
+    .min(1, "Debe asignar al menos una comunidad")
+    .max(15, "Máximo 15 comunidades")
+    .optional(),
   activo: z.boolean(),
 });
 
@@ -55,7 +59,7 @@ export function EditUsuarioModal({
     defaultValues: {
       email: usuario.email,
       nombre_completo: usuario.nombre_completo,
-      id_comunidad: usuario.id_comunidad || "",
+      comunidades_ids: usuario.comunidades_ids || [],
       activo: usuario.activo,
     },
   });
@@ -66,7 +70,7 @@ export function EditUsuarioModal({
       reset({
         email: usuario.email,
         nombre_completo: usuario.nombre_completo,
-        id_comunidad: usuario.id_comunidad || "",
+        comunidades_ids: usuario.comunidades_ids || [],
         activo: usuario.activo,
       });
       loadComunidades();
@@ -86,7 +90,6 @@ export function EditUsuarioModal({
         }))
       );
     } catch (error) {
-      console.error("Error cargando comunidades:", error);
     }
   };
 
@@ -95,7 +98,7 @@ export function EditUsuarioModal({
       await updateUsuario(usuario.id_usuario, {
         email: data.email,
         nombre_completo: data.nombre_completo,
-        id_comunidad: data.id_comunidad || null,
+        comunidades_ids: data.comunidades_ids || [],
         activo: data.activo,
       });
 
@@ -150,16 +153,17 @@ export function EditUsuarioModal({
 
           {isTecnico && (
             <FormField
-              label="Comunidad"
-              error={errors.id_comunidad?.message}
-              helperText="Los técnicos deben tener una comunidad asignada"
+              label="Comunidades"
+              error={errors.comunidades_ids?.message}
+              helperText="Los técnicos deben tener al menos una comunidad asignada"
             >
-              <Select
+              <MultiSelect
                 options={comunidades}
-                value={watch("id_comunidad") || ""}
-                onChange={(value) => setValue("id_comunidad", value)}
-                placeholder="Selecciona una comunidad"
+                value={watch("comunidades_ids") || []}
+                onChange={(values) => setValue("comunidades_ids", values)}
+                placeholder="Selecciona comunidades"
                 searchable
+                maxSelected={15}
               />
             </FormField>
           )}

@@ -41,23 +41,23 @@ export function SaveStatusIndicator({
     <div className="flex items-center gap-2 text-sm">
       {/* Icono según estado */}
       {status === 'saving' && (
-        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+        <Loader2 className="h-4 w-4 animate-spin text-info-500" />
       )}
-      {status === 'saved' && <Check className="h-4 w-4 text-green-500" />}
+      {status === 'saved' && <Check className="h-4 w-4 text-success-500" />}
       {status === 'error' && (
-        <AlertCircle className="h-4 w-4 text-red-500" />
+        <AlertCircle className="h-4 w-4 text-error-500" />
       )}
       {status === 'idle' && lastSavedAt && (
-        <Save className="h-4 w-4 text-gray-400" />
+        <Save className="h-4 w-4 text-disabled" />
       )}
 
       {/* Texto según estado */}
       <span
         className={`
-          ${status === 'saving' ? 'text-blue-600' : ''}
-          ${status === 'saved' ? 'text-green-600' : ''}
-          ${status === 'error' ? 'text-red-600' : ''}
-          ${status === 'idle' ? 'text-gray-600' : ''}
+          ${status === 'saving' ? 'text-info-600' : ''}
+          ${status === 'saved' ? 'text-success-600' : ''}
+          ${status === 'error' ? 'text-error-600' : ''}
+          ${status === 'idle' ? 'text-text-secondary' : ''}
         `}
       >
         {status === 'saving' && 'Guardando...'}

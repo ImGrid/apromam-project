@@ -2,6 +2,7 @@
  * Repositorio para operaciones de base de datos con fichas_draft
  */
 
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from '../config/connection.js';
 import {
   FichaDraft,
@@ -17,17 +18,20 @@ export class FichaDraftRepository {
    * Si ya existe para ese productor/gestión/usuario, lo actualiza
    */
   async upsert(input: CreateFichaDraftInput): Promise<FichaDraft> {
+    const idDraft = randomUUID();
+
     const query = {
       name: 'upsert-ficha-draft',
       text: `
         INSERT INTO fichas_draft (
+          id_draft,
           codigo_productor,
           gestion,
           draft_data,
           step_actual,
           created_by
         )
-        VALUES ($1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (codigo_productor, gestion, created_by)
         DO UPDATE SET
           draft_data = EXCLUDED.draft_data,
@@ -36,6 +40,7 @@ export class FichaDraftRepository {
         RETURNING *
       `,
       values: [
+        idDraft,
         input.codigo_productor,
         input.gestion,
         JSON.stringify(input.draft_data),

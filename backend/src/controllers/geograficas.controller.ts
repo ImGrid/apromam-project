@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { GeograficasService } from "../services/geograficas.service.js";
-import type {
+import {
   CreateDepartamentoInput,
   UpdateDepartamentoInput,
   CreateProvinciaInput,
@@ -8,7 +8,9 @@ import type {
   CreateMunicipioInput,
   UpdateMunicipioInput,
   GeograficaParams,
-  GeograficaQuery,
+  DepartamentoQuery,
+  ProvinciaQuery,
+  MunicipioQuery,
 } from "../schemas/geograficas.schema.js";
 
 // Controlador para endpoints de la jerarquia geografica
@@ -20,11 +22,15 @@ export class GeograficasController {
   // DEPARTAMENTOS
 
   // GET /api/geograficas/departamentos
-  // Lista todos los departamentos
+  // Lista todos los departamentos con filtros opcionales
   // Acceso: todos los roles autenticados
-  async listDepartamentos(request: FastifyRequest, reply: FastifyReply) {
+  async listDepartamentos(
+    request: FastifyRequest<{ Querystring: DepartamentoQuery }>,
+    reply: FastifyReply
+  ) {
     try {
-      const result = await this.geograficasService.listDepartamentos();
+      const { nombre, activo } = request.query;
+      const result = await this.geograficasService.listDepartamentos(nombre, activo);
       return reply.status(200).send(result);
     } catch (error) {
       request.log.error(error, "Error listing departamentos");
@@ -176,11 +182,15 @@ export class GeograficasController {
   // PROVINCIAS
 
   // GET /api/geograficas/provincias
-  // Lista todas las provincias
+  // Lista todas las provincias con filtros opcionales
   // Acceso: todos los roles autenticados
-  async listProvincias(request: FastifyRequest, reply: FastifyReply) {
+  async listProvincias(
+    request: FastifyRequest<{ Querystring: ProvinciaQuery }>,
+    reply: FastifyReply
+  ) {
     try {
-      const result = await this.geograficasService.listProvincias();
+      const { nombre, departamento, activo } = request.query;
+      const result = await this.geograficasService.listProvincias(nombre, departamento, activo);
       return reply.status(200).send(result);
     } catch (error) {
       request.log.error(error, "Error listing provincias");
@@ -330,15 +340,15 @@ export class GeograficasController {
   // MUNICIPIOS
 
   // GET /api/geograficas/municipios
-  // Lista municipios con filtro opcional por provincia
+  // Lista municipios con filtros opcionales
   // Acceso: todos los roles autenticados
   async listMunicipios(
-    request: FastifyRequest<{ Querystring: GeograficaQuery }>,
+    request: FastifyRequest<{ Querystring: MunicipioQuery }>,
     reply: FastifyReply
   ) {
     try {
-      const { provincia } = request.query;
-      const result = await this.geograficasService.listMunicipios(provincia);
+      const { nombre, provincia, activo } = request.query;
+      const result = await this.geograficasService.listMunicipios(nombre, provincia, activo);
       return reply.status(200).send(result);
     } catch (error) {
       request.log.error(error, "Error listing municipios");
@@ -490,6 +500,107 @@ export class GeograficasController {
       return reply.status(500).send({
         error: "internal_server_error",
         message: "Error al eliminar municipio",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // HARD DELETE (ELIMINACION PERMANENTE)
+
+  // DELETE /api/geograficas/departamentos/:id/permanent
+  // Elimina PERMANENTEMENTE un departamento
+  // Acceso: solo administrador
+  async hardDeleteDepartamento(
+    request: FastifyRequest<{ Params: GeograficaParams }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      await this.geograficasService.hardDeleteDepartamento(id);
+      return reply.status(204).send();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message === "Departamento no encontrado" ||
+          error.message.includes("tiene") ||
+          error.message.includes("asociada"))
+      ) {
+        return reply.status(400).send({
+          error: "bad_request",
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      request.log.error(error, "Error hard deleting departamento");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al eliminar permanentemente el departamento",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // DELETE /api/geograficas/provincias/:id/permanent
+  // Elimina PERMANENTEMENTE una provincia
+  // Acceso: solo administrador
+  async hardDeleteProvincia(
+    request: FastifyRequest<{ Params: GeograficaParams }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      await this.geograficasService.hardDeleteProvincia(id);
+      return reply.status(204).send();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message === "Provincia no encontrada" ||
+          error.message.includes("tiene") ||
+          error.message.includes("asociado"))
+      ) {
+        return reply.status(400).send({
+          error: "bad_request",
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      request.log.error(error, "Error hard deleting provincia");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al eliminar permanentemente la provincia",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // DELETE /api/geograficas/municipios/:id/permanent
+  // Elimina PERMANENTEMENTE un municipio
+  // Acceso: solo administrador
+  async hardDeleteMunicipio(
+    request: FastifyRequest<{ Params: GeograficaParams }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { id } = request.params;
+      await this.geograficasService.hardDeleteMunicipio(id);
+      return reply.status(204).send();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message === "Municipio no encontrado" ||
+          error.message.includes("tiene") ||
+          error.message.includes("asociada"))
+      ) {
+        return reply.status(400).send({
+          error: "bad_request",
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      request.log.error(error, "Error hard deleting municipio");
+      return reply.status(500).send({
+        error: "internal_server_error",
+        message: "Error al eliminar permanentemente el municipio",
         timestamp: new Date().toISOString(),
       });
     }

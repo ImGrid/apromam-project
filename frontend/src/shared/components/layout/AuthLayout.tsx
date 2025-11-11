@@ -25,9 +25,7 @@ export function AuthLayout({
               <img
                 src="/apromam_logo.webp"
                 alt="APROMAM"
-                className="h-16 mx-auto sm:h-20"
-                width="256"
-                height="80"
+                className="object-contain w-auto mx-auto h-28 sm:h-20"
               />
             </div>
 

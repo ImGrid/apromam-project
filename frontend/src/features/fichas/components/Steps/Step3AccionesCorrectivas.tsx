@@ -46,7 +46,7 @@ export default function Step3AccionesCorrectivas() {
         <div className="hidden overflow-hidden border rounded-lg md:block border-neutral-border">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-neutral-border">
+              <tr className="bg-neutral-50 border-b border-neutral-border">
                 <th className="px-4 py-3 text-sm font-semibold text-center text-text-primary w-[10%]">
                   No
                 </th>
@@ -75,7 +75,7 @@ export default function Step3AccionesCorrectivas() {
                 fields.map((field, index) => (
                   <tr
                     key={field.id}
-                    className={`hover:bg-gray-50 transition-colors ${
+                    className={`hover:bg-neutral-50 transition-colors ${
                       index !== fields.length - 1
                         ? "border-b border-neutral-border"
                         : ""
@@ -180,10 +180,10 @@ export default function Step3AccionesCorrectivas() {
         <div className="space-y-4 md:hidden">
           {fields.length === 0 ? (
             <div className="p-8 text-center border-2 border-dashed rounded-lg border-neutral-border bg-neutral-bg">
-              <p className="text-base text-gray-600">
+              <p className="text-base text-text-secondary">
                 No hay acciones correctivas registradas
               </p>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-neutral-500">
                 Agrega acciones correctivas si el productor tiene pendientes
               </p>
             </div>

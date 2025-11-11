@@ -5,32 +5,36 @@ import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { GerenteLayout } from "@/shared/components/layout/GerenteLayout";
 import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
-import { Button } from "@/shared/components/ui";
+import { Button, ConfirmModal } from "@/shared/components/ui";
 import { DepartamentosTable } from "../components/DepartamentosTable";
 import { ProvinciasTable } from "../components/ProvinciasTable";
 import { MunicipiosTable } from "../components/MunicipiosTable";
+import { DepartamentosFilters } from "../components/DepartamentosFilters";
+import { ProvinciasFilters } from "../components/ProvinciasFilters";
+import { MunicipiosFilters } from "../components/MunicipiosFilters";
 import { CreateDepartamentoModal } from "../components/CreateDepartamentoModal";
 import { CreateProvinciaModal } from "../components/CreateProvinciaModal";
 import { CreateMunicipioModal } from "../components/CreateMunicipioModal";
 import { EditDepartamentoModal } from "../components/EditDepartamentoModal";
 import { EditProvinciaModal } from "../components/EditProvinciaModal";
 import { EditMunicipioModal } from "../components/EditMunicipioModal";
-import { ProvinciasSelect } from "../components/ProvinciasSelect";
 import { ComunidadesList } from "@/features/comunidades/components/ComunidadesList";
+import { ComunidadesFilters } from "@/features/comunidades/components/ComunidadesFilters";
 import { CreateComunidadModal } from "@/features/comunidades/components/CreateComunidadModal";
 import { EditComunidadModal } from "@/features/comunidades/components/EditComunidadModal";
 import { useProvincias } from "../hooks/useProvincias";
 import { useMunicipios } from "../hooks/useMunicipios";
 import { useDepartamentos } from "../hooks/useDepartamentos";
-import { useDeleteDepartamento } from "../hooks/useDeleteDepartamento";
-import { useDeleteProvincia } from "../hooks/useDeleteProvincia";
-import { useDeleteMunicipio } from "../hooks/useDeleteMunicipio";
+import { useHardDeleteDepartamento } from "../hooks/useHardDeleteDepartamento";
+import { useHardDeleteProvincia } from "../hooks/useHardDeleteProvincia";
+import { useHardDeleteMunicipio } from "../hooks/useHardDeleteMunicipio";
 import { useComunidades } from "@/features/comunidades/hooks/useComunidades";
 import { useDeleteComunidad } from "@/features/comunidades/hooks/useDeleteComunidad";
+import { useHardDeleteComunidad } from "@/features/comunidades/hooks/useHardDeleteComunidad";
 import { usePermissions } from "@/shared/hooks/usePermissions";
 import { Plus } from "lucide-react";
-import type { Departamento, Provincia, Municipio } from "../types/geografica.types";
-import type { Comunidad } from "@/features/comunidades/types/comunidad.types";
+import type { Departamento, Provincia, Municipio, DepartamentosFilters as DepartamentosFiltersType, ProvinciasFilters as ProvinciasFiltersType, MunicipiosFilters as MunicipiosFiltersType } from "../types/geografica.types";
+import type { Comunidad, ComunidadFilters as ComunidadFiltersType } from "@/features/comunidades/types/comunidad.types";
 
 type TabType = "departamentos" | "provincias" | "municipios" | "comunidades";
 
@@ -55,38 +59,50 @@ export function GeograficasManagePage() {
   const [selectedProvincia, setSelectedProvincia] = useState<Provincia | null>(null);
   const [selectedMunicipio, setSelectedMunicipio] = useState<Municipio | null>(null);
   const [selectedComunidad, setSelectedComunidad] = useState<Comunidad | null>(null);
-  const [selectedProvinciaFilter, setSelectedProvinciaFilter] = useState<
-    string | undefined
-  >();
+
+  // Estados de filtros
+  const [departamentosFilters, setDepartamentosFilters] = useState<DepartamentosFiltersType>({});
+  const [provinciasFilters, setProvinciasFilters] = useState<ProvinciasFiltersType>({});
+  const [municipiosFilters, setMunicipiosFilters] = useState<MunicipiosFiltersType>({});
+  const [comunidadesFilters, setComunidadesFilters] = useState<ComunidadFiltersType>({});
 
   const {
     departamentos,
     isLoading: loadingDepartamentos,
     refetch: refetchDepartamentos,
-  } = useDepartamentos();
+  } = useDepartamentos(departamentosFilters);
 
   const {
     provincias,
     isLoading: loadingProvincias,
     refetch: refetchProvincias,
-  } = useProvincias();
+  } = useProvincias(provinciasFilters);
 
   const {
     municipios,
     isLoading: loadingMunicipios,
     refetch: refetchMunicipios,
-  } = useMunicipios(selectedProvinciaFilter);
+  } = useMunicipios(municipiosFilters);
 
   const {
     comunidades,
     isLoading: loadingComunidades,
     refetch: refetchComunidades,
-  } = useComunidades();
+  } = useComunidades(comunidadesFilters);
 
-  const { deleteDepartamento } = useDeleteDepartamento();
-  const { deleteProvincia } = useDeleteProvincia();
-  const { deleteMunicipio } = useDeleteMunicipio();
+  const { hardDeleteDepartamento, isLoading: isHardDeletingDept } = useHardDeleteDepartamento();
+  const { hardDeleteProvincia, isLoading: isHardDeletingProv } = useHardDeleteProvincia();
+  const { hardDeleteMunicipio, isLoading: isHardDeletingMun } = useHardDeleteMunicipio();
   const { deleteComunidad } = useDeleteComunidad();
+  const { hardDeleteComunidad, isLoading: isHardDeletingCom } = useHardDeleteComunidad();
+
+  // Estados para modales de confirmación
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'soft-delete' | 'hard-delete';
+    entity: 'departamento' | 'provincia' | 'municipio' | 'comunidad';
+    item: any;
+  } | null>(null);
 
   const canCreate = permissions.canAccess("geograficas", "create");
   const canEdit = permissions.canAccess("geograficas", "edit");
@@ -123,49 +139,31 @@ export function GeograficasManagePage() {
     setEditMunicipioModalOpen(true);
   };
 
-  const handleDeleteDepartamento = async (departamento: Departamento) => {
-    if (
-      window.confirm(
-        `¿Estás seguro de que deseas ${departamento.activo ? 'desactivar' : 'activar'} el departamento "${departamento.nombre_departamento}"?`
-      )
-    ) {
-      try {
-        await deleteDepartamento(departamento.id_departamento);
-        refetchDepartamentos();
-      } catch (error) {
-        // Error manejado por el hook
-      }
-    }
+  const handleDeleteDepartamento = (departamento: Departamento) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'hard-delete',
+      entity: 'departamento',
+      item: departamento,
+    });
   };
 
-  const handleDeleteProvincia = async (provincia: Provincia) => {
-    if (
-      window.confirm(
-        `¿Estás seguro de que deseas ${provincia.activo ? 'desactivar' : 'activar'} la provincia "${provincia.nombre_provincia}"?`
-      )
-    ) {
-      try {
-        await deleteProvincia(provincia.id_provincia);
-        refetchProvincias();
-      } catch (error) {
-        // Error manejado por el hook
-      }
-    }
+  const handleDeleteProvincia = (provincia: Provincia) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'hard-delete',
+      entity: 'provincia',
+      item: provincia,
+    });
   };
 
-  const handleDeleteMunicipio = async (municipio: Municipio) => {
-    if (
-      window.confirm(
-        `¿Estás seguro de que deseas ${municipio.activo ? 'desactivar' : 'activar'} el municipio "${municipio.nombre_municipio}"?`
-      )
-    ) {
-      try {
-        await deleteMunicipio(municipio.id_municipio);
-        refetchMunicipios();
-      } catch (error) {
-        // Error manejado por el hook
-      }
-    }
+  const handleDeleteMunicipio = (municipio: Municipio) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'hard-delete',
+      entity: 'municipio',
+      item: municipio,
+    });
   };
 
   const handleEditComunidad = (comunidad: Comunidad) => {
@@ -173,19 +171,124 @@ export function GeograficasManagePage() {
     setEditComunidadModalOpen(true);
   };
 
-  const handleDeleteComunidad = async (comunidad: Comunidad) => {
-    if (
-      window.confirm(
-        `¿Estás seguro de que deseas ${comunidad.activo ? 'desactivar' : 'activar'} la comunidad "${comunidad.nombre_comunidad}"?`
-      )
-    ) {
-      try {
-        await deleteComunidad(comunidad.id_comunidad);
-        refetchComunidades();
-      } catch (error) {
-        // Error manejado por el hook
+  const handleDeleteComunidad = (comunidad: Comunidad) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'hard-delete',
+      entity: 'comunidad',
+      item: comunidad,
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmModal) return;
+
+    const { type, entity, item } = confirmModal;
+
+    try {
+      if (type === 'hard-delete') {
+        switch (entity) {
+          case 'departamento':
+            await hardDeleteDepartamento(item.id_departamento);
+            refetchDepartamentos();
+            break;
+          case 'provincia':
+            await hardDeleteProvincia(item.id_provincia);
+            refetchProvincias();
+            break;
+          case 'municipio':
+            await hardDeleteMunicipio(item.id_municipio);
+            refetchMunicipios();
+            break;
+          case 'comunidad':
+            await hardDeleteComunidad(item.id_comunidad);
+            refetchComunidades();
+            break;
+        }
+      } else if (type === 'soft-delete') {
+        // Soft delete solo para comunidades (no tiene modal de edición todavía)
+        if (entity === 'comunidad') {
+          await deleteComunidad(item.id_comunidad);
+          refetchComunidades();
+        }
+      }
+      setConfirmModal(null);
+    } catch (error) {
+      // Error manejado por los hooks
+    }
+  };
+
+  const getConfirmModalProps = () => {
+    if (!confirmModal) return null;
+
+    const { type, entity, item } = confirmModal;
+    const isHardDelete = type === 'hard-delete';
+
+    let title = '';
+    let message = '';
+    let confirmText = '';
+    let modalType: 'danger' | 'warning' = 'warning';
+
+    if (isHardDelete) {
+      modalType = 'danger';
+      confirmText = 'Eliminar Permanentemente';
+
+      switch (entity) {
+        case 'departamento':
+          title = '¿Eliminar departamento permanentemente?';
+          message = `Esta acción ELIMINARÁ PERMANENTEMENTE "${item.nombre_departamento}" de la base de datos. Esta acción NO se puede deshacer. Solo se puede eliminar si no tiene provincias asociadas.`;
+          break;
+        case 'provincia':
+          title = '¿Eliminar provincia permanentemente?';
+          message = `Esta acción ELIMINARÁ PERMANENTEMENTE "${item.nombre_provincia}" de la base de datos. Esta acción NO se puede deshacer. Solo se puede eliminar si no tiene municipios asociados.`;
+          break;
+        case 'municipio':
+          title = '¿Eliminar municipio permanentemente?';
+          message = `Esta acción ELIMINARÁ PERMANENTEMENTE "${item.nombre_municipio}" de la base de datos. Esta acción NO se puede deshacer. Solo se puede eliminar si no tiene comunidades asociadas.`;
+          break;
+        case 'comunidad':
+          title = '¿Eliminar comunidad permanentemente?';
+          message = `Esta acción ELIMINARÁ PERMANENTEMENTE "${item.nombre_comunidad}" de la base de datos. Esta acción NO se puede deshacer. Solo se puede eliminar si no tiene usuarios ni productores asociados.`;
+          break;
+      }
+    } else {
+      const action = item.activo ? 'desactivar' : 'activar';
+      confirmText = item.activo ? 'Desactivar' : 'Activar';
+
+      switch (entity) {
+        case 'departamento':
+          title = `¿${action.charAt(0).toUpperCase() + action.slice(1)} departamento?`;
+          message = `¿Estás seguro de que deseas ${action} el departamento "${item.nombre_departamento}"?`;
+          break;
+        case 'provincia':
+          title = `¿${action.charAt(0).toUpperCase() + action.slice(1)} provincia?`;
+          message = `¿Estás seguro de que deseas ${action} la provincia "${item.nombre_provincia}"?`;
+          break;
+        case 'municipio':
+          title = `¿${action.charAt(0).toUpperCase() + action.slice(1)} municipio?`;
+          message = `¿Estás seguro de que deseas ${action} el municipio "${item.nombre_municipio}"?`;
+          break;
+        case 'comunidad':
+          title = `¿${action.charAt(0).toUpperCase() + action.slice(1)} comunidad?`;
+          message = `¿Estás seguro de que deseas ${action} la comunidad "${item.nombre_comunidad}"?`;
+          break;
       }
     }
+
+    const isLoading = isHardDelete
+      ? (entity === 'departamento' ? isHardDeletingDept :
+         entity === 'provincia' ? isHardDeletingProv :
+         entity === 'municipio' ? isHardDeletingMun :
+         entity === 'comunidad' ? isHardDeletingCom : false)
+      : false;
+
+    return {
+      title,
+      message,
+      confirmText,
+      type: modalType,
+      isLoading,
+    };
   };
 
   const getTabLabel = () => {
@@ -237,12 +340,12 @@ export function GeograficasManagePage() {
         }
       >
         <div className="space-y-6">
-          {/* Tabs */}
+          {/* Tabs - Responsive con scroll horizontal en móviles */}
           <div className="border-b border-neutral-border">
-            <div className="flex gap-4">
+            <div className="flex gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => setActiveTab("departamentos")}
-                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === "departamentos"
                     ? "border-primary text-primary"
                     : "border-transparent text-text-secondary hover:text-text-primary"
@@ -252,7 +355,7 @@ export function GeograficasManagePage() {
               </button>
               <button
                 onClick={() => setActiveTab("provincias")}
-                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === "provincias"
                     ? "border-primary text-primary"
                     : "border-transparent text-text-secondary hover:text-text-primary"
@@ -262,7 +365,7 @@ export function GeograficasManagePage() {
               </button>
               <button
                 onClick={() => setActiveTab("municipios")}
-                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === "municipios"
                     ? "border-primary text-primary"
                     : "border-transparent text-text-secondary hover:text-text-primary"
@@ -272,7 +375,7 @@ export function GeograficasManagePage() {
               </button>
               <button
                 onClick={() => setActiveTab("comunidades")}
-                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                className={`px-3 sm:px-4 py-2 font-medium text-sm sm:text-base border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === "comunidades"
                     ? "border-primary text-primary"
                     : "border-transparent text-text-secondary hover:text-text-primary"
@@ -286,6 +389,12 @@ export function GeograficasManagePage() {
           {/* Departamentos Tab */}
           {activeTab === "departamentos" && (
             <>
+              <DepartamentosFilters
+                filters={departamentosFilters}
+                onFiltersChange={setDepartamentosFilters}
+                onClearFilters={() => setDepartamentosFilters({})}
+              />
+
               {!loadingDepartamentos && (
                 <div className="text-sm text-text-secondary">
                   Mostrando {departamentos.length} departamentos
@@ -304,6 +413,12 @@ export function GeograficasManagePage() {
           {/* Provincias Tab */}
           {activeTab === "provincias" && (
             <>
+              <ProvinciasFilters
+                filters={provinciasFilters}
+                onFiltersChange={setProvinciasFilters}
+                onClearFilters={() => setProvinciasFilters({})}
+              />
+
               {!loadingProvincias && (
                 <div className="text-sm text-text-secondary">
                   Mostrando {provincias.length} provincias
@@ -322,28 +437,11 @@ export function GeograficasManagePage() {
           {/* Municipios Tab */}
           {activeTab === "municipios" && (
             <>
-              {/* Filtro por provincia */}
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-text-secondary">
-                  Filtrar por provincia:
-                </span>
-                <div className="w-64">
-                  <ProvinciasSelect
-                    value={selectedProvinciaFilter}
-                    onChange={setSelectedProvinciaFilter}
-                    placeholder="Todas las provincias"
-                  />
-                </div>
-                {selectedProvinciaFilter && (
-                  <Button
-                    size="small"
-                    variant="ghost"
-                    onClick={() => setSelectedProvinciaFilter(undefined)}
-                  >
-                    Limpiar
-                  </Button>
-                )}
-              </div>
+              <MunicipiosFilters
+                filters={municipiosFilters}
+                onFiltersChange={setMunicipiosFilters}
+                onClearFilters={() => setMunicipiosFilters({})}
+              />
 
               {!loadingMunicipios && (
                 <div className="text-sm text-text-secondary">
@@ -363,6 +461,12 @@ export function GeograficasManagePage() {
           {/* Comunidades Tab */}
           {activeTab === "comunidades" && (
             <>
+              <ComunidadesFilters
+                filters={comunidadesFilters}
+                onFiltersChange={setComunidadesFilters}
+                onClearFilters={() => setComunidadesFilters({})}
+              />
+
               {!loadingComunidades && (
                 <div className="text-sm text-text-secondary">
                   Mostrando {comunidades.length} comunidades
@@ -432,6 +536,16 @@ export function GeograficasManagePage() {
         comunidad={selectedComunidad}
         onSuccess={handleComunidadSuccess}
       />
+
+      {/* Modal de confirmación */}
+      {confirmModal && getConfirmModalProps() && (
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal(null)}
+          onConfirm={handleConfirmAction}
+          {...getConfirmModalProps()!}
+        />
+      )}
     </Layout>
   );
 }

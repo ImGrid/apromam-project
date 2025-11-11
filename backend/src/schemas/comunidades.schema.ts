@@ -59,6 +59,7 @@ export type ComunidadParams = z.infer<typeof ComunidadParamsSchema>;
 
 // Schema para query params de filtrado
 export const ComunidadQuerySchema = z.object({
+  nombre: z.string().optional(),
   municipio: UUIDSchema.optional(),
   provincia: UUIDSchema.optional(),
   sin_tecnicos: z

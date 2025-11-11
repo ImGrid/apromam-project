@@ -48,7 +48,7 @@ export function FichaArchivosSection({
       setArchivos(data);
       onArchivosChange?.();
     } catch (err) {
-      console.error("Error cargando archivos:", err);
+      // Error al cargar archivos
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +118,6 @@ export function FichaArchivosSection({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(objectUrl);
     } catch (error) {
-      console.error("Error al descargar archivo:", error);
       alert("Error al descargar el archivo");
     }
   };
@@ -162,7 +161,7 @@ export function FichaArchivosSection({
             <div className="mb-4">
               <FileUploadZone
                 onUpload={(file) => handleUpload(file, "croquis")}
-                accept="image/*"
+                accept="image/jpeg,image/png,.jpg,.jpeg,.png"
                 maxSize={5}
                 tipoArchivo="croquis"
                 disabled={isUploading}
@@ -197,7 +196,7 @@ export function FichaArchivosSection({
             <div className="mb-4">
               <FileUploadZone
                 onUpload={(file) => handleUpload(file, "foto_parcela")}
-                accept="image/*"
+                accept="image/jpeg,image/png,.jpg,.jpeg,.png"
                 maxSize={5}
                 tipoArchivo="foto_parcela"
                 disabled={isUploading}

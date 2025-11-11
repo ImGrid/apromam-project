@@ -6,12 +6,13 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Modal, Button, Input, FormField } from "@/shared/components/ui";
+import { Modal, Button, Input, FormField, Checkbox } from "@/shared/components/ui";
 import { useUpdateProvincia } from "../hooks/useUpdateProvincia";
 import type { Provincia } from "../types/geografica.types";
 
 const provinciaSchema = z.object({
   nombre_provincia: z.string().min(3, "Mínimo 3 caracteres"),
+  activo: z.boolean(),
 });
 
 type ProvinciaFormData = z.infer<typeof provinciaSchema>;
@@ -45,6 +46,7 @@ export function EditProvinciaModal({
     if (isOpen && provincia) {
       reset({
         nombre_provincia: provincia.nombre_provincia,
+        activo: provincia.activo,
       });
     }
   }, [isOpen, provincia, reset]);
@@ -99,6 +101,16 @@ export function EditProvinciaModal({
             placeholder="Ej: Santa Cruz"
             disabled={isLoading}
           />
+        </FormField>
+
+        {/* Estado activo */}
+        <FormField label="Estado">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox {...register("activo")} disabled={isLoading} />
+            <span className="text-sm text-text-secondary">
+              Provincia activa
+            </span>
+          </label>
         </FormField>
 
         {/* Botones */}

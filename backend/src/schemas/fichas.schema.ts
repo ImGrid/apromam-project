@@ -123,6 +123,10 @@ export const RevisionDocumentacionSchema = z.object({
   diario_campo: ComplianceStatusSchema,
   registro_cosecha: ComplianceStatusSchema,
   recibo_pago: ComplianceStatusSchema,
+  observaciones_documentacion: z
+    .string()
+    .max(1000, "Observaciones no pueden exceder 1000 caracteres")
+    .nullish(),
 });
 
 export type RevisionDocumentacionInput = z.infer<
@@ -230,7 +234,7 @@ export const ActividadPecuariaSchema = z.object({
   animal_especifico: z
     .string()
     .max(100, "Animal especifico no puede exceder 100 caracteres")
-    .optional(),
+    .nullish(),
   cantidad: z
     .number()
     .int()
@@ -239,14 +243,67 @@ export const ActividadPecuariaSchema = z.object({
   sistema_manejo: z
     .string()
     .max(200, "Sistema de manejo no puede exceder 200 caracteres")
-    .optional(),
+    .nullish(),
   uso_guano: z
     .string()
     .max(500, "Uso de guano no puede exceder 500 caracteres")
-    .optional(),
+    .nullish(),
 });
 
 export type ActividadPecuariaInput = z.infer<typeof ActividadPecuariaSchema>;
+
+// Seccion 12: Planificacion de siembras (proyeccion futura)
+export const PlanificacionSiembraSchema = z.object({
+  id_parcela: UUIDSchema,
+  area_parcela_planificada_ha: z
+    .number()
+    .min(0, "Área planificada no puede ser negativa")
+    .max(10000, "Área planificada no puede exceder 10,000 hectáreas")
+    .default(0),
+  mani_ha: z
+    .number()
+    .min(0, "Superficie de maní no puede ser negativa")
+    .max(10000, "Superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  maiz_ha: z
+    .number()
+    .min(0, "Superficie de maíz no puede ser negativa")
+    .max(10000, "Superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  papa_ha: z
+    .number()
+    .min(0, "Superficie de papa no puede ser negativa")
+    .max(10000, "Superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  aji_ha: z
+    .number()
+    .min(0, "Superficie de ají no puede ser negativa")
+    .max(10000, "Superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  leguminosas_ha: z
+    .number()
+    .min(0, "Superficie de leguminosas no puede ser negativa")
+    .max(10000, "Superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  otros_cultivos_ha: z
+    .number()
+    .min(0, "Superficie de otros cultivos no puede ser negativa")
+    .max(10000, "Superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  otros_cultivos_detalle: z
+    .string()
+    .max(500, "Detalle de otros cultivos no puede exceder 500 caracteres")
+    .nullish(),
+  descanso_ha: z
+    .number()
+    .min(0, "Superficie de descanso no puede ser negativa")
+    .max(10000, "Superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+});
+
+export type PlanificacionSiembraInput = z.infer<
+  typeof PlanificacionSiembraSchema
+>;
 
 // Seccion 4/7: Detalle cultivo por parcela
 // Seccion 4 (todos los cultivos): id_parcela, id_tipo_cultivo, superficie_ha, situacion_actual
@@ -262,32 +319,32 @@ export const DetalleCultivoParcelaSchema = z.object({
   situacion_actual: z
     .string()
     .max(100, "Situacion actual no puede exceder 100 caracteres")
-    .optional(),
+    .nullish(),
 
   // Seccion 7 - Manejo del cultivo (opcional - solo para cultivos certificables)
-  procedencia_semilla: ProcedenciaSemillaSchema.optional(),
-  categoria_semilla: CategoriaSemillaSchema.optional(),
-  tratamiento_semillas: TratamientoSemillasSchema.optional(),
-  tipo_abonamiento: TipoAbonamientoSchema.optional(),
+  procedencia_semilla: ProcedenciaSemillaSchema.nullish(),
+  categoria_semilla: CategoriaSemillaSchema.nullish(),
+  tratamiento_semillas: TratamientoSemillasSchema.nullish(),
+  tipo_abonamiento: TipoAbonamientoSchema.nullish(),
   tipo_abonamiento_otro: z
     .string()
     .max(200, "Abonamiento otro no puede exceder 200 caracteres")
-    .optional(),
-  metodo_aporque: MetodoAporqueSchema.optional(),
+    .nullish(),
+  metodo_aporque: MetodoAporqueSchema.nullish(),
   metodo_aporque_otro: z
     .string()
     .max(200, "Aporque otro no puede exceder 200 caracteres")
-    .optional(),
-  control_hierbas: ControlHierbasSchema.optional(),
+    .nullish(),
+  control_hierbas: ControlHierbasSchema.nullish(),
   control_hierbas_otro: z
     .string()
     .max(200, "Control hierbas otro no puede exceder 200 caracteres")
-    .optional(),
-  metodo_cosecha: MetodoCosechaSchema.optional(),
+    .nullish(),
+  metodo_cosecha: MetodoCosechaSchema.nullish(),
   metodo_cosecha_otro: z
     .string()
     .max(200, "Cosecha otro no puede exceder 200 caracteres")
-    .optional(),
+    .nullish(),
 });
 
 export type DetalleCultivoParcelaInput = z.infer<
@@ -426,6 +483,7 @@ export const CreateFichaSchema = z.object({
   detalle_cultivos_parcelas: z.array(DetalleCultivoParcelaSchema).optional(),
   cosecha_ventas: z.array(CosechaVentasSchema).optional(),
   parcelas_inspeccionadas: z.array(ParcelaInspeccionadaSchema).optional(),
+  planificacion_siembras: z.array(PlanificacionSiembraSchema).optional(),
 
   // Comentarios adicionales (opcional)
   comentarios_actividad_pecuaria: z
@@ -463,6 +521,7 @@ export const UpdateFichaSchema = z.object({
   detalle_cultivos_parcelas: z.array(DetalleCultivoParcelaSchema).optional(),
   cosecha_ventas: z.array(CosechaVentasSchema).optional(),
   parcelas_inspeccionadas: z.array(ParcelaInspeccionadaSchema).optional(),
+  planificacion_siembras: z.array(PlanificacionSiembraSchema).optional(),
   comentarios_actividad_pecuaria: z
     .string()
     .max(1000, "Comentarios actividad pecuaria no pueden exceder 1000 caracteres")
@@ -510,6 +569,7 @@ export const UpdateFichaCompletaSchema = z.object({
   parcelas_inspeccionadas: z
     .array(ParcelaInspeccionadaSchema)
     .default([]),
+  planificacion_siembras: z.array(PlanificacionSiembraSchema).default([]),
 });
 
 export type UpdateFichaCompletaInput = z.infer<
@@ -533,6 +593,11 @@ export const FichaQuerySchema = z.object({
   productor: z.string().optional(),
   comunidad: UUIDSchema.optional(),
   estado_sync: EstadoSyncSchema.optional(),
+  // Filtros avanzados
+  inspector_interno: z.string().optional(),
+  resultado_certificacion: ResultadoCertificacionSchema.optional(),
+  fecha_desde: z.string().optional(),
+  fecha_hasta: z.string().optional(),
   // Paginacion
   page: z
     .string()

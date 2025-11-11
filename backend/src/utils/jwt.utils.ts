@@ -9,7 +9,8 @@ export interface AccessTokenPayload {
   userId: string;
   username: string;
   role: string;
-  comunidadId?: string;
+  comunidadesIds?: string[];
+  permisos?: Record<string, any>;
   type: "access";
 }
 
@@ -403,7 +404,6 @@ export function isTokenBlacklisted(token: string): boolean {
 // Se debe ejecutar periodicamente (ej: cada hora)
 // En produccion con Redis esto se maneja automaticamente con TTL
 export function cleanupBlacklist(): void {
-  const now = Math.floor(Date.now() / 1000);
   let cleaned = 0;
 
   // Nota: En in-memory no podemos saber si expiro sin el token completo

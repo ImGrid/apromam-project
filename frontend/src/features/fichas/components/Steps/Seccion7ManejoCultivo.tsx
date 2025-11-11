@@ -128,8 +128,8 @@ export default function Seccion7ManejoCultivo({
   ];
 
   return (
-    <div className="mt-4 pt-4 border-t border-gray-200">
-      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+    <div className="mt-4 pt-4 border-t border-neutral-200">
+      <h4 className="text-sm font-semibold text-neutral-700 mb-3">
         Manejo del cultivo de maní
       </h4>
 
@@ -163,7 +163,7 @@ export default function Seccion7ManejoCultivo({
                   <input
                     type="text"
                     placeholder="Describa..."
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-md focus:ring-2 focus:ring-info-500 focus:border-info-500"
                     {...register(`detalles_cultivo.${index}.${config.campoOtro}`)}
                   />
                 </FormField>

@@ -5,18 +5,22 @@
  * Con sistema de borradores: auto-save, recuperación y sincronización
  */
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { showToast } from "@/shared/hooks/useToast";
 import { useGestionActiva } from "@/features/configuracion/hooks/useGestionActiva";
+import { productoresService } from "@/features/productores/services/productores.service";
 import {
   useFichaFormActions,
   useCurrentStep,
   useIsDirty,
   useIsAutosaving,
 } from "../../stores/fichaFormStore";
-import { fichaCompletaFormSchema, fichaCompletaSchema } from "../../schemas/ficha.schemas";
+import {
+  fichaCompletaFormSchema,
+  fichaCompletaSchema,
+} from "../../schemas/ficha.schemas";
 import type {
   FichaCompleta,
   CreateFichaCompletaInput,
@@ -117,6 +121,7 @@ export default function FichaMultiStepForm({
           observaciones: "",
         },
       ],
+      planificacion_siembras: [],
     },
   });
 
@@ -156,7 +161,12 @@ export default function FichaMultiStepForm({
     codigoProductor,
     gestion,
     currentStep,
-    enabled: mode === "create" && !!codigoProductor && !!gestion && !isLoadingDraft && !draft,
+    enabled:
+      mode === "create" &&
+      !!codigoProductor &&
+      !!gestion &&
+      !isLoadingDraft &&
+      !draft,
   });
 
   // Sincronizar datos del formulario con Zustand
@@ -187,16 +197,18 @@ export default function FichaMultiStepForm({
       if (draftData.cosecha_ventas) {
         if (draftData.cosecha_ventas.length === 0) {
           // Si está vacío, inicializar con 1 registro
-          draftData.cosecha_ventas = [{
-            tipo_mani: "ecologico",
-            superficie_actual_ha: 0,
-            cosecha_estimada_qq: 0,
-            numero_parcelas: 0,
-            destino_consumo_qq: 0,
-            destino_semilla_qq: 0,
-            destino_ventas_qq: 0,
-            observaciones: "",
-          }];
+          draftData.cosecha_ventas = [
+            {
+              tipo_mani: "ecologico",
+              superficie_actual_ha: 0,
+              cosecha_estimada_qq: 0,
+              numero_parcelas: 0,
+              destino_consumo_qq: 0,
+              destino_semilla_qq: 0,
+              destino_ventas_qq: 0,
+              observaciones: "",
+            },
+          ];
         } else if (draftData.cosecha_ventas.length > 1) {
           // Si hay más de 1, mantener solo el primero
           draftData.cosecha_ventas = [draftData.cosecha_ventas[0]];
@@ -214,7 +226,7 @@ export default function FichaMultiStepForm({
         keepIsSubmitted: false,
         keepTouched: false,
         keepIsValid: false,
-        keepSubmitCount: false
+        keepSubmitCount: false,
       });
 
       // Ir al step guardado
@@ -232,15 +244,25 @@ export default function FichaMultiStepForm({
     rejectDraft();
   };
 
+  // Helper para aplicar "N/A" solo a campos vacíos
+  const applyNA = (value: string | undefined | null): string => {
+    // Si el valor existe y no está vacío después de trim, retornar el valor
+    if (value && value.trim().length > 0) {
+      return value.trim();
+    }
+    // Si está vacío, null o undefined, retornar "N/A"
+    return "N/A";
+  };
+
   // Handler para submit final
   const handleFormSubmit = async (data: CreateFichaCompletaInput) => {
     // Transformar de estructura frontend a estructura backend
     const {
-      parcelas_inspeccionadas,  // NO se envía (se envían al finalizar)
-      ficha,                    // Se aplana al root
-      evaluacion_conocimiento,  // Se renombra
-      detalles_cultivo,         // Se renombra
-      no_conformidades,         // Se transforma
+      ficha, // Se aplana al root
+      evaluacion_conocimiento, // Se renombra
+      detalles_cultivo, // Se renombra
+      no_conformidades, // Se transforma
+      coordenadas_domicilio, // Coordenadas del productor (se actualizan aparte)
       ...rest
     } = data;
 
@@ -250,6 +272,42 @@ export default function FichaMultiStepForm({
       fecha_limite_implementacion: nc.fecha_limite_implementacion
         ? new Date(nc.fecha_limite_implementacion).toISOString()
         : undefined,
+      accion_correctiva_propuesta: applyNA(nc.accion_correctiva_propuesta),
+    }));
+
+    // Aplicar "N/A" a campos opcionales en acciones correctivas
+    const accionesCorrectivasTransformadas = rest.acciones_correctivas?.map((ac) => ({
+      ...ac,
+      implementacion_descripcion: applyNA(ac.implementacion_descripcion),
+    }));
+
+    // Aplicar "N/A" a campos opcionales en actividades pecuarias
+    const actividadesPecuariasTransformadas = rest.actividades_pecuarias?.map((ap) => ({
+      ...ap,
+      animal_especifico: applyNA(ap.animal_especifico),
+      sistema_manejo: applyNA(ap.sistema_manejo),
+      uso_guano: applyNA(ap.uso_guano),
+    }));
+
+    // Aplicar "N/A" SOLO al campo de texto libre situacion_actual
+    // NO aplicar a campos ENUM (procedencia_semilla, tipo_abonamiento, etc.)
+    const detallesCultivoTransformados = detalles_cultivo?.map((dc) => ({
+      ...dc,
+      situacion_actual: dc.situacion_actual && dc.situacion_actual.trim().length > 0
+        ? dc.situacion_actual.trim()
+        : "N/A",
+    }));
+
+    // Aplicar "N/A" a campos opcionales en parcelas inspeccionadas
+    const parcelasInspeccionadasTransformadas = rest.parcelas_inspeccionadas?.map((pi) => ({
+      ...pi,
+      insumos_organicos: applyNA(pi.insumos_organicos),
+    }));
+
+    // Aplicar "N/A" a campos opcionales en cosecha y ventas
+    const cosechaVentasTransformada = rest.cosecha_ventas?.map((cv) => ({
+      ...cv,
+      observaciones: applyNA(cv.observaciones),
     }));
 
     const dataToSend = {
@@ -260,24 +318,78 @@ export default function FichaMultiStepForm({
       // Maneja tanto "YYYY-MM-DD" (create) como "YYYY-MM-DDTHH:mm:ss.sssZ" (edit)
       fecha_inspeccion: ficha.fecha_inspeccion
         ? new Date(ficha.fecha_inspeccion).toISOString()
-        : '',
+        : "",
+
+      // Aplicar "N/A" a comentarios de ficha principal
+      comentarios_actividad_pecuaria: applyNA(ficha.comentarios_actividad_pecuaria),
 
       // Renombrar campos que tienen nombres diferentes en backend
-      evaluacion_conocimiento_normas: evaluacion_conocimiento,
-      detalle_cultivos_parcelas: detalles_cultivo,
+      evaluacion_conocimiento_normas: evaluacion_conocimiento ? {
+        ...evaluacion_conocimiento,
+        comentarios_conocimiento: applyNA(evaluacion_conocimiento.comentarios_conocimiento),
+      } : undefined,
+      detalle_cultivos_parcelas: detallesCultivoTransformados,
 
-      // Incluir no_conformidades con fechas transformadas
+      // Incluir no_conformidades con fechas y N/A transformados
       no_conformidades: no_conformidadesTransformadas,
 
-      // Resto de secciones (nombres correctos)
-      ...rest
+      // Incluir acciones correctivas con N/A
+      acciones_correctivas: accionesCorrectivasTransformadas,
+
+      // Incluir actividades pecuarias con N/A
+      actividades_pecuarias: actividadesPecuariasTransformadas,
+
+      // Incluir parcelas inspeccionadas con N/A
+      parcelas_inspeccionadas: parcelasInspeccionadasTransformadas,
+
+      // Incluir cosecha ventas con N/A
+      cosecha_ventas: cosechaVentasTransformada,
+
+      // Aplicar "N/A" a campos de secciones opcionales
+      revision_documentacion: rest.revision_documentacion ? {
+        ...rest.revision_documentacion,
+        observaciones_documentacion: applyNA(rest.revision_documentacion.observaciones_documentacion),
+      } : undefined,
+
+      evaluacion_mitigacion: rest.evaluacion_mitigacion ? {
+        ...rest.evaluacion_mitigacion,
+        practica_mitigacion_riesgos_descripcion: applyNA(rest.evaluacion_mitigacion.practica_mitigacion_riesgos_descripcion),
+        mitigacion_contaminacion_descripcion: applyNA(rest.evaluacion_mitigacion.mitigacion_contaminacion_descripcion),
+      } : undefined,
+
+      evaluacion_poscosecha: rest.evaluacion_poscosecha ? {
+        ...rest.evaluacion_poscosecha,
+        comentarios_poscosecha: applyNA(rest.evaluacion_poscosecha.comentarios_poscosecha),
+      } : undefined,
+
+      // Incluir planificacion_siembras (Step 12)
+      planificacion_siembras: rest.planificacion_siembras,
     };
 
     try {
+      // 1. Actualizar coordenadas del productor si existen
+      if (coordenadas_domicilio && ficha.codigo_productor &&
+          (coordenadas_domicilio.latitud !== 0 || coordenadas_domicilio.longitud !== 0)) {
+        try {
+          await productoresService.updateProductor(
+            ficha.codigo_productor,
+            {
+              coordenadas: {
+                latitud: coordenadas_domicilio.latitud,
+                longitud: coordenadas_domicilio.longitud,
+                altitud: coordenadas_domicilio.altitud,
+              },
+            }
+          );
+        } catch (error) {
+          showToast.warning("Ficha guardada, pero no se pudieron actualizar las coordenadas del productor");
+        }
+      }
+
+      // 2. Enviar la ficha
       await onSubmit(dataToSend);
       actions.resetForm();
     } catch (err) {
-      console.error("[ENVIAR] Error al enviar ficha:", err);
       showToast.error("Error al enviar la ficha");
     }
   };
@@ -297,12 +409,9 @@ export default function FichaMultiStepForm({
 
     // Si hay ERRORES críticos, NO permitir avanzar
     if (validation.hasErrors) {
-      showToast.error(
-        `Completa los campos obligatorios antes de continuar`,
-        {
-          duration: 5000,
-        }
-      );
+      showToast.error(`Completa los campos obligatorios antes de continuar`, {
+        duration: 5000,
+      });
 
       // Scroll al primer campo con error
       if (validation.errors.length > 0) {
@@ -310,24 +419,26 @@ export default function FichaMultiStepForm({
 
         // Intentar hacer scroll al campo
         setTimeout(() => {
-          const fieldElement = document.querySelector(`[name="${firstErrorField}"]`);
+          const fieldElement = document.querySelector(
+            `[name="${firstErrorField}"]`
+          );
           if (fieldElement) {
-            fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            fieldElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
           }
         }, 100);
       }
 
-      return; // ❌ BLOQUEAR NAVEGACIÓN
+      return;
     }
 
     // Si hay WARNINGS (pero no errores), permitir avanzar con notificación
     if (validation.hasWarnings) {
-      showToast.warning(
-        `Hay campos recomendados sin completar`,
-        {
-          duration: 3000,
-        }
-      );
+      showToast.warning(`Hay campos recomendados sin completar`, {
+        duration: 3000,
+      });
 
       // ✅ PERMITIR NAVEGACIÓN (warning no bloquea)
     }
@@ -359,7 +470,9 @@ export default function FichaMultiStepForm({
       <DraftRecoveryModal
         isOpen={!!draft}
         codigoProductor={codigoProductor || ""}
-        gestion={gestion || gestionActiva?.anio_gestion || new Date().getFullYear()}
+        gestion={
+          gestion || gestionActiva?.anio_gestion || new Date().getFullYear()
+        }
         stepActual={draft?.step_actual || 1}
         updatedAt={draft?.updated_at || new Date().toISOString()}
         onAccept={handleAcceptDraft}
@@ -378,19 +491,21 @@ export default function FichaMultiStepForm({
       />
 
       {/* Step Content */}
-      <div className="flex-1 overflow-y-auto pb-20">
+      <div className="flex-1 pb-20 overflow-y-auto">
         <div className="p-4 sm:p-6 lg:p-8">
           {/* Mostrar errores globales si existen - Solo errores con mensaje directo */}
           {Object.entries(errors).some(
             ([_, error]) => error && typeof error.message === "string"
           ) && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <h3 className="text-sm font-semibold text-red-800 mb-2">
+            <div className="p-4 mb-4 border rounded-lg bg-error-50 border-error-200">
+              <h3 className="mb-2 text-sm font-semibold text-error-800">
                 Errores de validación:
               </h3>
-              <ul className="text-sm text-red-700 list-disc list-inside">
+              <ul className="text-sm list-disc list-inside text-error-700">
                 {Object.entries(errors)
-                  .filter(([_, error]) => error && typeof error.message === "string")
+                  .filter(
+                    ([_, error]) => error && typeof error.message === "string"
+                  )
                   .map(([field, error]) => (
                     <li key={field}>
                       {field}: {error?.message?.toString()}

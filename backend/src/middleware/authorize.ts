@@ -155,7 +155,7 @@ export function requirePermission(requiredPermission: string) {
 }
 
 // Middleware para verificar acceso a comunidad especifica
-// Los tecnicos solo pueden acceder a su comunidad asignada
+// Los tecnicos solo pueden acceder a sus comunidades asignadas (N:N)
 // Gerentes y admins tienen acceso a todas las comunidades
 // getComunidadId: funcion que extrae el ID de comunidad del request
 // Ejemplo: requireComunidadAccess((req) => req.params.comunidadId)
@@ -172,7 +172,7 @@ export function requireComunidadAccess(
     }
 
     const userRole = request.user.role?.toLowerCase();
-    const userComunidadId = request.user.comunidadId;
+    const userComunidadesIds = request.user.comunidadesIds;
     const targetComunidadId = getComunidadId(request);
 
     // Admin tiene acceso a todas las comunidades
@@ -200,33 +200,33 @@ export function requireComunidadAccess(
       return;
     }
 
-    // Tecnico solo puede acceder a su comunidad asignada
+    // Tecnico solo puede acceder a sus comunidades asignadas
     if (userRole === ROLES.TECNICO) {
-      if (!userComunidadId) {
+      if (!userComunidadesIds || userComunidadesIds.length === 0) {
         logger.error(
           {
             user_id: request.user.userId,
             user_role: userRole,
           },
-          "Técnico without assigned comunidad"
+          "Técnico without assigned comunidades"
         );
 
         return reply.code(403).send({
           error: "forbidden",
-          message: "Técnico sin comunidad asignada",
+          message: "Técnico sin comunidades asignadas",
           timestamp: new Date().toISOString(),
         });
       }
 
-      // Verificar que este accediendo a su propia comunidad
-      if (targetComunidadId && targetComunidadId !== userComunidadId) {
+      // Verificar que este accediendo a una de sus comunidades asignadas
+      if (targetComunidadId && !userComunidadesIds.includes(targetComunidadId)) {
         logger.warn(
           {
             user_id: request.user.userId,
-            user_comunidad: userComunidadId,
+            user_comunidades: userComunidadesIds,
             target_comunidad: targetComunidadId,
           },
-          "Comunidad access denied: Técnico accessing different comunidad"
+          "Comunidad access denied: Técnico accessing non-assigned comunidad"
         );
 
         return reply.code(403).send({
@@ -239,9 +239,9 @@ export function requireComunidadAccess(
       logger.debug(
         {
           user_id: request.user.userId,
-          comunidad_id: userComunidadId,
+          comunidades_ids: userComunidadesIds,
         },
-        "Comunidad access granted: Técnico accessing own comunidad"
+        "Comunidad access granted: Técnico accessing assigned comunidad"
       );
       return;
     }

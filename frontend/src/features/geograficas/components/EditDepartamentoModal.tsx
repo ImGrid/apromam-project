@@ -6,12 +6,13 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Modal, Button, Input, FormField } from "@/shared/components/ui";
+import { Modal, Button, Input, FormField, Checkbox } from "@/shared/components/ui";
 import { useUpdateDepartamento } from "../hooks/useUpdateDepartamento";
 import type { Departamento } from "../types/geografica.types";
 
 const departamentoSchema = z.object({
   nombre_departamento: z.string().min(3, "Mínimo 3 caracteres"),
+  activo: z.boolean(),
 });
 
 type DepartamentoFormData = z.infer<typeof departamentoSchema>;
@@ -45,6 +46,7 @@ export function EditDepartamentoModal({
     if (isOpen && departamento) {
       reset({
         nombre_departamento: departamento.nombre_departamento,
+        activo: departamento.activo,
       });
     }
   }, [isOpen, departamento, reset]);
@@ -108,6 +110,16 @@ export function EditDepartamentoModal({
             placeholder="Ej: Chuquisaca"
             disabled={isLoading}
           />
+        </FormField>
+
+        {/* Estado activo */}
+        <FormField label="Estado">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox {...register("activo")} disabled={isLoading} />
+            <span className="text-sm text-text-secondary">
+              Departamento activo
+            </span>
+          </label>
         </FormField>
 
         {/* Botones */}

@@ -19,7 +19,9 @@ export function MunicipiosSelect({
   disabled = false,
   error,
 }: MunicipiosSelectProps) {
-  const { municipios, isLoading } = useMunicipios(provinciaId);
+  const { municipios, isLoading } = useMunicipios(
+    provinciaId ? { provincia: provinciaId } : undefined
+  );
 
   const options: SelectOption[] = municipios
     .filter((m) => m.activo)
@@ -38,9 +40,9 @@ export function MunicipiosSelect({
       onChange={onChange}
       placeholder={
         isLoading
-          ? "Cargando municipios..."
+          ? "Cargando..."
           : !provinciaId
-          ? "Primero selecciona una provincia"
+          ? "Selecciona provincia"
           : placeholder
       }
       disabled={isDisabled}

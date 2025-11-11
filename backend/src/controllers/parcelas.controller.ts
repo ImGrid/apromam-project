@@ -5,7 +5,6 @@ import type {
   UpdateParcelaInput,
   ParcelaParams,
   ProductorParcelaParams,
-  ProximitySearchParcelaInput,
 } from "../schemas/parcelas.schema.js";
 
 // Controlador para endpoints de parcelas
@@ -23,14 +22,14 @@ export class ParcelasController {
   ) {
     try {
       const { codigo } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const result = await this.parcelasService.listParcelasByProductor(
         codigo,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -71,14 +70,14 @@ export class ParcelasController {
   ) {
     try {
       const { id } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const parcela = await this.parcelasService.getParcelaById(
         id,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -109,37 +108,6 @@ export class ParcelasController {
     }
   }
 
-  // POST /api/parcelas/nearby
-  // Busca parcelas cercanas a una ubicacion GPS
-  // Tecnico: solo de su comunidad
-  // Gerente/Admin: de todas las comunidades
-  async searchNearby(
-    request: FastifyRequest<{ Body: ProximitySearchParcelaInput }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esAdminOGerente =
-        request.user?.role === "administrador" ||
-        request.user?.role === "gerente";
-
-      const result = await this.parcelasService.searchNearby(
-        request.body,
-        usuarioComunidadId,
-        esAdminOGerente
-      );
-
-      return reply.status(200).send(result);
-    } catch (error) {
-      request.log.error(error, "Error searching nearby parcelas");
-      return reply.status(500).send({
-        error: "internal_server_error",
-        message: "Error al buscar parcelas cercanas",
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
   // POST /api/productores/:codigo/parcelas
   // Crea una nueva parcela para un productor
   // Tecnico: solo para productores de su comunidad
@@ -153,7 +121,7 @@ export class ParcelasController {
   ) {
     try {
       const { codigo } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -166,7 +134,7 @@ export class ParcelasController {
 
       const parcela = await this.parcelasService.createParcela(
         input,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -220,7 +188,7 @@ export class ParcelasController {
   ) {
     try {
       const { id } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
@@ -228,7 +196,7 @@ export class ParcelasController {
       const parcela = await this.parcelasService.updateParcela(
         id,
         request.body,
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -296,13 +264,13 @@ export class ParcelasController {
   // Gerente/Admin: estadisticas globales
   async getEstadisticas(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const estadisticas = await this.parcelasService.getEstadisticas(
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 
@@ -324,13 +292,13 @@ export class ParcelasController {
   // Gerente/Admin: todas
   async listSinCoordenadas(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const usuarioComunidadId = request.user?.comunidadId;
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
       const esAdminOGerente =
         request.user?.role === "administrador" ||
         request.user?.role === "gerente";
 
       const result = await this.parcelasService.listParcelasSinCoordenadas(
-        usuarioComunidadId,
+        usuarioComunidadesIds,
         esAdminOGerente
       );
 

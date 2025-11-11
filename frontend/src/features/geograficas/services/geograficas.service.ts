@@ -9,11 +9,14 @@ import type {
   UpdateProvinciaInput,
   CreateMunicipioInput,
   UpdateMunicipioInput,
+  DepartamentosFilters,
+  ProvinciasFilters,
+  MunicipiosFilters,
 } from "../types/geografica.types";
 
 export const geograficasService = {
   // Departamentos
-  async listDepartamentos(): Promise<{
+  async listDepartamentos(filters?: DepartamentosFilters): Promise<{
     departamentos: Departamento[];
     total: number;
   }> {
@@ -21,7 +24,7 @@ export const geograficasService = {
       const response = await apiClient.get<{
         departamentos: Departamento[];
         total: number;
-      }>(ENDPOINTS.GEOGRAFICAS.DEPARTAMENTOS);
+      }>(ENDPOINTS.GEOGRAFICAS.DEPARTAMENTOS, { params: filters });
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
@@ -74,13 +77,21 @@ export const geograficasService = {
     }
   },
 
+  async hardDeleteDepartamento(id: string): Promise<void> {
+    try {
+      await apiClient.delete(ENDPOINTS.GEOGRAFICAS.DEPARTAMENTOS_PERMANENT(id));
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
   // Provincias
-  async listProvincias(): Promise<{ provincias: Provincia[]; total: number }> {
+  async listProvincias(filters?: ProvinciasFilters): Promise<{ provincias: Provincia[]; total: number }> {
     try {
       const response = await apiClient.get<{
         provincias: Provincia[];
         total: number;
-      }>(ENDPOINTS.GEOGRAFICAS.PROVINCIAS);
+      }>(ENDPOINTS.GEOGRAFICAS.PROVINCIAS, { params: filters });
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
@@ -133,16 +144,21 @@ export const geograficasService = {
     }
   },
 
-  // Municipios
-  async listMunicipios(
-    provinciaId?: string
-  ): Promise<{ municipios: Municipio[]; total: number }> {
+  async hardDeleteProvincia(id: string): Promise<void> {
     try {
-      const params = provinciaId ? { provincia_id: provinciaId } : undefined;
+      await apiClient.delete(ENDPOINTS.GEOGRAFICAS.PROVINCIAS_PERMANENT(id));
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  // Municipios
+  async listMunicipios(filters?: MunicipiosFilters): Promise<{ municipios: Municipio[]; total: number }> {
+    try {
       const response = await apiClient.get<{
         municipios: Municipio[];
         total: number;
-      }>(ENDPOINTS.GEOGRAFICAS.MUNICIPIOS, { params });
+      }>(ENDPOINTS.GEOGRAFICAS.MUNICIPIOS, { params: filters });
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
@@ -190,6 +206,14 @@ export const geograficasService = {
   async deleteMunicipio(id: string): Promise<void> {
     try {
       await apiClient.delete(ENDPOINTS.GEOGRAFICAS.MUNICIPIOS_BY_ID(id));
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async hardDeleteMunicipio(id: string): Promise<void> {
+    try {
+      await apiClient.delete(ENDPOINTS.GEOGRAFICAS.MUNICIPIOS_PERMANENT(id));
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }

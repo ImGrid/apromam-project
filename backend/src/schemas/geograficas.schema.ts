@@ -164,7 +164,44 @@ export const GeograficaParamsSchema = z.object({
 
 export type GeograficaParams = z.infer<typeof GeograficaParamsSchema>;
 
-// Schema para query params de filtrado
+// Schemas para query params de filtrado por entidad
+
+// Schema para filtrar departamentos
+export const DepartamentoQuerySchema = z.object({
+  nombre: z.string().optional(),
+  activo: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
+});
+
+export type DepartamentoQuery = z.infer<typeof DepartamentoQuerySchema>;
+
+// Schema para filtrar provincias
+export const ProvinciaQuerySchema = z.object({
+  nombre: z.string().optional(),
+  departamento: UUIDSchema.optional(),
+  activo: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
+});
+
+export type ProvinciaQuery = z.infer<typeof ProvinciaQuerySchema>;
+
+// Schema para filtrar municipios
+export const MunicipioQuerySchema = z.object({
+  nombre: z.string().optional(),
+  provincia: UUIDSchema.optional(),
+  activo: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
+});
+
+export type MunicipioQuery = z.infer<typeof MunicipioQuerySchema>;
+
+// Schema generico para compatibilidad (deprecated, usar los especificos)
 export const GeograficaQuerySchema = z.object({
   departamento: UUIDSchema.optional(),
   provincia: UUIDSchema.optional(),

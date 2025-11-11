@@ -6,8 +6,11 @@ export interface Usuario {
   nombre_completo: string;
   id_rol: string;
   nombre_rol: string;
-  id_comunidad?: string;
-  nombre_comunidad?: string;
+  comunidades_ids?: string[];
+  comunidades?: Array<{
+    id_comunidad: string;
+    nombre_comunidad: string;
+  }>;
   activo: boolean;
   created_at: string;
   updated_at: string;
@@ -21,23 +24,23 @@ export interface CreateUsuarioInput {
   password: string;
   nombre_completo: string;
   id_rol: string;
-  id_comunidad?: string;
+  comunidades_ids?: string[];
 }
 
 // Datos para actualizar usuario
 export interface UpdateUsuarioInput {
   email?: string;
   nombre_completo?: string;
-  id_comunidad?: string | null;
+  comunidades_ids?: string[];
   activo?: boolean;
 }
 
 // Filtros para listado
 export interface UsuarioFilters {
+  nombre?: string;
   rol?: string;
-  comunidad_id?: string;
+  comunidad?: string;
   activo?: boolean;
-  search?: string;
 }
 
 // Respuesta del backend con lista

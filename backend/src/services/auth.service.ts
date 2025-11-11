@@ -143,12 +143,18 @@ export class AuthService {
       "User registered successfully"
     );
 
+    // Obtener comunidades asignadas (N:N)
+    const comunidadesIds = await this.usuarioRepository.findComunidadesByUsuario(
+      usuarioCreado.id
+    );
+
     // Generar los tokens JWT para autenticacion
     const tokens = generateTokenPair({
       userId: usuarioCreado.id,
       username: usuarioCreado.username,
       role: usuarioCreado.nombreRol || "unknown",
-      comunidadId: usuarioCreado.idComunidad || undefined,
+      comunidadesIds: comunidadesIds.length > 0 ? comunidadesIds : undefined,
+      permisos: rol.permisos || {},
     });
 
     return {
@@ -233,12 +239,22 @@ export class AuthService {
         logger.error({ error: err.message }, "Failed to update last_login")
       );
 
+    // Obtener comunidades asignadas (N:N)
+    const comunidadesIds = await this.usuarioRepository.findComunidadesByUsuario(
+      usuario.id
+    );
+
+    // Obtener permisos del rol del usuario
+    const rol = await this.rolRepository.findById(usuario.idRol);
+    const permisos = rol?.permisos || {};
+
     // Generar tokens JWT para la sesion
     const tokens = generateTokenPair({
       userId: usuario.id,
       username: usuario.username,
       role: usuario.nombreRol || "unknown",
-      comunidadId: usuario.idComunidad || undefined,
+      comunidadesIds: comunidadesIds.length > 0 ? comunidadesIds : undefined,
+      permisos,
     });
 
     return {
@@ -293,12 +309,22 @@ export class AuthService {
       throw new Error("Usuario inactivo");
     }
 
+    // Obtener comunidades asignadas (N:N)
+    const comunidadesIds = await this.usuarioRepository.findComunidadesByUsuario(
+      usuario.id
+    );
+
+    // Obtener permisos del rol del usuario
+    const rol = await this.rolRepository.findById(usuario.idRol);
+    const permisos = rol?.permisos || {};
+
     // Generar nuevo access token con datos actualizados
     const tokens = generateTokenPair({
       userId: usuario.id,
       username: usuario.username,
       role: usuario.nombreRol || "unknown",
-      comunidadId: usuario.idComunidad || undefined,
+      comunidadesIds: comunidadesIds.length > 0 ? comunidadesIds : undefined,
+      permisos,
     });
 
     logger.info(

@@ -9,8 +9,11 @@ export interface User {
   nombre_completo: string;
   id_rol: string;
   nombre_rol: string;
-  id_comunidad?: string;
-  nombre_comunidad?: string;
+  comunidades_ids?: string[];
+  comunidades?: Array<{
+    id_comunidad: string;
+    nombre_comunidad: string;
+  }>;
   activo: boolean;
   created_at: string;
   updated_at: string;
@@ -42,7 +45,7 @@ export interface JWTPayload {
   userId: string;
   username: string;
   role: string;
-  comunidadId?: string;
+  comunidadesIds?: string[];
   iat: number; // Issued at (timestamp)
   exp: number; // Expiration (timestamp)
 }
@@ -56,7 +59,7 @@ export interface RegisterInput {
   password: string;
   nombre_completo: string;
   id_rol: string;
-  id_comunidad?: string;
+  comunidades_ids?: string[];
 }
 
 /**

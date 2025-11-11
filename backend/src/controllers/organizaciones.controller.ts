@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { OrganizacionesService } from "../services/organizaciones.service.js";
-import type {
+import {
   CreateOrganizacionInput,
   UpdateOrganizacionInput,
   OrganizacionParams,

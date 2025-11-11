@@ -226,10 +226,10 @@ export const fichasService = {
         message: 'Borrador guardado en servidor',
       };
     } catch (error) {
-      console.error('[API] Error al guardar borrador:', error);
       return {
         success: false,
         message: 'Error al guardar en servidor',
+        error,
       };
     }
   },
@@ -251,7 +251,6 @@ export const fichasService = {
       if (error.response?.status === 404) {
         return null;
       }
-      console.error('[API] Error al obtener borrador:', error);
       return null;
     }
   },
@@ -264,7 +263,6 @@ export const fichasService = {
       const response = await apiClient.get(`${BASE_URL}/draft/my-drafts`);
       return response.data.drafts || [];
     } catch (error) {
-      console.error('[API] Error al listar borradores:', error);
       return [];
     }
   },
@@ -276,7 +274,6 @@ export const fichasService = {
     try {
       await apiClient.delete(`${BASE_URL}/draft/${draftId}`);
     } catch (error) {
-      console.error('[API] Error al eliminar borrador:', error);
       throw error;
     }
   },
@@ -313,7 +310,6 @@ export const fichasService = {
       });
       return response.data;
     } catch (error) {
-      console.error('[API] Error al verificar si ficha existe:', error);
       throw error;
     }
   },

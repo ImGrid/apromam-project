@@ -54,7 +54,7 @@ export default function Step6ActividadPecuaria() {
         <div className="hidden overflow-hidden border rounded-lg md:block border-neutral-border">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-neutral-border">
+              <tr className="bg-neutral-50 border-b border-neutral-border">
                 <th className="px-4 py-3 text-sm font-semibold text-left text-text-primary w-[15%]">
                   Tipo de Ganado
                 </th>
@@ -89,7 +89,7 @@ export default function Step6ActividadPecuaria() {
                 fields.map((field, index) => (
                   <tr
                     key={field.id}
-                    className={`hover:bg-gray-50 transition-colors ${
+                    className={`hover:bg-neutral-50 transition-colors ${
                       index !== fields.length - 1
                         ? "border-b border-neutral-border"
                         : ""
@@ -251,10 +251,10 @@ export default function Step6ActividadPecuaria() {
         <div className="space-y-4 md:hidden">
           {fields.length === 0 ? (
             <div className="p-8 text-center border-2 border-dashed rounded-lg border-neutral-border bg-neutral-bg">
-              <p className="text-base text-gray-600">
+              <p className="text-base text-text-secondary">
                 No hay actividades registradas
               </p>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-neutral-500">
                 Agrega actividades pecuarias para continuar
               </p>
             </div>
@@ -412,7 +412,7 @@ export default function Step6ActividadPecuaria() {
             rows={4}
             autoComplete="off"
             spellCheck="false"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500"
             placeholder="Ej: En las parcelas de papa, en el almácigo, como abono en la huerta familiar..."
           />
         </FormField>

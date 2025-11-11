@@ -5,6 +5,11 @@
  * NO contiene SQL queries (eso va en UsuarioRepository)
  */
 
+export interface ComunidadBasic {
+  id_comunidad: string;
+  nombre_comunidad: string;
+}
+
 export interface UsuarioData {
   id_usuario: string;
   username: string;
@@ -12,14 +17,15 @@ export interface UsuarioData {
   password_hash: string;
   nombre_completo: string;
   id_rol: string;
-  id_comunidad?: string | null;
+  id_comunidad?: string | null; // Legacy field, se mantiene por compatibilidad
   activo: boolean;
   last_login?: Date | null;
   created_at: Date;
   updated_at: Date;
-  // Datos enriquecidos por JOINs
+  // Datos enriquecidos por JOINs (N:N relacion con comunidades)
   nombre_rol?: string;
-  nombre_comunidad?: string;
+  comunidades_ids?: string[]; // Array de IDs de comunidades asignadas
+  comunidades?: ComunidadBasic[]; // Array completo con nombres
 }
 
 export interface CreateUsuarioInput {
@@ -37,8 +43,8 @@ export interface UsuarioPublicData {
   email: string;
   nombre_completo: string;
   nombre_rol: string;
-  id_comunidad?: string;
-  nombre_comunidad?: string;
+  comunidades_ids?: string[]; // Array de IDs de comunidades asignadas
+  comunidades?: ComunidadBasic[]; // Array completo con nombres
   activo: boolean;
   last_login?: string;
   created_at: string;
@@ -80,8 +86,12 @@ export class Usuario {
     return this.data.id_comunidad;
   }
 
-  get nombreComunidad(): string | undefined {
-    return this.data.nombre_comunidad;
+  get comunidadesIds(): string[] | undefined {
+    return this.data.comunidades_ids;
+  }
+
+  get comunidades(): ComunidadBasic[] | undefined {
+    return this.data.comunidades;
   }
 
   get activo(): boolean {
@@ -185,14 +195,13 @@ export class Usuario {
 
   /**
    * Valida que técnico tenga comunidad asignada
+   * NOTA: Con arquitectura N:N, id_comunidad en tabla usuarios es legacy.
+   * Las comunidades reales están en tabla usuarios_comunidades.
+   * Esta validación se mantiene relajada para permitir técnicos con comunidades en N:N.
    */
   validarComunidadTecnico(): { valid: boolean; error?: string } {
-    if (this.esTecnico() && !this.data.id_comunidad) {
-      return {
-        valid: false,
-        error: "Técnico debe tener comunidad asignada",
-      };
-    }
+    // Validación relajada: permitir técnicos sin id_comunidad
+    // porque ahora las comunidades están en usuarios_comunidades (N:N)
     return { valid: true };
   }
 
@@ -227,6 +236,7 @@ export class Usuario {
   /**
    * Para respuestas API públicas
    * NO incluye password_hash ni datos sensibles
+   * Incluye arrays de comunidades (relacion N:N)
    */
   toJSON(): UsuarioPublicData {
     return {
@@ -235,8 +245,8 @@ export class Usuario {
       email: this.data.email,
       nombre_completo: this.data.nombre_completo,
       nombre_rol: this.data.nombre_rol || "unknown",
-      id_comunidad: this.data.id_comunidad || undefined,
-      nombre_comunidad: this.data.nombre_comunidad || undefined,
+      comunidades_ids: this.data.comunidades_ids || [],
+      comunidades: this.data.comunidades || [],
       activo: this.data.activo,
       last_login: this.data.last_login?.toISOString(),
       created_at: this.data.created_at.toISOString(),
@@ -311,7 +321,7 @@ export class Usuario {
    */
   static create(input: CreateUsuarioInput, passwordHash: string): Usuario {
     return new Usuario({
-      id_usuario: "", // Se genera en BD con uuid_generate_v4()
+      id_usuario: "", // Se genera en repository con randomUUID()
       username: input.username,
       email: input.email,
       password_hash: passwordHash,

@@ -66,19 +66,6 @@ const NombreCompletoSchema = z
   .max(200, "Nombre completo no puede exceder 200 caracteres")
   .trim();
 
-/**
- * Schema para rol (uno de los 4 del sistema)
- */
-const RolNombreSchema = z.enum(
-  ["administrador", "gerente", "tecnico", "invitado"],
-  {
-    errorMap: () => ({
-      message:
-        "Rol debe ser: administrador, gerente, tecnico o invitado",
-    }),
-  }
-);
-
 // ==========================================
 // SCHEMAS DE REQUEST
 // ==========================================

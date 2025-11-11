@@ -14,3 +14,4 @@ export { default as Step8CosechaVentas } from "./Step8CosechaVentas";
 export { default as Step9EvaluacionPoscosecha } from "./Step9EvaluacionPoscosecha";
 export { default as Step10ConocimientoNormas } from "./Step10ConocimientoNormas";
 export { default as Step11NoConformidades } from "./Step11NoConformidades";
+export { default as Step12PlanificacionSiembra } from "./Step12PlanificacionSiembra";

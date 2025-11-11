@@ -37,7 +37,9 @@ export class UsuariosService {
   // Gerente ve solo tecnicos, productores, invitados (no ve admins ni otros gerentes)
   // Tecnico no tiene acceso a este endpoint
   async listUsuarios(
+    nombre?: string,
     rolNombre?: string,
+    comunidadId?: string,
     activo?: boolean,
     usuarioActual?: { userId: string; role: string }
   ): Promise<{ usuarios: UsuarioResponse[]; total: number }> {
@@ -51,7 +53,9 @@ export class UsuariosService {
       usuarios = await this.usuarioRepository.findAllManageableBy(
         usuarioActual.userId,
         rolesPermitidos,
+        nombre,
         rolNombre,
+        comunidadId,
         activo
       );
 
@@ -61,12 +65,19 @@ export class UsuariosService {
           usuario_actual_rol: usuarioActual.role,
           roles_permitidos: rolesPermitidos,
           usuarios_filtrados: usuarios.length,
+          filtro_nombre: nombre,
+          filtro_comunidad: comunidadId,
         },
         "Usuarios filtrados por jerarquia de roles (SQL optimizado)"
       );
     } else {
       // Sin usuario autenticado, retornar todos (caso edge)
-      usuarios = await this.usuarioRepository.findAll(rolNombre, activo);
+      usuarios = await this.usuarioRepository.findAll(
+        nombre,
+        rolNombre,
+        comunidadId,
+        activo
+      );
 
       logger.warn(
         "Lista de usuarios solicitada sin usuario autenticado - retornando todos"
@@ -135,7 +146,7 @@ export class UsuariosService {
         password: input.password,
         nombre_completo: input.nombre_completo,
         id_rol: input.id_rol,
-        id_comunidad: input.id_comunidad,
+        id_comunidad: input.comunidades_ids?.[0], // Usar primera comunidad para compatibilidad
       },
       passwordHash
     );
@@ -143,11 +154,21 @@ export class UsuariosService {
     // Guardar en BD
     const usuarioCreado = await this.usuarioRepository.create(usuario);
 
+    // Si tiene comunidades asignadas, agregar a tabla usuarios_comunidades
+    // Soporta N:N - técnicos pueden tener múltiples comunidades
+    if (input.comunidades_ids && input.comunidades_ids.length > 0) {
+      await this.usuarioRepository.updateComunidades(
+        usuarioCreado.id,
+        input.comunidades_ids
+      );
+    }
+
     logger.info(
       {
         usuario_id: usuarioCreado.id,
         username: usuarioCreado.username,
         rol: usuarioCreado.nombreRol,
+        comunidades: input.comunidades_ids?.length || 0,
       },
       "Usuario creado exitosamente"
     );
@@ -220,8 +241,8 @@ export class UsuariosService {
         input.nombre_completo || usuarioObjetivo.nombreCompleto,
       id_rol: usuarioObjetivo.idRol,
       id_comunidad:
-        input.id_comunidad !== undefined
-          ? input.id_comunidad
+        input.comunidades_ids && input.comunidades_ids.length > 0
+          ? input.comunidades_ids[0] // Usar primera comunidad para campo legacy
           : usuarioObjetivo.idComunidad,
       activo:
         input.activo !== undefined ? input.activo : usuarioObjetivo.activo,
@@ -240,9 +261,17 @@ export class UsuariosService {
       usuarioActualizado
     );
 
+    // Si se proporcionaron comunidades_ids, actualizar tabla usuarios_comunidades
+    // Soporta N:N - técnicos pueden tener múltiples comunidades
+    if (input.comunidades_ids !== undefined) {
+      // Reemplazar todas las comunidades con el nuevo array
+      await this.usuarioRepository.updateComunidades(id, input.comunidades_ids);
+    }
+
     logger.info(
       {
         usuario_id: id,
+        comunidades_actualizadas: input.comunidades_ids?.length || 0,
       },
       "Usuario actualizado exitosamente"
     );

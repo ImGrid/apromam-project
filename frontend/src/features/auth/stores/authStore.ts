@@ -13,6 +13,7 @@ import {
   getRefreshToken,
   hasValidToken,
 } from "@/shared/services/storage/tokenStorage";
+import { logger } from "@/shared/utils/logger";
 import type {
   AuthStore,
   LoginInput,
@@ -195,7 +196,7 @@ export const useAuthStore = create<AuthStore>()(
           });
         } catch (error) {
           // Si falla el refresh, limpiar sesión
-          console.error("Error al refrescar sesión:", error);
+          logger.error("Error al refrescar sesión:", error);
           get().clearAuth();
         }
       },

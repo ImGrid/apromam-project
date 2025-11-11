@@ -56,5 +56,3 @@ export interface CustomValidationResult {
   errors: ValidationError[];
   warnings: ValidationWarning[];
 }
-
-console.log('✅ [validation.types] Tipos de validación cargados');

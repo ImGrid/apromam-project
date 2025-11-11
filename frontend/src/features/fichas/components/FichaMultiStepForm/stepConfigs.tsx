@@ -16,6 +16,7 @@ import {
   Step9EvaluacionPoscosecha,
   Step10ConocimientoNormas,
   Step11NoConformidades,
+  Step12PlanificacionSiembra,
 } from "../Steps";
 
 // ============================================
@@ -34,7 +35,7 @@ export interface StepConfig {
 // ============================================
 
 const StepPlaceholder = ({ stepNumber }: { stepNumber: number }) => (
-  <div className="p-8 text-center text-gray-500">
+  <div className="p-8 text-center text-neutral-500">
     <p>Paso {stepNumber} - Componente en desarrollo</p>
     <p className="text-sm mt-2">Este paso se implementará en las siguientes fases</p>
   </div>
@@ -110,5 +111,11 @@ export const STEP_CONFIGS: StepConfig[] = [
     title: "No Conformidades",
     description: "Incumplimientos detectados",
     component: Step11NoConformidades,
+  },
+  {
+    id: 12,
+    title: "Planificación de Siembras",
+    description: "Cultivos planificados para próxima gestión",
+    component: Step12PlanificacionSiembra,
   },
 ];

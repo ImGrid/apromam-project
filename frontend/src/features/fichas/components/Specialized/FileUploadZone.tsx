@@ -47,6 +47,24 @@ export function FileUploadZone({
     documento_pdf: "Documentos PDF",
   };
 
+  // Función para obtener descripción amigable de tipos aceptados
+  const getAcceptDescription = (acceptString: string): string => {
+    // Si contiene image/jpeg,image/png = solo JPEG y PNG
+    if (acceptString.includes("image/jpeg") && acceptString.includes("image/png")) {
+      return "JPG, PNG";
+    }
+    // Si contiene application/pdf = solo PDF
+    if (acceptString.includes("application/pdf") || acceptString.includes(".pdf")) {
+      return "PDF";
+    }
+    // Si es image/* = todas las imágenes
+    if (acceptString === "image/*") {
+      return "Imágenes";
+    }
+    // Fallback: mostrar el string original
+    return acceptString;
+  };
+
   const validateFile = (file: File): { valid: boolean; error?: string } => {
     // Validar tipo
     const acceptedTypes = accept.split(",").map((t) => t.trim());
@@ -280,7 +298,7 @@ export function FileUploadZone({
                 : "Arrastra y suelta o haz clic para seleccionar"}
             </p>
             <p className="mt-1 text-xs text-text-secondary">
-              {labels[tipoArchivo]} • {accept} • Máx. {maxSize}MB
+              {labels[tipoArchivo]} • {getAcceptDescription(accept)} • Máx. {maxSize}MB
             </p>
           </div>
         </div>

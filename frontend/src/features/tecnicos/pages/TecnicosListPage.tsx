@@ -79,8 +79,12 @@ export default function TecnicosListPage() {
 
   // Calcular estadísticas
   const tecnicosActivos = tecnicos.filter((t) => t.activo).length;
-  const tecnicosConComunidad = tecnicos.filter((t) => t.id_comunidad).length;
-  const tecnicosSinComunidad = tecnicos.filter((t) => !t.id_comunidad).length;
+  const tecnicosConComunidad = tecnicos.filter(
+    (t) => t.comunidades_ids && t.comunidades_ids.length > 0
+  ).length;
+  const tecnicosSinComunidad = tecnicos.filter(
+    (t) => !t.comunidades_ids || t.comunidades_ids.length === 0
+  ).length;
 
   return (
     <Layout title="Técnicos">
@@ -102,7 +106,7 @@ export default function TecnicosListPage() {
       >
         <div className="space-y-6">
           {/* Estadísticas rápidas */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <StatCard
               label="Total Técnicos"
               value={total}
@@ -186,11 +190,11 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon, color }: StatCardProps) {
   const colorClasses = {
-    primary: "bg-primary/5",
-    success: "bg-success/5",
-    info: "bg-info/5",
-    warning: "bg-warning/5",
-    error: "bg-error/5",
+    primary: "text-primary bg-primary/10",
+    success: "text-success bg-success/10",
+    info: "text-info bg-info/10",
+    warning: "text-warning bg-warning/10",
+    error: "text-error bg-error/10",
   };
 
   return (
@@ -200,7 +204,7 @@ function StatCard({ label, value, icon, color }: StatCardProps) {
           <p className="text-sm text-text-secondary">{label}</p>
           <p className="mt-1 text-2xl font-bold text-text-primary">{value}</p>
         </div>
-        <div className={`p-3 rounded-full ${colorClasses[color]}`}>{icon}</div>
+        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>{icon}</div>
       </div>
     </div>
   );

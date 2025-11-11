@@ -14,11 +14,11 @@ import { ROUTES } from "@/shared/config/routes.config";
 
 // Colores de badge por rol
 const ROLE_COLORS: Record<string, string> = {
-  administrador: "bg-purple-100 text-purple-800",
-  gerente: "bg-blue-100 text-blue-800",
-  tecnico: "bg-green-100 text-green-800",
-  invitado: "bg-gray-100 text-gray-800",
-  productor: "bg-yellow-100 text-yellow-800",
+  administrador: "bg-role-admin-bg text-role-admin-text border border-role-admin-border",
+  gerente: "bg-role-gerente-bg text-role-gerente-text border border-role-gerente-border",
+  tecnico: "bg-role-tecnico-bg text-role-tecnico-text border border-role-tecnico-border",
+  invitado: "bg-neutral-100 text-neutral-700 border border-neutral-300",
+  productor: "bg-role-productor-bg text-role-productor-text border border-role-productor-border",
 };
 
 export function UserMenu() {
@@ -67,9 +67,11 @@ export function UserMenu() {
           <p className="text-sm font-medium text-text-primary">
             {user.nombre_completo}
           </p>
-          {user.nombre_comunidad && (
+          {user.comunidades && user.comunidades.length > 0 && (
             <p className="text-xs text-text-secondary">
-              {user.nombre_comunidad}
+              {user.comunidades.length === 1
+                ? user.comunidades[0].nombre_comunidad
+                : `${user.comunidades.length} comunidades`}
             </p>
           )}
         </div>

@@ -57,7 +57,7 @@ export type FichaFormStore = FichaFormState & {
 // INITIAL STATE
 // ============================================
 
-const TOTAL_STEPS = 11;
+const TOTAL_STEPS = 12;
 
 const initialState: FichaFormState = {
   currentStep: 1,

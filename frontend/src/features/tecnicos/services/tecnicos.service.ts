@@ -8,7 +8,7 @@ import type {
   Tecnico,
   TecnicoFilters,
   TecnicoListResponse,
-  AsignarComunidadInput,
+  AsignarComunidadesInput,
 } from "../types/tecnico.types";
 
 export const tecnicosService = {
@@ -32,7 +32,9 @@ export const tecnicosService = {
       // Filtrar sin comunidad si se requiere
       let usuarios = response.data.usuarios;
       if (filters?.sin_comunidad) {
-        usuarios = usuarios.filter((t) => !t.id_comunidad);
+        usuarios = usuarios.filter(
+          (t) => !t.comunidades_ids || t.comunidades_ids.length === 0
+        );
       }
 
       // Filtrar por búsqueda si se requiere
@@ -56,18 +58,18 @@ export const tecnicosService = {
   },
 
   /**
-   * Asigna o remueve comunidad de un técnico
+   * Asigna comunidades a un técnico (N:N)
    */
-  async asignarComunidad(
+  async asignarComunidades(
     id_usuario: string,
-    data: AsignarComunidadInput
+    data: AsignarComunidadesInput
   ): Promise<Tecnico> {
     try {
       const response = await apiClient.put<{
         usuario: Tecnico;
         message: string;
       }>(ENDPOINTS.USUARIOS.BY_ID(id_usuario), {
-        id_comunidad: data.id_comunidad,
+        comunidades_ids: data.comunidades_ids,
       });
       return response.data.usuario;
     } catch (error) {

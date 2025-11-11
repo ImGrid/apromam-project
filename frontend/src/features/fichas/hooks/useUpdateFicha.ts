@@ -53,21 +53,19 @@ export function useUpdateFicha() {
       // Limpiar borradores guardados después de actualizar exitosamente
       // Usar los datos de la ficha devuelta por el servidor
       if (ficha.ficha.codigo_productor && ficha.ficha.gestion) {
-        console.log('[UPDATE_FICHA] Limpiando borradores - Productor:', ficha.ficha.codigo_productor, 'Gestion:', ficha.ficha.gestion);
-
         // Limpiar localStorage
         const localStorageKey = `apromam-ficha-draft-${ficha.ficha.codigo_productor}-${ficha.ficha.gestion}`;
         try {
           localStorage.removeItem(localStorageKey);
         } catch (e) {
-          console.warn('[UPDATE_FICHA] Error al limpiar localStorage:', e);
+          // Error al limpiar localStorage
         }
 
         // Limpiar IndexedDB
         try {
           await deleteDraftFromIndexedDB(ficha.ficha.codigo_productor, ficha.ficha.gestion);
         } catch (e) {
-          console.warn('[UPDATE_FICHA] Error al limpiar IndexedDB:', e);
+          // Error al limpiar IndexedDB
         }
 
         // TODO: Limpiar borrador del servidor si existe

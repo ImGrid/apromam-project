@@ -46,7 +46,6 @@ export function TiposCultivoSelect({
 
       setTiposCultivo(options);
     } catch (error) {
-      console.error("Error cargando tipos de cultivo:", error);
     } finally {
       setIsLoading(false);
     }

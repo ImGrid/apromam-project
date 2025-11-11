@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { AuthService } from "../services/auth.service.js";
 import { extractTokenFromHeader } from "../utils/jwt.utils.js";
 import { createAuthLogger } from "../utils/logger.js";
-import type {
+import {
   RegisterInput,
   LoginInput,
   RefreshTokenInput,

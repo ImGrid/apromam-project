@@ -1,9 +1,11 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { Departamento, DepartamentoData } from "../entities/Departamento.js";
 
 export class DepartamentoRepository {
   // Encuentra departamento por ID con datos enriquecidos
   // Incluye contadores de provincias, municipios, comunidades y productores
+  // Usa LEFT JOIN para optimizar las consultas de conteo
   async findById(id: string): Promise<Departamento | null> {
     const query = {
       name: "find-departamento-by-id",
@@ -13,44 +15,42 @@ export class DepartamentoRepository {
           d.nombre_departamento,
           d.activo,
           d.created_at,
-          (
-            SELECT COUNT(*)
-            FROM provincias p
-            WHERE p.id_departamento = d.id_departamento
-              AND p.activo = true
-          ) as cantidad_provincias,
-          (
-            SELECT COUNT(*)
-            FROM provincias p
-            INNER JOIN municipios m ON p.id_provincia = m.id_provincia
-            WHERE p.id_departamento = d.id_departamento
-              AND p.activo = true
-              AND m.activo = true
-          ) as cantidad_municipios,
-          (
-            SELECT COUNT(*)
-            FROM provincias p
-            INNER JOIN municipios m ON p.id_provincia = m.id_provincia
-            INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
-            WHERE p.id_departamento = d.id_departamento
-              AND p.activo = true
-              AND m.activo = true
-              AND c.activo = true
-          ) as cantidad_comunidades,
-          (
-            SELECT COUNT(*)
-            FROM provincias p
-            INNER JOIN municipios m ON p.id_provincia = m.id_provincia
-            INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
-            INNER JOIN productores pr ON c.id_comunidad = pr.id_comunidad
-            WHERE p.id_departamento = d.id_departamento
-              AND p.activo = true
-              AND m.activo = true
-              AND c.activo = true
-              AND pr.activo = true
-          ) as cantidad_productores
+          COALESCE(prov.cantidad, 0) as cantidad_provincias,
+          COALESCE(muni.cantidad, 0) as cantidad_municipios,
+          COALESCE(comu.cantidad, 0) as cantidad_comunidades,
+          COALESCE(prod.cantidad, 0) as cantidad_productores
         FROM departamentos d
-        WHERE d.id_departamento = $1 AND d.activo = true
+        LEFT JOIN (
+          SELECT id_departamento, COUNT(*) as cantidad
+          FROM provincias
+          WHERE activo = true
+          GROUP BY id_departamento
+        ) prov ON d.id_departamento = prov.id_departamento
+        LEFT JOIN (
+          SELECT p.id_departamento, COUNT(*) as cantidad
+          FROM provincias p
+          INNER JOIN municipios m ON p.id_provincia = m.id_provincia
+          WHERE p.activo = true AND m.activo = true
+          GROUP BY p.id_departamento
+        ) muni ON d.id_departamento = muni.id_departamento
+        LEFT JOIN (
+          SELECT p.id_departamento, COUNT(*) as cantidad
+          FROM provincias p
+          INNER JOIN municipios m ON p.id_provincia = m.id_provincia
+          INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
+          WHERE p.activo = true AND m.activo = true AND c.activo = true
+          GROUP BY p.id_departamento
+        ) comu ON d.id_departamento = comu.id_departamento
+        LEFT JOIN (
+          SELECT p.id_departamento, COUNT(*) as cantidad
+          FROM provincias p
+          INNER JOIN municipios m ON p.id_provincia = m.id_provincia
+          INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
+          INNER JOIN productores pr ON c.id_comunidad = pr.id_comunidad
+          WHERE p.activo = true AND m.activo = true AND c.activo = true AND pr.activo = true
+          GROUP BY p.id_departamento
+        ) prod ON d.id_departamento = prod.id_departamento
+        WHERE d.id_departamento = $1
       `,
       values: [id],
     };
@@ -61,56 +61,100 @@ export class DepartamentoRepository {
 
   // Lista todos los departamentos activos
   // Ordenados alfabeticamente para UI
+  // Sin contadores para mejor performance en listas
   async findAll(): Promise<Departamento[]> {
     const query = {
       name: "find-all-departamentos-activos",
+      text: `
+        SELECT
+          id_departamento,
+          nombre_departamento,
+          activo,
+          created_at
+        FROM departamentos
+        WHERE activo = true
+        ORDER BY nombre_departamento ASC
+      `,
+      values: [],
+    };
+
+    const results = await ReadQuery.execute<DepartamentoData>(query);
+    return results.map((data) => Departamento.fromDatabase(data));
+  }
+
+  // Lista departamentos con filtros opcionales
+  // Incluye contadores optimizados con LEFT JOIN
+  async findWithFilters(filters: {
+    nombre?: string;
+    activo?: boolean;
+  }): Promise<Departamento[]> {
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (filters.nombre) {
+      conditions.push(`d.nombre_departamento ILIKE $${paramIndex}`);
+      values.push(`%${filters.nombre}%`);
+      paramIndex++;
+    }
+
+    if (filters.activo !== undefined) {
+      conditions.push(`d.activo = $${paramIndex}`);
+      values.push(filters.activo);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const query = {
+      name: "find-departamentos-with-filters",
       text: `
         SELECT
           d.id_departamento,
           d.nombre_departamento,
           d.activo,
           d.created_at,
-          (
-            SELECT COUNT(*)
-            FROM provincias p
-            WHERE p.id_departamento = d.id_departamento
-              AND p.activo = true
-          ) as cantidad_provincias,
-          (
-            SELECT COUNT(*)
-            FROM provincias p
-            INNER JOIN municipios m ON p.id_provincia = m.id_provincia
-            WHERE p.id_departamento = d.id_departamento
-              AND p.activo = true
-              AND m.activo = true
-          ) as cantidad_municipios,
-          (
-            SELECT COUNT(*)
-            FROM provincias p
-            INNER JOIN municipios m ON p.id_provincia = m.id_provincia
-            INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
-            WHERE p.id_departamento = d.id_departamento
-              AND p.activo = true
-              AND m.activo = true
-              AND c.activo = true
-          ) as cantidad_comunidades,
-          (
-            SELECT COUNT(*)
-            FROM provincias p
-            INNER JOIN municipios m ON p.id_provincia = m.id_provincia
-            INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
-            INNER JOIN productores pr ON c.id_comunidad = pr.id_comunidad
-            WHERE p.id_departamento = d.id_departamento
-              AND p.activo = true
-              AND m.activo = true
-              AND c.activo = true
-              AND pr.activo = true
-          ) as cantidad_productores
+          COALESCE(prov.cantidad, 0) as cantidad_provincias,
+          COALESCE(muni.cantidad, 0) as cantidad_municipios,
+          COALESCE(comu.cantidad, 0) as cantidad_comunidades,
+          COALESCE(prod.cantidad, 0) as cantidad_productores
         FROM departamentos d
-        WHERE d.activo = true
+        LEFT JOIN (
+          SELECT id_departamento, COUNT(*) as cantidad
+          FROM provincias
+          WHERE activo = true
+          GROUP BY id_departamento
+        ) prov ON d.id_departamento = prov.id_departamento
+        LEFT JOIN (
+          SELECT p.id_departamento, COUNT(*) as cantidad
+          FROM provincias p
+          INNER JOIN municipios m ON p.id_provincia = m.id_provincia
+          WHERE p.activo = true AND m.activo = true
+          GROUP BY p.id_departamento
+        ) muni ON d.id_departamento = muni.id_departamento
+        LEFT JOIN (
+          SELECT p.id_departamento, COUNT(*) as cantidad
+          FROM provincias p
+          INNER JOIN municipios m ON p.id_provincia = m.id_provincia
+          INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
+          WHERE p.activo = true AND m.activo = true AND c.activo = true
+          GROUP BY p.id_departamento
+        ) comu ON d.id_departamento = comu.id_departamento
+        LEFT JOIN (
+          SELECT p.id_departamento, COUNT(*) as cantidad
+          FROM provincias p
+          INNER JOIN municipios m ON p.id_provincia = m.id_provincia
+          INNER JOIN comunidades c ON m.id_municipio = c.id_municipio
+          INNER JOIN productores pr ON c.id_comunidad = pr.id_comunidad
+          WHERE p.activo = true AND m.activo = true AND c.activo = true AND pr.activo = true
+          GROUP BY p.id_departamento
+        ) prod ON d.id_departamento = prod.id_departamento
+        ${whereClause}
         ORDER BY d.nombre_departamento ASC
       `,
-      values: [],
+      values,
     };
 
     const results = await ReadQuery.execute<DepartamentoData>(query);
@@ -171,17 +215,19 @@ export class DepartamentoRepository {
     }
 
     const insertData = departamento.toDatabaseInsert();
+    const idDepartamento = randomUUID();
 
     const query = {
       text: `
         INSERT INTO departamentos (
+          id_departamento,
           nombre_departamento,
           activo
         )
-        VALUES ($1, $2)
+        VALUES ($1, $2, $3)
         RETURNING id_departamento, nombre_departamento, activo, created_at
       `,
-      values: [insertData.nombre_departamento, insertData.activo],
+      values: [idDepartamento, insertData.nombre_departamento, insertData.activo],
     };
 
     const result = await WriteQuery.execute(query);
@@ -265,6 +311,48 @@ export class DepartamentoRepository {
 
     await WriteQuery.execute(query);
     return true;
+  }
+
+  // Elimina PERMANENTEMENTE un departamento
+  // Verifica que no tenga provincias (activas o inactivas)
+  async hardDelete(id: string): Promise<void> {
+    const departamento = await this.findById(id);
+    if (!departamento) {
+      throw new Error("Departamento no encontrado");
+    }
+
+    // Verificar que no tenga provincias (activas o inactivas)
+    const checkQuery = {
+      text: `
+        SELECT COUNT(*) as count
+        FROM provincias
+        WHERE id_departamento = $1
+      `,
+      values: [id],
+    };
+
+    const result = await ReadQuery.findOne<{ count: string }>(checkQuery);
+    const count = parseInt(result?.count || "0", 10);
+
+    if (count > 0) {
+      throw new Error(
+        `No se puede eliminar el departamento porque tiene ${count} provincia(s) asociada(s). Elimine primero las provincias.`
+      );
+    }
+
+    // Eliminar permanentemente
+    const deleteQuery = {
+      text: `
+        DELETE FROM departamentos
+        WHERE id_departamento = $1
+      `,
+      values: [id],
+    };
+
+    const deleteResult = await WriteQuery.execute(deleteQuery);
+    if (!deleteResult.success || deleteResult.affectedRows === 0) {
+      throw new Error("No se pudo eliminar el departamento");
+    }
   }
 
   // Verifica si existe por ID

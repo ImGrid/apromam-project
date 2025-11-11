@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
-import { Select, Button } from "@/shared/components/ui";
+import { Select, Button, Input } from "@/shared/components/ui";
 import type { SelectOption } from "@/shared/components/ui";
 import type { UsuarioFilters as Filters } from "../types/usuario.types";
 
@@ -30,102 +30,87 @@ export function UsuarioFilters({
   onFiltersChange,
   onClear,
 }: UsuarioFiltersProps) {
-  const [searchTerm, setSearchTerm] = useState(filters.search || "");
+  const [localFilters, setLocalFilters] = useState<Filters>(filters);
 
-  // Manejar cambio de rol
-  const handleRolChange = (value: string) => {
-    onFiltersChange({
-      ...filters,
-      rol: value || undefined,
-    });
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
+  const handleInputChange = (
+    field: keyof Filters,
+    value: string | boolean | undefined
+  ) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      [field]: value === "" ? undefined : value,
+    }));
   };
 
-  // Manejar cambio de estado
-  const handleEstadoChange = (value: string) => {
-    onFiltersChange({
-      ...filters,
-      activo: value === "" ? undefined : value === "true",
-    });
+  const handleApplyFilters = () => {
+    onFiltersChange(localFilters);
   };
 
-  // Manejar busqueda con debounce
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-
-    // Aplicar filtro despues de 500ms
-    setTimeout(() => {
-      onFiltersChange({
-        ...filters,
-        search: value || undefined,
-      });
-    }, 500);
-  };
-
-  // Limpiar todos los filtros
   const handleClear = () => {
-    setSearchTerm("");
+    setLocalFilters({});
     onClear();
   };
 
-  // Verificar si hay filtros activos
-  const hasActiveFilters =
-    filters.rol || filters.activo !== undefined || filters.search;
+  const hasActiveFilters = Object.keys(filters).some(
+    (key) =>
+      filters[key as keyof Filters] !== undefined &&
+      filters[key as keyof Filters] !== ""
+  );
 
   return (
-    <div className="p-4 space-y-4 bg-white border rounded-lg sm:p-6 border-neutral-border">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Busqueda por texto */}
-        <div className="lg:col-span-2">
-          <div className="relative">
-            <Search className="absolute w-5 h-5 transform -translate-y-1/2 left-3 top-1/2 text-text-secondary" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Buscar por nombre o usuario..."
-              className="w-full py-3 pl-10 pr-4 border rounded-md border-neutral-border focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </div>
-
-        {/* Filtro por rol */}
-        <Select
-          options={rolesOptions}
-          value={filters.rol || ""}
-          onChange={handleRolChange}
-          placeholder="Filtrar por rol"
-        />
-
-        {/* Filtro por estado */}
-        <Select
-          options={estadoOptions}
-          value={
-            filters.activo === undefined
-              ? ""
-              : filters.activo
-              ? "true"
-              : "false"
-          }
-          onChange={handleEstadoChange}
-          placeholder="Filtrar por estado"
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end">
+      {/* Busqueda por nombre */}
+      <div className="lg:col-span-2">
+        <Input
+          label="Buscar por nombre"
+          placeholder="Nombre o usuario..."
+          value={localFilters.nombre || ""}
+          onChange={(e) => handleInputChange("nombre", e.target.value)}
         />
       </div>
 
-      {/* Boton limpiar filtros */}
-      {hasActiveFilters && (
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="small"
-            onClick={handleClear}
-            className="flex items-center gap-2"
-          >
+      {/* Filtro por rol */}
+      <Select
+        label="Rol"
+        options={rolesOptions}
+        value={localFilters.rol || ""}
+        onChange={(value) => handleInputChange("rol", value)}
+      />
+
+      {/* Filtro por estado */}
+      <Select
+        label="Estado"
+        options={estadoOptions}
+        value={
+          localFilters.activo === undefined
+            ? ""
+            : String(localFilters.activo)
+        }
+        onChange={(value) =>
+          handleInputChange(
+            "activo",
+            value === "" ? undefined : value === "true"
+          )
+        }
+      />
+
+      {/* Botones */}
+      <div className="flex gap-2 lg:justify-end">
+        {hasActiveFilters && (
+          <Button variant="ghost" size="small" onClick={handleClear}>
             <X className="w-4 h-4" />
-            Limpiar filtros
+            Limpiar
           </Button>
-        </div>
-      )}
+        )}
+        <Button variant="primary" size="small" onClick={handleApplyFilters}>
+          <Search className="w-4 h-4" />
+          Aplicar Filtros
+        </Button>
+      </div>
     </div>
   );
 }

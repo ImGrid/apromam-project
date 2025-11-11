@@ -4,6 +4,7 @@ import { ParcelaRepository } from "../repositories/ParcelaRepository.js";
 import { ArchivoFichaRepository } from "../repositories/ArchivoFichaRepository.js";
 import { FichaDraftRepository } from "../repositories/FichaDraftRepository.js";
 import { GestionRepository } from "../repositories/GestionRepository.js";
+import { CultivosGestionRepository } from "../repositories/CultivosGestionRepository.js";
 import { Ficha } from "../entities/Ficha.js";
 import { RevisionDocumentacion } from "../entities/RevisionDocumentacion.js";
 import { AccionCorrectiva } from "../entities/AccionCorrectiva.js";
@@ -14,6 +15,7 @@ import { EvaluacionConocimientoNormas } from "../entities/EvaluacionConocimiento
 import { ActividadPecuaria } from "../entities/ActividadPecuaria.js";
 import { CosechaVentas } from "../entities/CosechaVentas.js";
 import { ArchivoFicha } from "../entities/ArchivoFicha.js";
+import { PlanificacionSiembra } from "../entities/PlanificacionSiembra.js";
 import { FichaDraft, FichaDraftEntity } from "../entities/FichaDraft.js";
 import { createAuthLogger } from "../utils/logger.js";
 import { validarSuperficiesFicha } from "../utils/superficieValidation.js";
@@ -44,6 +46,7 @@ export class FichasService {
   private archivoFichaRepository: ArchivoFichaRepository;
   private fichaDraftRepository: FichaDraftRepository;
   private gestionRepository: GestionRepository;
+  private cultivosGestionRepository: CultivosGestionRepository;
 
   constructor(
     fichaRepository: FichaRepository,
@@ -51,7 +54,8 @@ export class FichasService {
     parcelaRepository: ParcelaRepository,
     archivoFichaRepository: ArchivoFichaRepository,
     fichaDraftRepository: FichaDraftRepository,
-    gestionRepository: GestionRepository
+    gestionRepository: GestionRepository,
+    cultivosGestionRepository: CultivosGestionRepository
   ) {
     this.fichaRepository = fichaRepository;
     this.productorRepository = productorRepository;
@@ -59,35 +63,40 @@ export class FichasService {
     this.archivoFichaRepository = archivoFichaRepository;
     this.fichaDraftRepository = fichaDraftRepository;
     this.gestionRepository = gestionRepository;
+    this.cultivosGestionRepository = cultivosGestionRepository;
   }
 
   // Lista fichas con filtros y paginacion
-  // Tecnico: solo su comunidad
+  // Tecnico: solo sus comunidades asignadas (N:N)
   // Gerente/Admin: todas las comunidades
   async listFichas(
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false,
     gestion?: number,
     comunidadId?: string,
     codigoProductor?: string,
     estado?: string,
     estadoSync?: string,
+    inspectorInterno?: string,
+    resultadoCertificacion?: string,
+    fechaDesde?: string,
+    fechaHasta?: string,
     page: number = 1,
     limit: number = 20
   ): Promise<{ fichas: FichaResponse[]; total: number; page: number; limit: number; totalPages: number }> {
-    console.log('🔍 [SERVICE] listFichas llamado con:', {
-      gestion,
-      tipo_gestion: typeof gestion,
-      esAdminOGerente,
-      comunidadId,
-      codigoProductor,
-      estado
-    });
+    // Determinar filtro de comunidades
+    // Si es tecnico y tiene comunidades asignadas, filtrar por esas
+    // Si es admin/gerente o hay filtro especifico, usar ese filtro
+    let comunidadFiltro: string | undefined = undefined;
+    let comunidadesFiltro: string[] | undefined = undefined;
 
-    // Si es tecnico y no se especifica comunidad, usar su comunidad
-    const comunidadFiltro = !esAdminOGerente && usuarioComunidadId
-      ? usuarioComunidadId
-      : comunidadId;
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
+      // Tecnico: usar sus comunidades asignadas
+      comunidadesFiltro = usuarioComunidadesIds;
+    } else if (comunidadId) {
+      // Filtro especifico por una comunidad
+      comunidadFiltro = comunidadId;
+    }
 
     // Usar el nuevo metodo con paginacion
     const result = await this.fichaRepository.findWithPagination({
@@ -95,14 +104,14 @@ export class FichasService {
       estado,
       codigoProductor,
       comunidadId: comunidadFiltro,
+      comunidadesIds: comunidadesFiltro,
       estadoSync,
+      inspectorInterno,
+      resultadoCertificacion,
+      fechaDesde,
+      fechaHasta,
       page,
       limit,
-    });
-
-    console.log('🔍 [SERVICE] Resultado del repository:', {
-      total: result.total,
-      cantidad_fichas: result.fichas.length
     });
 
     const totalPages = Math.ceil(result.total / limit);
@@ -122,7 +131,7 @@ export class FichasService {
   // Valida acceso segun rol
   async getFichaCompleta(
     id: string,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<FichaCompleta> {
     const ficha = await this.fichaRepository.findById(id);
@@ -132,12 +141,12 @@ export class FichasService {
     }
 
     // Si es tecnico, validar acceso a la comunidad del productor
-    if (!esAdminOGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
 
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta ficha");
       }
     }
@@ -147,11 +156,11 @@ export class FichasService {
   }
 
   // Crea una nueva ficha completa con transaccion atomica
-  // Tecnico solo puede crear en su comunidad
+  // Tecnico solo puede crear en sus comunidades asignadas
   async createFichaCompleta(
     input: CreateFichaInput,
     usuarioId: string,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<FichaCompleta> {
     logger.info(
@@ -171,9 +180,9 @@ export class FichasService {
       throw new Error("Productor no encontrado");
     }
 
-    // Si es tecnico, validar que sea de su comunidad
-    if (!esAdminOGerente && usuarioComunidadId) {
-      if (productor.idComunidad !== usuarioComunidadId) {
+    // Si es tecnico, validar que el productor sea de una de sus comunidades
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
+      if (!usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error(
           "No puede crear fichas para productores de otra comunidad"
         );
@@ -304,6 +313,17 @@ export class FichasService {
       );
     }
 
+    // Seccion 12: Planificacion de siembras
+    if (input.planificacion_siembras && input.planificacion_siembras.length > 0) {
+      fichaCompleta.planificacion_siembras = input.planificacion_siembras.map((ps) =>
+        PlanificacionSiembra.create({
+          id_ficha: "",
+          ...ps,
+          otros_cultivos_detalle: ps.otros_cultivos_detalle || undefined,
+        })
+      );
+    }
+
     // Datos de inspeccion de parcelas (se actualizan en la tabla parcelas)
     if (input.parcelas_inspeccionadas && input.parcelas_inspeccionadas.length > 0) {
       fichaCompleta.parcelas_inspeccionadas = input.parcelas_inspeccionadas;
@@ -357,7 +377,7 @@ export class FichasService {
   async updateFicha(
     id: string,
     input: UpdateFichaInput,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<FichaResponse> {
     logger.info(
@@ -374,12 +394,12 @@ export class FichasService {
     }
 
     // Si es tecnico, validar acceso
-    if (!esAdminOGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const productor = await this.productorRepository.findByCodigo(
         fichaActual.codigoProductor
       );
 
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No puede actualizar fichas de otra comunidad");
       }
     }
@@ -500,7 +520,7 @@ export class FichasService {
   async addArchivoToFicha(
     fichaId: string,
     usuarioId: string,
-    usuarioComunidadId: string | undefined,
+    usuarioComunidadesIds: string[] | undefined,
     esAdminOGerente: boolean,
     fileData: MultipartFile,
     tipoArchivo: string
@@ -521,11 +541,11 @@ export class FichasService {
       throw new Error("Ficha no encontrada");
     }
 
-    if (!esAdminOGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta ficha");
       }
     }
@@ -638,7 +658,7 @@ export class FichasService {
   // Lista archivos de una ficha
   async listArchivos(
     fichaId: string,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<ArchivoFichaResponse[]> {
     // Validar acceso a la ficha
@@ -647,11 +667,11 @@ export class FichasService {
       throw new Error("Ficha no encontrada");
     }
 
-    if (!esAdminOGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta ficha");
       }
     }
@@ -663,7 +683,7 @@ export class FichasService {
   // Elimina un archivo de una ficha
   async deleteArchivo(
     archivoId: string,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<void> {
     logger.info(
@@ -685,11 +705,11 @@ export class FichasService {
       throw new Error("Ficha no encontrada");
     }
 
-    if (!esAdminOGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta ficha");
       }
     }
@@ -742,7 +762,7 @@ export class FichasService {
   async enviarRevision(
     id: string,
     input: EnviarRevisionInput,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<FichaResponse> {
     logger.info(
@@ -758,12 +778,12 @@ export class FichasService {
     }
 
     // Si es tecnico, validar acceso
-    if (!esAdminOGerente && usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
       const productor = await this.productorRepository.findByCodigo(
         ficha.codigoProductor
       );
 
-      if (!productor || productor.idComunidad !== usuarioComunidadId) {
+      if (!productor || !usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a esta ficha");
       }
     }
@@ -883,6 +903,7 @@ export class FichasService {
 
   // Aprueba una ficha
   // Solo gerente/admin pueden aprobar
+  // Sincroniza automaticamente a cultivos_gestion
   async aprobarFicha(
     id: string,
     input: AprobarFichaInput
@@ -910,12 +931,44 @@ export class FichasService {
     // Actualizar en BD
     const fichaActualizada = await this.fichaRepository.updateFicha(id, ficha);
 
-    logger.info(
-      {
-        id_ficha: id,
-      },
-      "Ficha aprobada exitosamente"
-    );
+    // Sincronizar a cultivos_gestion
+    // Si falla, revertir aprobacion
+    try {
+      logger.info(
+        {
+          id_ficha: id,
+          codigo_productor: ficha.codigoProductor,
+          gestion: ficha.gestion,
+        },
+        "Sincronizando cultivos_gestion"
+      );
+
+      await this.cultivosGestionRepository.sincronizarDesdeFicha(id);
+
+      logger.info(
+        {
+          id_ficha: id,
+        },
+        "Ficha aprobada y sincronizada exitosamente"
+      );
+    } catch (error) {
+      // Si falla la sincronizacion, revertir aprobacion
+      logger.error(
+        {
+          id_ficha: id,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+        "Error al sincronizar cultivos_gestion - Revirtiendo aprobacion"
+      );
+
+      // Revertir estado a revision
+      ficha.rechazar("Error de sincronización: " + (error instanceof Error ? error.message : "Unknown error"));
+      await this.fichaRepository.updateFicha(id, ficha);
+
+      throw new Error(
+        "Error al sincronizar datos de cultivos. La ficha fue revertida a estado rechazado. Intente nuevamente."
+      );
+    }
 
     return fichaActualizada.toJSON();
   }
@@ -964,7 +1017,7 @@ export class FichasService {
 
   // Obtiene estadisticas de fichas
   async getEstadisticas(
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false,
     gestion?: number
   ): Promise<{
@@ -977,10 +1030,10 @@ export class FichasService {
 
     let fichas: Ficha[];
 
-    if (!esAdminOGerente && usuarioComunidadId) {
-      // Estadisticas solo de su comunidad
-      fichas = await this.fichaRepository.findByComunidadGestion(
-        usuarioComunidadId,
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
+      // Estadisticas solo de sus comunidades asignadas
+      fichas = await this.fichaRepository.findByComunidadesGestion(
+        usuarioComunidadesIds,
         añoConsulta
       );
     } else {

@@ -19,12 +19,10 @@ export function useOnlineStatus(): boolean {
   useEffect(() => {
     function handleOnline() {
       setIsOnline(true);
-      console.log('[Network] ✅ Conexión recuperada');
     }
 
     function handleOffline() {
       setIsOnline(false);
-      console.log('[Network] ❌ Sin conexión');
     }
 
     window.addEventListener('online', handleOnline);

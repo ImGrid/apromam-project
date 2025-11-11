@@ -85,7 +85,7 @@ export function Tooltip({
               zIndex: 9999,
               pointerEvents: "none",
             }}
-            className="px-3 py-2 text-sm text-white bg-gray-900 rounded-md shadow-lg max-w-xs animate-in fade-in-0 zoom-in-95 duration-200"
+            className="px-3 py-2 text-sm text-white bg-neutral-900 rounded-md shadow-lg max-w-xs animate-in fade-in-0 zoom-in-95 duration-200"
           >
             {content}
           </div>,

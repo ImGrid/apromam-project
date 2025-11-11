@@ -5,7 +5,6 @@ import type {
   UpdateProductorInput,
   ProductorFiltersInput,
   ProductoresListResponse,
-  ProximitySearchInput,
   ProductorStats,
 } from "../types/productor.types";
 
@@ -74,18 +73,6 @@ export const productoresService = {
   async deleteProductor(codigo: string): Promise<void> {
     try {
       await apiClient.delete(ENDPOINTS.PRODUCTORES.BY_CODIGO(codigo));
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  },
-
-  async searchNearby(params: ProximitySearchInput): Promise<ProductoresListResponse> {
-    try {
-      const response = await apiClient.post<ProductoresListResponse>(
-        ENDPOINTS.PRODUCTORES.NEARBY,
-        params
-      );
-      return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }

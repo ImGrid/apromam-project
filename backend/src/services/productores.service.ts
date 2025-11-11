@@ -7,7 +7,6 @@ import type {
   CreateProductorInput,
   UpdateProductorInput,
   ProductorResponse,
-  ProximitySearchInput,
 } from "../schemas/productores.schema.js";
 
 const logger = createAuthLogger();
@@ -30,20 +29,20 @@ export class ProductoresService {
   }
 
   // Lista productores con filtros
-  // Tecnico: solo su comunidad
+  // Tecnico: solo sus comunidades asignadas
   // Gerente/Admin: todas las comunidades
   async listProductores(
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false,
     comunidadId?: string,
     categoria?: string
   ): Promise<{ productores: ProductorResponse[]; total: number }> {
     let productores: Productor[];
 
-    // Si es tecnico, filtrar solo su comunidad
-    if (!esAdminOGerente && usuarioComunidadId) {
-      productores = await this.productorRepository.findByComunidad(
-        usuarioComunidadId
+    // Si es tecnico, filtrar por sus comunidades asignadas
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
+      productores = await this.productorRepository.findByComunidades(
+        usuarioComunidadesIds
       );
     }
     // Si es admin/gerente y especifica comunidad
@@ -65,7 +64,7 @@ export class ProductoresService {
   // Valida acceso segun rol
   async getProductorByCodigo(
     codigo: string,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<ProductorResponse> {
     const productor = await this.productorRepository.findByCodigo(codigo);
@@ -75,8 +74,8 @@ export class ProductoresService {
     }
 
     // Validar acceso si es tecnico
-    if (!esAdminOGerente && usuarioComunidadId) {
-      if (productor.idComunidad !== usuarioComunidadId) {
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
+      if (!usuarioComunidadesIds.includes(productor.idComunidad)) {
         throw new Error("No tiene acceso a este productor");
       }
     }
@@ -84,46 +83,11 @@ export class ProductoresService {
     return productor.toJSON();
   }
 
-  // Busca productores cercanos a una ubicacion
-  // Usa funciones PostGIS
-  async searchNearby(
-    input: ProximitySearchInput,
-    usuarioComunidadId?: string,
-    esAdminOGerente: boolean = false
-  ): Promise<{ productores: ProductorResponse[]; total: number }> {
-    logger.info(
-      {
-        latitude: input.latitud,
-        longitude: input.longitud,
-        radius: input.radio_metros,
-      },
-      "Searching nearby productores"
-    );
-
-    let productores = await this.productorRepository.findNearby(
-      input.latitud,
-      input.longitud,
-      input.radio_metros
-    );
-
-    // Si es tecnico, filtrar solo su comunidad
-    if (!esAdminOGerente && usuarioComunidadId) {
-      productores = productores.filter(
-        (p) => p.idComunidad === usuarioComunidadId
-      );
-    }
-
-    return {
-      productores: productores.map((p) => p.toJSON()),
-      total: productores.length,
-    };
-  }
-
   // Crea un nuevo productor
-  // Tecnico solo puede crear en su comunidad
+  // Tecnico solo puede crear en sus comunidades asignadas
   async createProductor(
     input: CreateProductorInput,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<ProductorResponse> {
     logger.info(
@@ -149,9 +113,9 @@ export class ProductoresService {
       throw new Error("Organización no encontrada");
     }
 
-    // Si es tecnico, validar que sea su comunidad
-    if (!esAdminOGerente && usuarioComunidadId) {
-      if (input.id_comunidad !== usuarioComunidadId) {
+    // Si es tecnico, validar que sea una de sus comunidades asignadas
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
+      if (!usuarioComunidadesIds.includes(input.id_comunidad)) {
         throw new Error("No puede crear productores en otra comunidad");
       }
     }
@@ -204,11 +168,11 @@ export class ProductoresService {
   }
 
   // Actualiza un productor existente
-  // Tecnico solo puede actualizar en su comunidad
+  // Tecnico solo puede actualizar en sus comunidades asignadas
   async updateProductor(
     codigo: string,
     input: UpdateProductorInput,
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<ProductorResponse> {
     logger.info(
@@ -224,9 +188,9 @@ export class ProductoresService {
       throw new Error("Productor no encontrado");
     }
 
-    // Si es tecnico, validar que sea de su comunidad
-    if (!esAdminOGerente && usuarioComunidadId) {
-      if (productorActual.idComunidad !== usuarioComunidadId) {
+    // Si es tecnico, validar que sea de una de sus comunidades asignadas
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
+      if (!usuarioComunidadesIds.includes(productorActual.idComunidad)) {
         throw new Error("No puede actualizar productores de otra comunidad");
       }
     }
@@ -301,7 +265,7 @@ export class ProductoresService {
 
   // Obtiene estadisticas de productores
   async getEstadisticas(
-    usuarioComunidadId?: string,
+    usuarioComunidadesIds?: string[],
     esAdminOGerente: boolean = false
   ): Promise<{
     total: number;
@@ -311,10 +275,10 @@ export class ProductoresService {
     const categorias = ["E", "T2", "T1", "T0"];
     const porCategoria: Record<string, number> = {};
 
-    if (!esAdminOGerente && usuarioComunidadId) {
-      // Estadisticas solo de su comunidad
-      const productores = await this.productorRepository.findByComunidad(
-        usuarioComunidadId
+    if (!esAdminOGerente && usuarioComunidadesIds && usuarioComunidadesIds.length > 0) {
+      // Estadisticas solo de sus comunidades asignadas
+      const productores = await this.productorRepository.findByComunidades(
+        usuarioComunidadesIds
       );
 
       for (const cat of categorias) {

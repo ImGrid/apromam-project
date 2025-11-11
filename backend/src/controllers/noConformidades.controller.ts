@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { MultipartFile } from "@fastify/multipart";
 import { NoConformidadesService } from "../services/noConformidades.service.js";
-import type {
+import {
   NoConformidadParams,
   FichaNCParams,
   ArchivoNCParams,
@@ -14,27 +14,29 @@ import type {
 
 // Controlador para endpoints de no conformidades
 // Gestiona seguimiento de NC con control de acceso por comunidad
-// Solo técnicos y gerentes tienen acceso (NO admin)
+// Acceso para técnicos, gerentes y administradores
 export class NoConformidadesController {
   constructor(private ncService: NoConformidadesService) {}
 
   // GET /api/no-conformidades/:id
   // Obtiene una NC por ID con datos enriquecidos
   // Técnico: solo si es de su comunidad
-  // Gerente: cualquier NC
+  // Gerente/Admin: cualquier NC
   async getById(
     request: FastifyRequest<{ Params: NoConformidadParams }>,
     reply: FastifyReply
   ) {
     try {
       const { id } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       const nc = await this.ncService.getById(
         id,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
 
       return reply.status(200).send({ no_conformidad: nc });
@@ -68,23 +70,22 @@ export class NoConformidadesController {
   // GET /api/no-conformidades/ficha/:id_ficha
   // Lista todas las NC de una ficha con filtro opcional por estado
   async getByFicha(
-    request: FastifyRequest<{
-      Params: FichaNCParams;
-      Querystring: NCFichaQuery;
-    }>,
+    request: FastifyRequest<{ Params: FichaNCParams; Querystring: NCFichaQuery }>,
     reply: FastifyReply
   ) {
     try {
       const { id_ficha } = request.params;
       const { estado_seguimiento, page = 1, limit = 20 } = request.query;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       const ncs = await this.ncService.getByFicha(
         id_ficha,
         estado_seguimiento,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
 
       const totalPages = Math.ceil(ncs.length / limit);
@@ -135,14 +136,16 @@ export class NoConformidadesController {
     try {
       const { id } = request.params;
       const data = request.body;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       const ncActualizada = await this.ncService.update(
         id,
         data,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
 
       return reply.status(200).send({ no_conformidad: ncActualizada });
@@ -186,16 +189,18 @@ export class NoConformidadesController {
       const { id } = request.params;
       const { estado_seguimiento, comentario_seguimiento } = request.body;
       const usuarioId = request.user!.userId;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       const ncActualizada = await this.ncService.updateSeguimiento(
         id,
         estado_seguimiento,
         comentario_seguimiento,
         usuarioId,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
 
       return reply.status(200).send({ no_conformidad: ncActualizada });
@@ -234,39 +239,23 @@ export class NoConformidadesController {
   ) {
     try {
       const { gestion, id_comunidad } = request.query;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       // Obtener gestión activa desde el middleware
       const gestionActiva = (request as any).gestionActiva;
 
-      console.log('🔍 [NC-CONTROLLER] Gestión activa del sistema:', {
-        id: gestionActiva.id,
-        anio: gestionActiva.anio,
-        tipo: typeof gestionActiva.anio
-      });
-
       // Usar gestion del query param o fallback a gestion activa
       const gestionAUsar = gestion || gestionActiva.anio;
-
-      console.log('🔍 [NC-CONTROLLER] Gestión a usar para estadísticas:', {
-        gestionQueryParam: gestion,
-        gestionActiva: gestionActiva.anio,
-        gestionFinal: gestionAUsar,
-        origen: gestion ? 'query_param' : 'gestion_activa'
-      });
 
       const estadisticas = await this.ncService.getEstadisticas(
         gestionAUsar,
         id_comunidad,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
-
-      console.log('🔍 [NC-CONTROLLER] Estadísticas retornadas:', {
-        total_nc: estadisticas.total,
-        gestion_usada: gestionAUsar
-      });
 
       return reply.status(200).send(estadisticas);
     } catch (error) {
@@ -294,45 +283,27 @@ export class NoConformidadesController {
         page = 1,
         limit = 20,
       } = request.query;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       // Obtener gestión activa desde el middleware
       const gestionActiva = (request as any).gestionActiva;
 
-      console.log('🔍 [NC-CONTROLLER] Gestión activa del sistema:', {
-        id: gestionActiva.id,
-        anio: gestionActiva.anio,
-        tipo: typeof gestionActiva.anio
-      });
-
       // Usar gestion del query param o fallback a gestion activa
       const gestionAUsar = gestion || gestionActiva.anio;
-
-      console.log('🔍 [NC-CONTROLLER] Gestión a usar para listado:', {
-        gestionQueryParam: gestion,
-        gestionActiva: gestionActiva.anio,
-        gestionFinal: gestionAUsar,
-        origen: gestion ? 'query_param' : 'gestion_activa'
-      });
 
       const ncs = await this.ncService.getAll(
         estado_seguimiento,
         id_comunidad,
         gestionAUsar,
         codigo_productor,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
 
       const totalPages = Math.ceil(ncs.length / limit);
-
-      console.log('🔍 [NC-CONTROLLER] NCs retornadas:', {
-        total: ncs.length,
-        gestion_usada: gestionAUsar,
-        page,
-        totalPages
-      });
 
       return reply.status(200).send({
         no_conformidades: ncs,
@@ -360,8 +331,10 @@ export class NoConformidadesController {
     try {
       const { id } = request.params;
       const usuarioId = request.user!.userId;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       // Obtener archivo multipart
       const data = await request.file();
@@ -388,8 +361,8 @@ export class NoConformidadesController {
       const archivo = await this.ncService.addArchivo(
         id,
         usuarioId,
-        usuarioComunidadId,
-        esGerente,
+        usuarioComunidadesIds,
+        esAdminOGerente,
         data as MultipartFile,
         tipoArchivo.value
       );
@@ -444,13 +417,15 @@ export class NoConformidadesController {
   ) {
     try {
       const { id } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       const archivos = await this.ncService.getArchivos(
         id,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
 
       return reply.status(200).send({
@@ -492,14 +467,16 @@ export class NoConformidadesController {
   ) {
     try {
       const { id, id_archivo } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       await this.ncService.deleteArchivo(
         id,
         id_archivo,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
 
       return reply.status(204).send();
@@ -552,14 +529,16 @@ export class NoConformidadesController {
   ) {
     try {
       const { id, id_archivo } = request.params;
-      const usuarioComunidadId = request.user?.comunidadId;
-      const esGerente = request.user?.role === "gerente";
+      const usuarioComunidadesIds = request.user?.comunidadesIds;
+      const esAdminOGerente =
+        request.user?.role === "administrador" ||
+        request.user?.role === "gerente";
 
       const filePath = await this.ncService.getArchivoPath(
         id,
         id_archivo,
-        usuarioComunidadId,
-        esGerente
+        usuarioComunidadesIds,
+        esAdminOGerente
       );
 
       // Enviar archivo como stream

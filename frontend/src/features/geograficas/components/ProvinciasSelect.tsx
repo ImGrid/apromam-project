@@ -32,7 +32,7 @@ export function ProvinciasSelect({
       options={options}
       value={value || ""}
       onChange={onChange}
-      placeholder={isLoading ? "Cargando provincias..." : placeholder}
+      placeholder={isLoading ? "Cargando..." : placeholder}
       disabled={disabled || isLoading}
       error={error}
       searchable

@@ -107,8 +107,8 @@ export function isSameComunidad(
   // Admin y gerente tienen acceso a todas las comunidades
   if (hasPermission(user, "all")) return true;
 
-  // Tecnico solo su comunidad
-  return user.id_comunidad === comunidadId;
+  // Tecnico solo sus comunidades asignadas (N:N)
+  return user.comunidades_ids?.includes(comunidadId) || false;
 }
 
 /**

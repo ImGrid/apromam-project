@@ -20,7 +20,7 @@ pg.types.setTypeParser(1184, (val) => new Date(val)); // TIMESTAMPTZ con timezon
 // Logger especifico para operaciones de base de datos
 const logger = createDatabaseLogger();
 
-// Configuracion del pool de conexiones PostgreSQL + PostGIS
+// Configuracion del pool de conexiones PostgreSQL
 // Pool singleton para toda la aplicacion siguiendo mejores practicas oficiales
 const poolConfig: PoolConfig = {
   host: config.database.host,
@@ -145,12 +145,11 @@ export const pool = (() => {
   });
 })();
 
-// Verifica la conectividad con PostgreSQL + PostGIS
+// Verifica la conectividad con PostgreSQL
 // Utilizada en health checks y startup de la aplicacion
 export const checkDatabaseConnection = async (): Promise<{
   connected: boolean;
   version?: string;
-  postgis_version?: string;
   pool_stats?: {
     total: number;
     idle: number;
@@ -170,36 +169,9 @@ export const checkDatabaseConnection = async (): Promise<{
       const pgVersionResult = await client.query("SELECT version()");
       const pgVersion = pgVersionResult.rows[0]?.version || "desconocido";
 
-      // Verificar PostGIS disponible y version
-      const postgisResult = await client.query(`
-        SELECT PostGIS_Version() as version,
-               PostGIS_Lib_Version() as lib_version
-      `);
-      const postgisVersion = postgisResult.rows[0]?.version || "no_disponible";
-
-      // Verificar SRID Bolivia configurado correctamente
-      const sridResult = await client.query(
-        `
-        SELECT auth_name, auth_srid, srtext 
-        FROM spatial_ref_sys 
-        WHERE srid = $1
-      `,
-        [config.postgis.srid]
-      );
-
-      if (sridResult.rows.length === 0) {
-        logger.warn(
-          {
-            srid_esperado: config.postgis.srid,
-          },
-          "SRID Bolivia no encontrado en spatial_ref_sys"
-        );
-      }
-
       return {
         connected: true,
         version: pgVersion,
-        postgis_version: postgisVersion,
         pool_stats: {
           total: poolInstance.totalCount,
           idle: poolInstance.idleCount,

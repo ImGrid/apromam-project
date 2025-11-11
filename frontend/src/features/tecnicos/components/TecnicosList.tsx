@@ -49,16 +49,20 @@ export function TecnicosList({
       ),
     },
     {
-      key: "nombre_comunidad",
-      label: "Comunidad Asignada",
+      key: "comunidades",
+      label: "Comunidades Asignadas",
       sortable: true,
       render: (tecnico) =>
-        tecnico.nombre_comunidad ? (
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-success" />
-            <span className="text-sm text-text-primary">
-              {tecnico.nombre_comunidad}
-            </span>
+        tecnico.comunidades && tecnico.comunidades.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {tecnico.comunidades.map((c) => (
+              <span
+                key={c.id_comunidad}
+                className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary"
+              >
+                {c.nombre_comunidad}
+              </span>
+            ))}
           </div>
         ) : (
           <div className="flex items-center gap-2">

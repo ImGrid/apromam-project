@@ -17,32 +17,32 @@ export class ComunidadesService {
     this.comunidadRepository = comunidadRepository;
   }
 
-  // Lista todas las comunidades
+  // Lista todas las comunidades con filtros opcionales
   async listAll(
+    nombre?: string,
     municipioId?: string,
     provinciaId?: string,
-    sinTecnicos?: boolean
+    sinTecnicos?: boolean,
+    activo?: boolean
   ): Promise<{ comunidades: ComunidadResponse[]; total: number }> {
     logger.debug(
       {
+        nombre,
         municipio_id: municipioId,
         provincia_id: provinciaId,
         sin_tecnicos: sinTecnicos,
+        activo,
       },
-      "Listing comunidades"
+      "Listing comunidades with filters"
     );
 
-    let comunidades: Comunidad[];
-
-    if (sinTecnicos) {
-      comunidades = await this.comunidadRepository.findWithoutTecnicos();
-    } else if (municipioId) {
-      comunidades = await this.comunidadRepository.findByMunicipio(municipioId);
-    } else if (provinciaId) {
-      comunidades = await this.comunidadRepository.findByProvincia(provinciaId);
-    } else {
-      comunidades = await this.comunidadRepository.findAll();
-    }
+    const comunidades = await this.comunidadRepository.findWithFilters({
+      nombre,
+      municipioId,
+      provinciaId,
+      sinTecnicos,
+      activo,
+    });
 
     return {
       comunidades: comunidades.map((c) => c.toJSON()),
@@ -164,6 +164,26 @@ export class ComunidadesService {
         comunidad_id: id,
       },
       "Comunidad deleted successfully"
+    );
+  }
+
+  // Elimina PERMANENTEMENTE una comunidad
+  // Verifica que no tenga usuarios ni productores asociados
+  async hardDelete(id: string): Promise<void> {
+    logger.info(
+      {
+        comunidad_id: id,
+      },
+      "Hard deleting comunidad"
+    );
+
+    await this.comunidadRepository.hardDelete(id);
+
+    logger.info(
+      {
+        comunidad_id: id,
+      },
+      "Comunidad permanently deleted"
     );
   }
 

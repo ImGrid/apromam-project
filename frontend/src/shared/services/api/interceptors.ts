@@ -153,20 +153,6 @@ export function setupInterceptors(axiosInstance: AxiosInstance): void {
         }
       }
 
-      // Si es error 403 (forbidden)
-      if (error.response?.status === 403) {
-        console.warn("Acceso denegado:", error.response.data);
-      }
-
-      // Si es error 404 (not found)
-      if (error.response?.status === 404) {
-        console.warn("Recurso no encontrado:", error.config?.url);
-      }
-
-      // Si es error 500 (server error)
-      if (error.response?.status === 500) {
-        console.error("Error del servidor:", error.response.data);
-      }
 
       return Promise.reject(error);
     }

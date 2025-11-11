@@ -11,13 +11,12 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const navigate = useNavigate();
-  const { login, isLoading, error } = useLogin();
+  const { login, isLoading } = useLogin();
 
   // Estados del formulario
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   // Errores de validacion local
   const [fieldErrors, setFieldErrors] = useState<{
@@ -111,8 +110,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         navigate(ROUTES.DASHBOARD, { replace: true });
       }
     } catch (err) {
-      // El error ya se maneja en el hook useLogin
-      console.error("Error en login:", err);
+      // El error ya se maneja en el hook useLogin (toast + loading)
+      // No necesitamos hacer nada aquí
     }
   };
 
@@ -125,27 +124,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-      {/* Error general del servidor */}
-      {error && (
-        <div className="p-4 text-sm border rounded-lg bg-error/10 border-error/20 text-error">
-          <div className="flex items-start gap-2">
-            <svg
-              className="flex-shrink-0 w-5 h-5 mt-0.5"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span>{error}</span>
-          </div>
-        </div>
-      )}
-
       {/* Campo Usuario */}
       <Input
         label="Usuario"
@@ -218,31 +196,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         </button>
       </div>
 
-      {/* Recordar sesion */}
-      <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 cursor-pointer touch-target">
-          <input
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            disabled={isLoading}
-            className="w-5 h-5 border rounded cursor-pointer text-primary border-neutral-border focus:ring-2 focus:ring-primary focus:ring-offset-1 disabled:opacity-50"
-          />
-          <span className="text-sm select-none text-text-secondary">
-            Recordar sesión
-          </span>
-        </label>
-
-        {/* Link olvide contraseña */}
-        <button
-          type="button"
-          disabled={isLoading}
-          className="text-sm transition-colors touch-target text-primary hover:text-primary-dark disabled:opacity-50"
-        >
-          ¿Olvidaste tu contraseña?
-        </button>
-      </div>
-
       {/* Boton de login */}
       <Button
         type="submit"
@@ -254,13 +207,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       >
         {isLoading ? "Iniciando sesión..." : "Ingresar"}
       </Button>
-
-      {/* Texto informativo sobre remember me */}
-      {rememberMe && (
-        <p className="text-xs text-center text-text-secondary">
-          Tu sesión se mantendrá activa en este dispositivo
-        </p>
-      )}
     </form>
   );
 }

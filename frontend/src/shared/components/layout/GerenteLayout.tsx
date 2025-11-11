@@ -54,7 +54,7 @@ const gerenteNavItems = [
   },
   {
     label: "Reportes",
-    path: ROUTES.DASHBOARD,
+    path: ROUTES.REPORTES,
     icon: BarChart3,
   },
   {

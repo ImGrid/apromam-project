@@ -30,7 +30,6 @@ function decodeJWT(token: string): JWTPayload | null {
     const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
     return JSON.parse(decoded) as JWTPayload;
   } catch (error) {
-    console.error("Error decoding JWT:", error);
     return null;
   }
 }
@@ -87,7 +86,6 @@ export function saveTokens(tokens: TokenPair): void {
       localStorage.setItem(TOKEN_KEYS.EXPIRES_AT, expiresAt.toString());
     }
   } catch (error) {
-    console.error("Error guardando tokens:", error);
   }
 }
 
@@ -98,7 +96,6 @@ export function getAccessToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
   } catch (error) {
-    console.error("Error obteniendo access token:", error);
     return null;
   }
 }
@@ -110,7 +107,6 @@ export function getRefreshToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEYS.REFRESH_TOKEN);
   } catch (error) {
-    console.error("Error obteniendo refresh token:", error);
     return null;
   }
 }
@@ -124,7 +120,6 @@ export function clearTokens(): void {
     localStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(TOKEN_KEYS.EXPIRES_AT);
   } catch (error) {
-    console.error("Error eliminando tokens:", error);
   }
 }
 

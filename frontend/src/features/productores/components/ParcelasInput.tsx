@@ -95,23 +95,23 @@ export function ParcelasInput({
     >
       <div className="space-y-4">
         {/* Resumen de validación */}
-        <div className="p-4 border rounded-lg bg-gray-50">
+        <div className="p-4 border rounded-lg bg-neutral-50">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-neutral-700">
                 Superficie Total del Productor:{" "}
                 <span className="font-bold text-primary">
                   {superficieTotalProductor.toFixed(4)} ha
                 </span>
               </p>
-              <p className="mt-1 text-sm text-gray-600">
+              <p className="mt-1 text-sm text-text-secondary">
                 Suma de Parcelas:{" "}
                 <span className={`font-semibold ${isValid ? "text-success" : "text-danger"}`}>
                   {sumaParcelas.toFixed(4)} ha
                 </span>
               </p>
               {parcelas.length > 0 && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-neutral-500">
                   {parcelas.length} parcela{parcelas.length !== 1 ? "s" : ""} definida{parcelas.length !== 1 ? "s" : ""}
                 </p>
               )}
@@ -155,7 +155,7 @@ export function ParcelasInput({
                     placeholder="0.0000"
                   />
                 </FormField>
-                <span className="mb-2 text-sm font-medium text-gray-600 w-8">ha</span>
+                <span className="mb-2 text-sm font-medium text-text-secondary w-8">ha</span>
                 <Button
                   type="button"
                   variant="danger"
@@ -183,7 +183,7 @@ export function ParcelasInput({
         </Button>
 
         {superficieTotalProductor <= 0 && (
-          <p className="text-sm text-gray-500 text-center">
+          <p className="text-sm text-neutral-500 text-center">
             Primero define la superficie total del productor
           </p>
         )}

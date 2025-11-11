@@ -1,9 +1,9 @@
-import { FastifyInstance, FastifyPluginOptions } from "fastify";
-import { ZodTypeProvider } from "fastify-type-provider-zod";
+import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { GestionesController } from "../controllers/gestiones.controller.js";
 import { GestionesService } from "../services/gestiones.service.js";
 import { GestionRepository } from "../repositories/GestionRepository.js";
+import { authenticate } from "../middleware/authenticate.js";
 import { requireAdmin } from "../middleware/authorize.js";
 import {
   CreateGestionSchema,
@@ -22,10 +22,7 @@ const UUIDSchema = z.string().uuid("ID debe ser un UUID válido");
  * Todos los endpoints requieren autenticación
  * Solo admin puede crear, actualizar, eliminar y activar gestiones
  */
-export default async function gestionesRoutes(
-  fastify: FastifyInstance,
-  opts: FastifyPluginOptions
-) {
+const gestionesRoutes: FastifyPluginAsyncZod = async (fastify, _opts) => {
   const gestionRepository = new GestionRepository();
   const gestionesService = new GestionesService(gestionRepository);
   const gestionesController = new GestionesController(gestionesService);
@@ -34,201 +31,183 @@ export default async function gestionesRoutes(
   // GET /api/gestiones
   // Lista todas las gestiones
   // ==========================================
-  fastify.withTypeProvider<ZodTypeProvider>().get(
-    "/",
-    {
-      onRequest: [fastify.authenticate],
-      schema: {
-        description: "Lista todas las gestiones",
-        tags: ["Gestiones"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
+  fastify.route({
+    method: "GET",
+    url: "/",
+    onRequest: [authenticate],
+    schema: {
+      description: "Lista todas las gestiones",
+      tags: ["Gestiones"],
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+      querystring: z.object({
+        activo: z
+          .boolean()
+          .optional()
+          .describe("Filtrar solo activas (default: true)"),
+      }),
+      response: {
+        200: z.object({
+          data: z.array(GestionResponseSchema),
+          total: z.number(),
         }),
-        querystring: z.object({
-          activo: z
-            .boolean()
-            .optional()
-            .describe("Filtrar solo activas (default: true)"),
-        }),
-        response: {
-          200: z.object({
-            data: z.array(GestionResponseSchema),
-            total: z.number(),
-          }),
-        },
       },
     },
-    async (request, reply) => {
-      return gestionesController.listGestiones(request, reply);
-    }
-  );
+    handler: gestionesController.listGestiones.bind(gestionesController) as any,
+  });
 
   // ==========================================
   // GET /api/gestiones/activa
   // Obtiene la gestión activa del sistema
   // ==========================================
-  fastify.withTypeProvider<ZodTypeProvider>().get(
-    "/activa",
-    {
-      onRequest: [fastify.authenticate],
-      schema: {
-        description:
-          "Obtiene la gestión activa del sistema (activo_sistema = true)",
-        tags: ["Gestiones"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
+  fastify.route({
+    method: "GET",
+    url: "/activa",
+    onRequest: [authenticate],
+    schema: {
+      description:
+        "Obtiene la gestión activa del sistema (activo_sistema = true)",
+      tags: ["Gestiones"],
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+      response: {
+        200: z.object({
+          data: GestionResponseSchema,
         }),
-        response: {
-          200: z.object({
-            data: GestionResponseSchema,
-          }),
-          404: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-        },
+        404: z.object({
+          error: z.string(),
+          message: z.string(),
+        }),
       },
     },
-    async (request, reply) => {
-      return gestionesController.getGestionActiva(request, reply);
-    }
-  );
+    handler: gestionesController.getGestionActiva.bind(gestionesController) as any,
+  });
 
   // ==========================================
   // GET /api/gestiones/:id
   // Obtiene una gestión por ID
   // ==========================================
-  fastify.withTypeProvider<ZodTypeProvider>().get(
-    "/:id",
-    {
-      onRequest: [fastify.authenticate],
-      schema: {
-        description: "Obtiene una gestión por ID",
-        tags: ["Gestiones"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
+  fastify.route({
+    method: "GET",
+    url: "/:id",
+    onRequest: [authenticate],
+    schema: {
+      description: "Obtiene una gestión por ID",
+      tags: ["Gestiones"],
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+      params: z.object({
+        id: UUIDSchema,
+      }),
+      response: {
+        200: z.object({
+          data: GestionResponseSchema,
         }),
-        params: z.object({
-          id: UUIDSchema,
+        404: z.object({
+          error: z.string(),
+          message: z.string(),
         }),
-        response: {
-          200: z.object({
-            data: GestionResponseSchema,
-          }),
-          404: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-        },
       },
     },
-    async (request, reply) => {
-      return gestionesController.getGestionById(request, reply);
-    }
-  );
+    handler: gestionesController.getGestionById.bind(gestionesController) as any,
+  });
 
   // ==========================================
   // POST /api/gestiones
   // Crea una nueva gestión
   // Solo admin
   // ==========================================
-  fastify.withTypeProvider<ZodTypeProvider>().post(
-    "/",
-    {
-      onRequest: [fastify.authenticate, requireAdmin],
-      schema: {
-        description: "Crea una nueva gestión",
-        tags: ["Gestiones"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
+  fastify.route({
+    method: "POST",
+    url: "/",
+    onRequest: [authenticate, requireAdmin],
+    schema: {
+      description: "Crea una nueva gestión",
+      tags: ["Gestiones"],
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+      body: CreateGestionSchema,
+      response: {
+        201: z.object({
+          data: GestionResponseSchema,
+          message: z.string(),
         }),
-        body: CreateGestionSchema,
-        response: {
-          201: z.object({
-            data: GestionResponseSchema,
-            message: z.string(),
-          }),
-          409: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-        },
+        409: z.object({
+          error: z.string(),
+          message: z.string(),
+        }),
       },
     },
-    async (request, reply) => {
-      return gestionesController.createGestion(request, reply);
-    }
-  );
+    handler: gestionesController.createGestion.bind(gestionesController) as any,
+  });
 
   // ==========================================
   // PUT /api/gestiones/:id
   // Actualiza una gestión existente
   // Solo admin
   // ==========================================
-  fastify.withTypeProvider<ZodTypeProvider>().put(
-    "/:id",
-    {
-      onRequest: [fastify.authenticate, requireAdmin],
-      schema: {
-        description: "Actualiza una gestión existente",
-        tags: ["Gestiones"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
+  fastify.route({
+    method: "PUT",
+    url: "/:id",
+    onRequest: [authenticate, requireAdmin],
+    schema: {
+      description: "Actualiza una gestión existente",
+      tags: ["Gestiones"],
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+      params: z.object({
+        id: UUIDSchema,
+      }),
+      body: UpdateGestionSchema,
+      response: {
+        200: z.object({
+          data: GestionResponseSchema,
+          message: z.string(),
         }),
-        params: z.object({
-          id: UUIDSchema,
+        404: z.object({
+          error: z.string(),
+          message: z.string(),
         }),
-        body: UpdateGestionSchema,
-        response: {
-          200: z.object({
-            data: GestionResponseSchema,
-            message: z.string(),
-          }),
-          404: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-        },
       },
     },
-    async (request, reply) => {
-      return gestionesController.updateGestion(request, reply);
-    }
-  );
+    handler: gestionesController.updateGestion.bind(gestionesController) as any,
+  });
 
   // ==========================================
   // DELETE /api/gestiones/:id
   // Elimina (desactiva) una gestión
   // Solo admin
   // ==========================================
-  fastify.withTypeProvider<ZodTypeProvider>().delete(
-    "/:id",
-    {
-      onRequest: [fastify.authenticate, requireAdmin],
-      schema: {
-        description: "Elimina (desactiva) una gestión",
-        tags: ["Gestiones"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
+  fastify.route({
+    method: "DELETE",
+    url: "/:id",
+    onRequest: [authenticate, requireAdmin],
+    schema: {
+      description: "Elimina (desactiva) una gestión",
+      tags: ["Gestiones"],
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+      params: z.object({
+        id: UUIDSchema,
+      }),
+      response: {
+        200: z.object({
+          message: z.string(),
         }),
-        params: z.object({
-          id: UUIDSchema,
+        400: z.object({
+          error: z.string(),
+          message: z.string(),
         }),
-        response: {
-          200: z.object({
-            message: z.string(),
-          }),
-          400: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-        },
       },
     },
-    async (request, reply) => {
-      return gestionesController.deleteGestion(request, reply);
-    }
-  );
+    handler: gestionesController.deleteGestion.bind(gestionesController) as any,
+  });
 
   // ==========================================
   // POST /api/gestiones/:id/activar
@@ -236,38 +215,37 @@ export default async function gestionesRoutes(
   // ACCIÓN CRÍTICA: Afecta a TODO el sistema
   // Solo admin
   // ==========================================
-  fastify.withTypeProvider<ZodTypeProvider>().post(
-    "/:id/activar",
-    {
-      onRequest: [fastify.authenticate, requireAdmin],
-      schema: {
-        description:
-          "Activa una gestión como la gestión activa del sistema. ACCIÓN CRÍTICA que afecta a todo el sistema.",
-        tags: ["Gestiones"],
-        headers: z.object({
-          authorization: z.string().describe("Bearer token"),
+  fastify.route({
+    method: "POST",
+    url: "/:id/activar",
+    onRequest: [authenticate, requireAdmin],
+    schema: {
+      description:
+        "Activa una gestión como la gestión activa del sistema. ACCIÓN CRÍTICA que afecta a todo el sistema.",
+      tags: ["Gestiones"],
+      headers: z.object({
+        authorization: z.string().describe("Bearer token"),
+      }),
+      params: z.object({
+        id: UUIDSchema,
+      }),
+      response: {
+        200: z.object({
+          data: GestionResponseSchema,
+          message: z.string(),
         }),
-        params: z.object({
-          id: UUIDSchema,
+        400: z.object({
+          error: z.string(),
+          message: z.string(),
         }),
-        response: {
-          200: z.object({
-            data: GestionResponseSchema,
-            message: z.string(),
-          }),
-          400: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-          404: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-        },
+        404: z.object({
+          error: z.string(),
+          message: z.string(),
+        }),
       },
     },
-    async (request, reply) => {
-      return gestionesController.activarGestion(request, reply);
-    }
-  );
-}
+    handler: gestionesController.activarGestion.bind(gestionesController) as any,
+  });
+};
+
+export default gestionesRoutes;

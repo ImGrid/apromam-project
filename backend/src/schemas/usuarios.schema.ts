@@ -53,9 +53,10 @@ export const CreateUsuarioSchema = z.object({
     .max(200, "Nombre completo no puede exceder 200 caracteres")
     .trim(),
   id_rol: UUIDSchema,
-  id_comunidad: z
-    .union([UUIDSchema, z.null(), z.literal("")])
-    .transform((val) => (val === "" || val === null ? undefined : val))
+  comunidades_ids: z
+    .array(UUIDSchema)
+    .min(1, "Debe asignar al menos una comunidad")
+    .max(20, "No puede asignar más de 20 comunidades")
     .optional(),
 });
 
@@ -70,9 +71,10 @@ export const UpdateUsuarioSchema = z.object({
     .max(200, "Nombre completo no puede exceder 200 caracteres")
     .trim()
     .optional(),
-  id_comunidad: z
-    .union([UUIDSchema, z.null(), z.literal("")])
-    .transform((val) => (val === "" || val === null ? null : val))
+  comunidades_ids: z
+    .array(UUIDSchema)
+    .min(1, "Debe asignar al menos una comunidad")
+    .max(20, "No puede asignar más de 20 comunidades")
     .optional(),
   activo: z.boolean().optional(),
 });
@@ -88,6 +90,7 @@ export type UsuarioParams = z.infer<typeof UsuarioParamsSchema>;
 
 // Schema para query params
 export const UsuarioQuerySchema = z.object({
+  nombre: z.string().optional(),
   rol: z.string().optional(),
   comunidad: UUIDSchema.optional(),
   activo: z
@@ -98,6 +101,12 @@ export const UsuarioQuerySchema = z.object({
 
 export type UsuarioQuery = z.infer<typeof UsuarioQuerySchema>;
 
+// Schema para comunidad en respuesta de usuario
+const ComunidadBasicSchema = z.object({
+  id_comunidad: UUIDSchema,
+  nombre_comunidad: z.string(),
+});
+
 // Schema para respuesta usuario
 export const UsuarioResponseSchema = z.object({
   id_usuario: UUIDSchema,
@@ -105,8 +114,8 @@ export const UsuarioResponseSchema = z.object({
   email: z.string(),
   nombre_completo: z.string(),
   nombre_rol: z.string(),
-  id_comunidad: UUIDSchema.optional(),
-  nombre_comunidad: z.string().optional(),
+  comunidades_ids: z.array(UUIDSchema).optional(),
+  comunidades: z.array(ComunidadBasicSchema).optional(),
   activo: z.boolean(),
   last_login: z.string().optional(),
   created_at: z.string(),

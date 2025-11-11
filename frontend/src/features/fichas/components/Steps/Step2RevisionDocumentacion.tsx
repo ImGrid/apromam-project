@@ -63,7 +63,7 @@ export default function Step2RevisionDocumentacion() {
         {/* Vista Desktop - Tabla de 2 columnas */}
         <div className="hidden overflow-hidden border rounded-lg md:block border-neutral-border">
           {/* Header */}
-          <div className="grid grid-cols-[40%,60%] bg-gray-50 border-b border-neutral-border">
+          <div className="grid grid-cols-[40%,60%] bg-neutral-50 border-b border-neutral-border">
             <div className="px-4 py-3 text-sm font-semibold text-text-primary">
               DOCUMENTACIÓN
             </div>
@@ -78,7 +78,7 @@ export default function Step2RevisionDocumentacion() {
               key={doc.campo}
               className={`grid grid-cols-[40%,60%] ${
                 index !== documentos.length - 1 ? "border-b border-neutral-border" : ""
-              } hover:bg-gray-50 transition-colors`}
+              } hover:bg-neutral-50 transition-colors`}
             >
               {/* Columna 1: Nombre del documento */}
               <div className="flex items-center px-4 py-4 text-sm text-text-secondary">

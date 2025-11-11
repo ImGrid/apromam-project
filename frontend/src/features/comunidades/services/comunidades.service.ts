@@ -72,6 +72,15 @@ export const comunidadesService = {
     }
   },
 
+  // Eliminar comunidad permanentemente
+  async hardDeleteComunidad(id: string): Promise<void> {
+    try {
+      await apiClient.delete(ENDPOINTS.COMUNIDADES.PERMANENT(id));
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
   // Listar comunidades sin tecnicos
   async listComunidadesSinTecnicos(): Promise<{
     comunidades: Comunidad[];

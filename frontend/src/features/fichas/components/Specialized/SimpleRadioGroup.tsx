@@ -48,10 +48,10 @@ export const SimpleRadioGroup = forwardRef<HTMLDivElement, SimpleRadioGroupProps
       <div ref={ref} className="space-y-2">
         {/* Label */}
         {label && (
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-neutral-700">
             {label}
             {required && (
-              <span className="ml-1 text-red-600" aria-label="requerido">
+              <span className="ml-1 text-error-600" aria-label="requerido">
                 *
               </span>
             )}
@@ -70,11 +70,11 @@ export const SimpleRadioGroup = forwardRef<HTMLDivElement, SimpleRadioGroupProps
                   relative flex items-center gap-2 px-3 py-2
                   border rounded-md cursor-pointer transition-all
                   min-h-[40px]
-                  ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}
+                  ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-neutral-50"}
                   ${
                     isSelected
-                      ? "bg-blue-50 border-blue-500 text-blue-900"
-                      : "bg-white border-gray-300 hover:border-gray-400"
+                      ? "bg-info-50 border-info-500 text-info-900"
+                      : "bg-white border-neutral-300 hover:border-neutral-400"
                   }
                 `}
               >
@@ -96,8 +96,8 @@ export const SimpleRadioGroup = forwardRef<HTMLDivElement, SimpleRadioGroupProps
                     flex items-center justify-center
                     ${
                       isSelected
-                        ? "border-blue-500 bg-blue-500"
-                        : "border-gray-400 bg-white"
+                        ? "border-info-500 bg-info-500"
+                        : "border-neutral-400 bg-white"
                     }
                   `}
                 >
@@ -115,7 +115,7 @@ export const SimpleRadioGroup = forwardRef<HTMLDivElement, SimpleRadioGroupProps
 
         {/* Error message */}
         {error && (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="text-sm text-error-600" role="alert">
             {error}
           </p>
         )}

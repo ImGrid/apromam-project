@@ -8,6 +8,7 @@ import {
   parcelasService,
   type ParcelasProductorResponse,
 } from "@/features/parcelas";
+import { logger } from "@/shared/utils/logger";
 
 export function useProductorParcelas(codigoProductor: string | undefined) {
   const [data, setData] = useState<ParcelasProductorResponse | null>(null);
@@ -38,7 +39,7 @@ export function useProductorParcelas(codigoProductor: string | undefined) {
             ? err.message
             : "Error al obtener las parcelas del productor";
         setError(errorMessage);
-        console.error("Error fetching parcelas:", err);
+        logger.error("Error fetching parcelas:", err);
       } finally {
         setIsLoading(false);
       }

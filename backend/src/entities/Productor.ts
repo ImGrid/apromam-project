@@ -1,7 +1,6 @@
 import {
   validateBolivianCoordinates,
   validateGPSPrecision,
-  createPointWKT,
   type Coordinates,
 } from "../utils/postgis.utils.js";
 
@@ -159,7 +158,7 @@ export class Productor {
     return {
       latitude: this.data.latitud_domicilio,
       longitude: this.data.longitud_domicilio,
-      altitude: this.data.altitud_domicilio,
+      altitude: this.data.altitud_domicilio ?? null,
     };
   }
 
@@ -417,39 +416,6 @@ export class Productor {
     };
   }
 
-  /**
-   * Genera string WKT para coordenadas PostGIS
-   * Este WKT se puede usar como parametro en queries preparados
-   *
-   * @returns WKT string o null si no hay coordenadas
-   *
-   * @example
-   * const wkt = productor.getCoordenadasWKT();
-   * // Retorna: "POINT(-64.123456 -17.123456)" o null
-   *
-   * // Usar en query:
-   * const query = {
-   *   text: "INSERT INTO productores (coordenadas_domicilio) VALUES (ST_GeomFromText($1, 4326))",
-   *   values: [wkt]
-   * };
-   */
-  getCoordenadasWKT(): string | null {
-    if (
-      this.data.latitud_domicilio === undefined ||
-      this.data.longitud_domicilio === undefined
-    ) {
-      return null;
-    }
-
-    try {
-      return createPointWKT(
-        this.data.latitud_domicilio,
-        this.data.longitud_domicilio
-      );
-    } catch (error) {
-      return null;
-    }
-  }
 
   // Verifica si el productor puede ser desactivado
   puedeDesactivar(): { valid: boolean; error?: string } {

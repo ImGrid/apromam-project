@@ -38,12 +38,18 @@ export class GeograficasService {
 
   // DEPARTAMENTOS
 
-  // Lista todos los departamentos
-  async listDepartamentos(): Promise<{
+  // Lista todos los departamentos con filtros opcionales
+  async listDepartamentos(
+    nombre?: string,
+    activo?: boolean
+  ): Promise<{
     departamentos: DepartamentoResponse[];
     total: number;
   }> {
-    const departamentos = await this.departamentoRepository.findAll();
+    const departamentos = await this.departamentoRepository.findWithFilters({
+      nombre,
+      activo,
+    });
 
     return {
       departamentos: departamentos.map((d) => d.toJSON()),
@@ -126,6 +132,10 @@ export class GeograficasService {
       departamentoActual
     );
 
+    if (!departamentoActualizado) {
+      throw new Error("Departamento no encontrado");
+    }
+
     logger.info(
       {
         departamento_id: id,
@@ -156,14 +166,42 @@ export class GeograficasService {
     );
   }
 
+  // Elimina PERMANENTEMENTE un departamento
+  // Solo admin puede eliminar permanentemente
+  async hardDeleteDepartamento(id: string): Promise<void> {
+    logger.info(
+      {
+        departamento_id: id,
+      },
+      "Hard deleting departamento"
+    );
+
+    await this.departamentoRepository.hardDelete(id);
+
+    logger.info(
+      {
+        departamento_id: id,
+      },
+      "Departamento permanently deleted"
+    );
+  }
+
   // PROVINCIAS
 
-  // Lista todas las provincias
-  async listProvincias(): Promise<{
+  // Lista todas las provincias con filtros opcionales
+  async listProvincias(
+    nombre?: string,
+    departamento?: string,
+    activo?: boolean
+  ): Promise<{
     provincias: ProvinciaResponse[];
     total: number;
   }> {
-    const provincias = await this.provinciaRepository.findAll();
+    const provincias = await this.provinciaRepository.findWithFilters({
+      nombre,
+      departamentoId: departamento,
+      activo,
+    });
 
     return {
       provincias: provincias.map((p) => p.toJSON()),
@@ -284,19 +322,39 @@ export class GeograficasService {
     );
   }
 
+  // Elimina PERMANENTEMENTE una provincia
+  // Solo admin puede eliminar permanentemente
+  async hardDeleteProvincia(id: string): Promise<void> {
+    logger.info(
+      {
+        provincia_id: id,
+      },
+      "Hard deleting provincia"
+    );
+
+    await this.provinciaRepository.hardDelete(id);
+
+    logger.info(
+      {
+        provincia_id: id,
+      },
+      "Provincia permanently deleted"
+    );
+  }
+
   // MUNICIPIOS
 
-  // Lista municipios con filtro opcional por provincia
+  // Lista municipios con filtros opcionales
   async listMunicipios(
-    provinciaId?: string
+    nombre?: string,
+    provincia?: string,
+    activo?: boolean
   ): Promise<{ municipios: MunicipioResponse[]; total: number }> {
-    let municipios: Municipio[];
-
-    if (provinciaId) {
-      municipios = await this.municipioRepository.findByProvincia(provinciaId);
-    } else {
-      municipios = await this.municipioRepository.findAll();
-    }
+    const municipios = await this.municipioRepository.findWithFilters({
+      nombre,
+      provinciaId: provincia,
+      activo,
+    });
 
     return {
       municipios: municipios.map((m) => m.toJSON()),
@@ -414,6 +472,26 @@ export class GeograficasService {
         municipio_id: id,
       },
       "Municipio deleted successfully"
+    );
+  }
+
+  // Elimina PERMANENTEMENTE un municipio
+  // Solo admin puede eliminar permanentemente
+  async hardDeleteMunicipio(id: string): Promise<void> {
+    logger.info(
+      {
+        municipio_id: id,
+      },
+      "Hard deleting municipio"
+    );
+
+    await this.municipioRepository.hardDelete(id);
+
+    logger.info(
+      {
+        municipio_id: id,
+      },
+      "Municipio permanently deleted"
     );
   }
 }

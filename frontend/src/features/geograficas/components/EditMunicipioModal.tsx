@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Modal, Button, Input, FormField } from "@/shared/components/ui";
+import { Modal, Button, Input, FormField, Checkbox } from "@/shared/components/ui";
 import { ProvinciasSelect } from "./ProvinciasSelect";
 import { useUpdateMunicipio } from "../hooks/useUpdateMunicipio";
 import type { Municipio } from "../types/geografica.types";
@@ -14,6 +14,7 @@ import type { Municipio } from "../types/geografica.types";
 const municipioSchema = z.object({
   nombre_municipio: z.string().min(3, "Mínimo 3 caracteres"),
   id_provincia: z.string().min(1, "Selecciona una provincia"),
+  activo: z.boolean(),
 });
 
 type MunicipioFormData = z.infer<typeof municipioSchema>;
@@ -50,6 +51,7 @@ export function EditMunicipioModal({
       reset({
         nombre_municipio: municipio.nombre_municipio,
         id_provincia: municipio.id_provincia,
+        activo: municipio.activo,
       });
     }
   }, [isOpen, municipio, reset]);
@@ -119,6 +121,16 @@ export function EditMunicipioModal({
             onChange={(value) => setValue("id_provincia", value)}
             disabled={isLoading}
           />
+        </FormField>
+
+        {/* Estado activo */}
+        <FormField label="Estado">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox {...register("activo")} disabled={isLoading} />
+            <span className="text-sm text-text-secondary">
+              Municipio activo
+            </span>
+          </label>
         </FormField>
 
         {/* Botones */}

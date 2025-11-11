@@ -52,8 +52,8 @@ export function NoConformidadDetailPage() {
       <div className="max-w-6xl mx-auto p-4">
         <Card compact>
           <div className="text-center py-8">
-            <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">No Conformidad no encontrada</p>
+            <AlertTriangle className="w-12 h-12 text-disabled mx-auto mb-3" />
+            <p className="text-text-secondary">No Conformidad no encontrada</p>
             <Button
               variant="secondary"
               size="small"
@@ -82,10 +82,10 @@ export function NoConformidadDetailPage() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-neutral-900">
               Seguimiento de No Conformidad
             </h1>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-text-secondary">
               {nc.codigo_productor} - {nc.nombre_productor}
             </p>
           </div>
@@ -102,10 +102,10 @@ export function NoConformidadDetailPage() {
             <div className="space-y-4">
               {/* Descripción */}
               <div>
-                <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">
+                <h3 className="text-xs font-medium text-neutral-500 uppercase mb-1">
                   Descripción del Incumplimiento
                 </h3>
-                <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                <p className="text-sm text-neutral-900 whitespace-pre-wrap">
                   {nc.descripcion_no_conformidad}
                 </p>
               </div>
@@ -113,23 +113,23 @@ export function NoConformidadDetailPage() {
               {/* Acción correctiva propuesta */}
               {nc.accion_correctiva_propuesta && (
                 <div>
-                  <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">
+                  <h3 className="text-xs font-medium text-neutral-500 uppercase mb-1">
                     Acción Correctiva Propuesta
                   </h3>
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                  <p className="text-sm text-neutral-900 whitespace-pre-wrap">
                     {nc.accion_correctiva_propuesta}
                   </p>
                 </div>
               )}
 
               {/* Metadata en grid compacto */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-neutral-200">
                 {nc.gestion && (
                   <div className="flex items-start gap-2">
-                    <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <Calendar className="w-4 h-4 text-disabled mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-xs text-gray-500">Gestión</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-neutral-500">Gestión</p>
+                      <p className="text-sm font-medium text-neutral-900">
                         {nc.gestion}
                       </p>
                     </div>
@@ -138,10 +138,10 @@ export function NoConformidadDetailPage() {
 
                 {nc.fecha_limite_implementacion && (
                   <div className="flex items-start gap-2">
-                    <Clock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <Clock className="w-4 h-4 text-disabled mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-xs text-gray-500">Fecha Límite</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-neutral-500">Fecha Límite</p>
+                      <p className="text-sm font-medium text-neutral-900">
                         {format(
                           parseISO(nc.fecha_limite_implementacion),
                           "dd MMM yyyy",
@@ -154,10 +154,10 @@ export function NoConformidadDetailPage() {
 
                 {nc.nombre_comunidad && (
                   <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <MapPin className="w-4 h-4 text-disabled mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-xs text-gray-500">Comunidad</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-neutral-500">Comunidad</p>
+                      <p className="text-sm font-medium text-neutral-900">
                         {nc.nombre_comunidad}
                       </p>
                     </div>
@@ -166,10 +166,10 @@ export function NoConformidadDetailPage() {
 
                 {nc.created_at && (
                   <div className="flex items-start gap-2">
-                    <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <FileText className="w-4 h-4 text-disabled mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-xs text-gray-500">Fecha de Registro</p>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-xs text-neutral-500">Fecha de Registro</p>
+                      <p className="text-sm font-medium text-neutral-900">
                         {format(parseISO(nc.created_at), "dd MMM yyyy", {
                           locale: es,
                         })}
@@ -181,25 +181,25 @@ export function NoConformidadDetailPage() {
 
               {/* Último seguimiento */}
               {nc.fecha_seguimiento && (
-                <div className="pt-2 border-t border-gray-200">
+                <div className="pt-2 border-t border-neutral-200">
                   <div className="flex items-start gap-2 mb-1">
-                    <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <User className="w-4 h-4 text-disabled mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-neutral-500">
                         Último seguimiento:{" "}
                         {format(parseISO(nc.fecha_seguimiento), "dd MMM yyyy HH:mm", {
                           locale: es,
                         })}
                       </p>
                       {nc.nombre_usuario_seguimiento && (
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-text-secondary">
                           Por: {nc.nombre_usuario_seguimiento}
                         </p>
                       )}
                     </div>
                   </div>
                   {nc.comentario_seguimiento && (
-                    <p className="text-sm text-gray-700 bg-gray-50 rounded p-2 mt-2">
+                    <p className="text-sm text-neutral-700 bg-neutral-50 rounded p-2 mt-2">
                       {nc.comentario_seguimiento}
                     </p>
                   )}
@@ -229,17 +229,17 @@ export function NoConformidadDetailPage() {
           <Card compact title="Productor">
             <div className="space-y-2 text-sm">
               <div>
-                <p className="text-xs text-gray-500">Código</p>
-                <p className="font-medium text-gray-900">{nc.codigo_productor}</p>
+                <p className="text-xs text-neutral-500">Código</p>
+                <p className="font-medium text-neutral-900">{nc.codigo_productor}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Nombre</p>
-                <p className="font-medium text-gray-900">{nc.nombre_productor}</p>
+                <p className="text-xs text-neutral-500">Nombre</p>
+                <p className="font-medium text-neutral-900">{nc.nombre_productor}</p>
               </div>
               {nc.nombre_comunidad && (
                 <div>
-                  <p className="text-xs text-gray-500">Comunidad</p>
-                  <p className="font-medium text-gray-900">{nc.nombre_comunidad}</p>
+                  <p className="text-xs text-neutral-500">Comunidad</p>
+                  <p className="font-medium text-neutral-900">{nc.nombre_comunidad}</p>
                 </div>
               )}
             </div>

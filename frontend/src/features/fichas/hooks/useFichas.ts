@@ -41,7 +41,7 @@ export function useFichas(initialFilters?: FichasFilters) {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, page, limit]);
+  }, [filters?.estado, filters?.productor, filters?.gestion, page, limit]);
 
   useEffect(() => {
     fetchFichas();

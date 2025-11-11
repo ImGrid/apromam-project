@@ -13,6 +13,7 @@ import {
 } from "@/shared/components/ui";
 import { useCreateComunidad } from "../hooks/useCreateComunidad";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
+import { logger } from "@/shared/utils/logger";
 
 // Schema de validacion
 const comunidadSchema = z.object({
@@ -71,7 +72,7 @@ export function CreateComunidadModal({
         }))
       );
     } catch {
-      console.error("Error cargando provincias");
+      logger.error("Error cargando provincias");
     }
   }, []);
 
@@ -90,7 +91,7 @@ export function CreateComunidadModal({
         }))
       );
     } catch {
-      console.error("Error cargando municipios");
+      logger.error("Error cargando municipios");
     } finally {
       setLoadingMunicipios(false);
     }

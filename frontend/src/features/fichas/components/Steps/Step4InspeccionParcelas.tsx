@@ -52,39 +52,33 @@ export default function Step4InspeccionParcelas() {
     return map;
   }, [parcelasInspeccionadasFields]);
 
-  // Agrupar cultivos por parcela
-  const cultivosPorParcela = useMemo(() => {
-    const grupos = new Map<string, number[]>();
-    fields.forEach((_, index) => {
-      const parcelaId = watch(`detalles_cultivo.${index}.id_parcela`);
-      if (parcelaId) {
-        const indices = grupos.get(parcelaId) || [];
-        indices.push(index);
-        grupos.set(parcelaId, indices);
-      }
-    });
-    return grupos;
-  }, [fields, watch]);
+  // Agrupar cultivos por parcela - calculo directo sin memo para reactividad
+  const cultivosPorParcela = new Map<string, number[]>();
+  fields.forEach((_, index) => {
+    const parcelaId = watch(`detalles_cultivo.${index}.id_parcela`);
+    if (parcelaId) {
+      const indices = cultivosPorParcela.get(parcelaId) || [];
+      indices.push(index);
+      cultivosPorParcela.set(parcelaId, indices);
+    }
+  });
 
-  // Validación Nivel 3
-  const validacionesPorParcela = useMemo(() => {
-    const validaciones = new Map<string, { error: boolean; mensaje: string }>();
-    parcelas.forEach((parcela) => {
-      const cultivosIndices = cultivosPorParcela.get(parcela.id_parcela) || [];
-      const sumaCultivos = cultivosIndices.reduce((sum, idx) => {
-        const sup = watch(`detalles_cultivo.${idx}.superficie_ha`);
-        return sum + (sup && !isNaN(Number(sup)) ? Number(sup) : 0);
-      }, 0);
-      const excede = sumaCultivos > parcela.superficie_ha;
-      validaciones.set(parcela.id_parcela, {
-        error: excede,
-        mensaje: excede
-          ? `ERROR: Los cultivos suman ${sumaCultivos.toFixed(4)} ha pero la parcela tiene ${parcela.superficie_ha.toFixed(4)} ha`
-          : "",
-      });
+  // Validación Nivel 3 - calculo directo sin memo para reactividad en tiempo real
+  const validacionesPorParcela = new Map<string, { error: boolean; mensaje: string }>();
+  parcelas.forEach((parcela) => {
+    const cultivosIndices = cultivosPorParcela.get(parcela.id_parcela) || [];
+    const sumaCultivos = cultivosIndices.reduce((sum, idx) => {
+      const sup = watch(`detalles_cultivo.${idx}.superficie_ha`);
+      return sum + (sup && !isNaN(Number(sup)) ? Number(sup) : 0);
+    }, 0);
+    const excede = sumaCultivos > parcela.superficie_ha;
+    validacionesPorParcela.set(parcela.id_parcela, {
+      error: excede,
+      mensaje: excede
+        ? `ERROR: Los cultivos suman ${sumaCultivos.toFixed(4)} ha pero la parcela tiene ${parcela.superficie_ha.toFixed(4)} ha`
+        : "",
     });
-    return validaciones;
-  }, [parcelas, cultivosPorParcela, watch]);
+  });
 
   const handleAddCultivo = (parcelaId: string) => {
     append({
@@ -114,7 +108,7 @@ export default function Step4InspeccionParcelas() {
   }
 
   if (isLoading) {
-    return <div className="p-8 text-center text-gray-600">Cargando parcelas...</div>;
+    return <div className="p-8 text-center text-text-secondary">Cargando parcelas...</div>;
   }
 
   if (error || parcelas.length === 0) {
@@ -133,7 +127,7 @@ export default function Step4InspeccionParcelas() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold">Productor: {codigoProductor}</h3>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-text-secondary">
               {parcelas.length} parcela{parcelas.length !== 1 ? "s" : ""} • Superficie total: {superficieTotal.toFixed(2)} ha
             </p>
           </div>
@@ -160,14 +154,14 @@ export default function Step4InspeccionParcelas() {
             </div>
 
             {/* SECCIÓN 1: DATOS DE LA PARCELA (UNA VEZ) */}
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <h5 className="text-xs font-semibold text-gray-700 mb-3">Datos de la Parcela</h5>
+            <div className="mb-4 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+              <h5 className="text-xs font-semibold text-neutral-700 mb-3">Datos de la Parcela</h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                 {/* Fila 1: Radio buttons juntos */}
                 {/* Utiliza riego */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Utiliza riego
                   </label>
                   <div className="flex gap-3">
@@ -202,7 +196,7 @@ export default function Step4InspeccionParcelas() {
 
                 {/* Rotación */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Rotación
                   </label>
                   <div className="flex gap-3">
@@ -238,7 +232,7 @@ export default function Step4InspeccionParcelas() {
                 {/* Fila 2: Campos de texto */}
                 {/* Tipo de barrera */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Tipo de barrera
                   </label>
                   <Select
@@ -258,7 +252,7 @@ export default function Step4InspeccionParcelas() {
 
                 {/* Insumos orgánicos */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Insumos orgánicos utilizados
                   </label>
                   <Input
@@ -275,13 +269,13 @@ export default function Step4InspeccionParcelas() {
 
                 {/* Fila 3: Coordenadas GPS (full width) */}
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Coordenadas GPS
                   </label>
                   <div className="flex gap-2">
                     <Input
                       type="number"
-                      step="0.000001"
+                      step="any"
                       value={parcelaIdx !== undefined ? (watch(`parcelas_inspeccionadas.${parcelaIdx}.latitud_sud`) ?? "") : ""}
                       onChange={(e) => {
                         if (parcelaIdx !== undefined) {
@@ -294,7 +288,7 @@ export default function Step4InspeccionParcelas() {
                     />
                     <Input
                       type="number"
-                      step="0.000001"
+                      step="any"
                       value={parcelaIdx !== undefined ? (watch(`parcelas_inspeccionadas.${parcelaIdx}.longitud_oeste`) ?? "") : ""}
                       onChange={(e) => {
                         if (parcelaIdx !== undefined) {
@@ -350,13 +344,13 @@ export default function Step4InspeccionParcelas() {
 
             {/* SECCIÓN 2: TABLA DE CULTIVOS */}
             <div>
-              <h5 className="text-xs font-semibold text-gray-700 mb-2">Cultivos de la Parcela</h5>
+              <h5 className="text-xs font-semibold text-neutral-700 mb-2">Cultivos de la Parcela</h5>
 
               {/* Vista Desktop: Tabla */}
               <div className="hidden md:block">
                 <table className="w-full text-sm border-collapse border">
                   <thead>
-                    <tr className="bg-gray-100 border-b">
+                    <tr className="bg-neutral-100 border-b">
                       <th className="px-3 py-2 text-left text-xs font-medium border-r">Cultivo</th>
                       <th className="px-3 py-2 text-left text-xs font-medium border-r">Sup. (ha)</th>
                       <th className="px-3 py-2 text-left text-xs font-medium border-r">Situación actual</th>
@@ -366,13 +360,13 @@ export default function Step4InspeccionParcelas() {
                   <tbody>
                     {cultivosIndices.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-3 py-8 text-center text-gray-500">
+                        <td colSpan={4} className="px-3 py-8 text-center text-neutral-500">
                           No hay cultivos registrados. Agrega un cultivo para empezar.
                         </td>
                       </tr>
                     ) : (
                       cultivosIndices.map((index) => (
-                        <tr key={index} className="border-b hover:bg-gray-50">
+                        <tr key={index} className="border-b hover:bg-neutral-50">
                           {/* Cultivo */}
                           <td className="px-3 py-2 border-r">
                             <TiposCultivoSelect
@@ -389,13 +383,16 @@ export default function Step4InspeccionParcelas() {
                               control={control}
                               render={({ field: fieldProps }) => (
                                 <input
-                                  {...fieldProps}
                                   type="number"
                                   step="0.0001"
                                   min="0"
                                   placeholder="0.0000"
+                                  value={fieldProps.value || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    fieldProps.onChange(val === "" ? 0 : parseFloat(val) || 0);
+                                  }}
                                   className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                                  onChange={(e) => fieldProps.onChange(parseFloat(e.target.value) || 0)}
                                 />
                               )}
                             />
@@ -438,15 +435,15 @@ export default function Step4InspeccionParcelas() {
               {/* Vista Móvil: Cards */}
               <div className="block md:hidden space-y-3">
                 {cultivosIndices.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                  <div className="px-4 py-8 text-center text-neutral-500 text-sm">
                     No hay cultivos registrados. Agrega un cultivo para empezar.
                   </div>
                 ) : (
                   cultivosIndices.map((index) => (
-                    <div key={index} className="p-4 border border-gray-200 rounded-lg bg-white space-y-3">
+                    <div key={index} className="p-4 border border-neutral-200 rounded-lg bg-white space-y-3">
                       {/* Cultivo */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className="block text-xs font-medium text-neutral-700 mb-1">
                           Cultivo
                         </label>
                         <TiposCultivoSelect
@@ -458,7 +455,7 @@ export default function Step4InspeccionParcelas() {
 
                       {/* Superficie */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className="block text-xs font-medium text-neutral-700 mb-1">
                           Superficie (ha)
                         </label>
                         <Controller
@@ -466,13 +463,16 @@ export default function Step4InspeccionParcelas() {
                           control={control}
                           render={({ field: fieldProps }) => (
                             <input
-                              {...fieldProps}
                               type="number"
                               step="0.0001"
                               min="0"
                               placeholder="0.0000"
+                              value={fieldProps.value || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                fieldProps.onChange(val === "" ? 0 : parseFloat(val) || 0);
+                              }}
                               className="w-full px-3 py-2 text-sm border rounded-md border-neutral-border focus:ring-2 focus:ring-primary focus:border-transparent"
-                              onChange={(e) => fieldProps.onChange(parseFloat(e.target.value) || 0)}
                             />
                           )}
                         />
@@ -480,7 +480,7 @@ export default function Step4InspeccionParcelas() {
 
                       {/* Situación actual */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className="block text-xs font-medium text-neutral-700 mb-1">
                           Situación actual
                         </label>
                         <Controller

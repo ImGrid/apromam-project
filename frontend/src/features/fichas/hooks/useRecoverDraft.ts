@@ -120,7 +120,6 @@ export function useRecoverDraft(
 
         setDraft(foundDraft);
       } catch (error) {
-        console.error('[RecoverDraft] Error buscando borrador:', error);
         setDraft(null);
       } finally {
         setIsLoading(false);

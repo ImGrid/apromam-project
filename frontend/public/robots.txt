@@ -1,0 +1,14 @@
+# Robots.txt para APROMAM
+# Sistema privado de certificación orgánica
+
+User-agent: *
+Disallow: /api/
+Disallow: /login
+Disallow: /*.json$
+Disallow: /src/
+
+# Permitir acceso al resto del sitio
+Allow: /
+
+# Sitemap
+Sitemap: https://ecv-impactobo.com/sitemap.xml

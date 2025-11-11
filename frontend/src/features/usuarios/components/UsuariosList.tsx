@@ -65,10 +65,24 @@ export function UsuariosList({
       },
     },
     {
-      key: "nombre_comunidad",
-      label: "Comunidad",
+      key: "comunidades",
+      label: "Comunidades",
       hiddenOnMobile: true,
-      render: (usuario) => usuario.nombre_comunidad || "-",
+      render: (usuario) =>
+        usuario.comunidades && usuario.comunidades.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {usuario.comunidades.map((c) => (
+              <span
+                key={c.id_comunidad}
+                className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary"
+              >
+                {c.nombre_comunidad}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="text-sm text-text-secondary">-</span>
+        ),
     },
     {
       key: "last_login",

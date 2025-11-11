@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { Rol, RolData } from "../entities/Rol.js";
 
@@ -112,16 +113,18 @@ export class RolRepository {
     }
 
     const insertData = rol.toDatabaseInsert();
+    const idRol = randomUUID();
 
     const query = {
       text: `
         INSERT INTO roles (
+          id_rol,
           nombre_rol,
           descripcion,
           permisos,
           activo
-        ) VALUES ($1, $2, $3, $4)
-        RETURNING 
+        ) VALUES ($1, $2, $3, $4, $5)
+        RETURNING
           id_rol,
           nombre_rol,
           descripcion,
@@ -129,6 +132,7 @@ export class RolRepository {
           activo
       `,
       values: [
+        idRol,
         insertData.nombre_rol,
         insertData.descripcion,
         JSON.stringify(insertData.permisos),

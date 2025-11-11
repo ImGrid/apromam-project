@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { ArchivoFicha, ArchivoFichaData } from "../entities/ArchivoFicha.js";
 
@@ -7,17 +8,19 @@ export class ArchivoFichaRepository {
   // Guarda una nueva entidad ArchivoFicha en la base de datos
   async create(archivo: ArchivoFicha): Promise<ArchivoFicha> {
     const insertData = archivo.toDatabaseInsert();
+    const idArchivo = randomUUID();
 
     const query = {
       name: "create-archivo-ficha",
       text: `
         INSERT INTO archivos_ficha (
-          id_ficha, tipo_archivo, nombre_original, ruta_almacenamiento,
+          id_archivo, id_ficha, tipo_archivo, nombre_original, ruta_almacenamiento,
           tamaño_bytes, mime_type, estado_upload, hash_archivo, fecha_captura
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `,
       values: [
+        idArchivo,
         insertData.id_ficha,
         insertData.tipo_archivo,
         insertData.nombre_original,

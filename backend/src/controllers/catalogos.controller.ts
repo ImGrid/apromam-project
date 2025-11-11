@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { CatalogosService } from "../services/catalogos.service.js";
-import type {
+import {
   CreateTipoCultivoInput,
   UpdateTipoCultivoInput,
   CatalogoParams,

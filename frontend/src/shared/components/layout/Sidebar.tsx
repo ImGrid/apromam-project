@@ -13,6 +13,7 @@ import {
   ClipboardList,
   BarChart3,
   BookOpen,
+  AlertTriangle,
 } from "lucide-react";
 import { usePermissions } from "@/shared/hooks/usePermissions";
 import { ROUTES } from "@/shared/config/routes.config";
@@ -70,6 +71,12 @@ export function Sidebar() {
       path: ROUTES.FICHAS,
       icon: ClipboardList,
       permission: () => permissions.canAccess("fichas", "read"),
+    },
+    {
+      label: "Seguimiento NC",
+      path: ROUTES.NO_CONFORMIDADES,
+      icon: AlertTriangle,
+      permission: () => permissions.canAccess("noConformidades", "read"),
     },
     {
       label: "Reportes",

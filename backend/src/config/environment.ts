@@ -1,6 +1,12 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import Joi from "joi";
 import { resolve } from "path";
+
+// Cargar variables de entorno
+// En desarrollo: override=true para sobrescribir variables del sistema Windows
+// En produccion: override=false para usar variables del sistema del servidor
+const isDevelopment = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+dotenv.config({ override: isDevelopment });
 
 // Schema de validacion para variables de entorno
 // Define tipos, valores por defecto y restricciones para toda la configuracion critica del sistema
@@ -30,7 +36,7 @@ const environmentSchema = Joi.object({
     .default("0.0.0.0")
     .description("Host de bind del servidor"),
 
-  // Configuracion de PostgreSQL con PostGIS
+  // Configuracion de PostgreSQL
   // Estos valores son obligatorios para conectar a la base de datos
   DB_HOST: Joi.string().required().description("Host de PostgreSQL"),
 
@@ -91,20 +97,6 @@ const environmentSchema = Joi.object({
     .max(60000)
     .default(15000)
     .description("Timeout establecer conexión (ms)"),
-
-  // Configuracion de PostGIS para coordenadas GPS
-  // PostGIS es la extension de PostgreSQL para datos geograficos
-  POSTGIS_VERSION: Joi.string()
-    .default("3.4")
-    .description("Versión PostGIS esperada"),
-
-  // SRID 4326 es el sistema de coordenadas WGS84 (usado por GPS)
-  // Es el estandar para latitud/longitud
-  SRID_BOLIVIA: Joi.number()
-    .integer()
-    .valid(4326)
-    .default(4326)
-    .description("SRID para coordenadas Bolivia"),
 
   // Configuracion de autenticacion JWT
   // JWT_SECRET es la clave para firmar tokens
@@ -325,12 +317,6 @@ export const config = {
       idleTimeoutMillis: env.DB_POOL_IDLE_TIMEOUT as number,
       connectionTimeoutMillis: env.DB_CONNECTION_TIMEOUT as number,
     },
-  },
-
-  // Configuracion de PostGIS
-  postgis: {
-    version: env.POSTGIS_VERSION as string,
-    srid: env.SRID_BOLIVIA as number,
   },
 
   // Configuracion de JWT

@@ -17,6 +17,7 @@ import { useCreateProductor } from "../hooks/useCreateProductor";
 import { useAuth } from "@/shared/hooks/useAuth";
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
 import { parcelasService } from "@/features/parcelas";
+import { logger } from "@/shared/utils/logger";
 import type { Productor } from "../types/productor.types";
 
 // Schema de validacion
@@ -31,9 +32,9 @@ const productorSchema = z.object({
     .max(new Date().getFullYear(), "Año no puede ser futuro"),
   categoria_actual: z.enum(["E", "T2", "T1", "T0"]),
   superficie_total_has: z.number().min(0.01, "Superficie debe ser mayor a 0"),
-  latitud: z.number().optional(),
-  longitud: z.number().optional(),
-  altitud: z.number().optional(),
+  latitud: z.number().optional().or(z.nan().transform(() => undefined)),
+  longitud: z.number().optional().or(z.nan().transform(() => undefined)),
+  altitud: z.number().optional().or(z.nan().transform(() => undefined)),
 });
 
 type ProductorFormData = z.infer<typeof productorSchema>;
@@ -85,10 +86,14 @@ export function CreateProductorModal({
 
       let comunidadesData = response.data.comunidades;
 
-      // Si es tecnico, filtrar solo su comunidad
-      if (user?.nombre_rol.toLowerCase() === "técnico" && user.id_comunidad) {
-        comunidadesData = comunidadesData.filter(
-          (c) => c.id_comunidad === user.id_comunidad
+      // Si es tecnico, filtrar solo sus comunidades asignadas (N:N)
+      if (
+        user?.nombre_rol.toLowerCase() === "técnico" &&
+        user.comunidades_ids &&
+        user.comunidades_ids.length > 0
+      ) {
+        comunidadesData = comunidadesData.filter((c) =>
+          user.comunidades_ids?.includes(c.id_comunidad)
         );
       }
 
@@ -100,8 +105,8 @@ export function CreateProductorModal({
             : c.nombre_comunidad,
         }))
       );
-    } catch {
-      console.error("Error cargando comunidades");
+    } catch (error) {
+      logger.error("Error cargando comunidades", error);
     }
   }, [user]);
 
@@ -121,8 +126,8 @@ export function CreateProductorModal({
           label: o.nombre_organizacion,
         }))
       );
-    } catch {
-      console.error("Error cargando organizaciones");
+    } catch (error) {
+      logger.error("Error cargando organizaciones", error);
     }
   }, []);
 
@@ -131,9 +136,12 @@ export function CreateProductorModal({
     if (isOpen) {
       loadComunidades();
       loadOrganizaciones();
-      // Si es tecnico, preseleccionar su comunidad
-      if (user?.nombre_rol.toLowerCase() === "técnico" && user.id_comunidad) {
-        setValue("id_comunidad", user.id_comunidad);
+      // Si es tecnico con UNA sola comunidad, preseleccionarla
+      if (
+        user?.nombre_rol.toLowerCase() === "técnico" &&
+        user.comunidades_ids?.length === 1
+      ) {
+        setValue("id_comunidad", user.comunidades_ids[0]);
       }
     }
   }, [isOpen, user, setValue, loadComunidades, loadOrganizaciones]);
@@ -281,7 +289,7 @@ export function CreateProductorModal({
                 placeholder="Selecciona una comunidad"
                 disabled={
                   user?.nombre_rol.toLowerCase() === "técnico" &&
-                  !!user.id_comunidad
+                  user.comunidades_ids?.length === 1
                 }
               />
             </FormField>
@@ -369,8 +377,34 @@ export function CreateProductorModal({
 
         <FormSection
           title="Ubicación GPS del Domicilio"
-          description="Opcional - Puedes capturar la ubicación ahora o después"
+          description="Opcional - Coordenadas del domicilio del productor"
         >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              label="Latitud"
+              error={errors.latitud?.message}
+            >
+              <Input
+                {...register("latitud", { valueAsNumber: true })}
+                type="number"
+                step="any"
+                placeholder="-19.081373"
+              />
+            </FormField>
+
+            <FormField
+              label="Longitud"
+              error={errors.longitud?.message}
+            >
+              <Input
+                {...register("longitud", { valueAsNumber: true })}
+                type="number"
+                step="any"
+                placeholder="-64.093174"
+              />
+            </FormField>
+          </div>
+
           {!showLocationPicker ? (
             <div className="space-y-3">
               <Button
@@ -380,8 +414,8 @@ export function CreateProductorModal({
                 fullWidth
               >
                 {watch("latitud") && watch("longitud")
-                  ? "Cambiar Ubicación GPS"
-                  : "Capturar Ubicación GPS"}
+                  ? "Cambiar Ubicación en Mapa"
+                  : "Capturar Ubicación con Mapa"}
               </Button>
 
               {watch("latitud") && watch("longitud") && (

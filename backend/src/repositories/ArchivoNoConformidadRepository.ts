@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import {
   ArchivoNoConformidad,
@@ -9,17 +10,19 @@ export class ArchivoNoConformidadRepository {
   // Guarda una nueva entidad ArchivoNoConformidad en la base de datos
   async create(archivo: ArchivoNoConformidad): Promise<ArchivoNoConformidad> {
     const insertData = archivo.toDatabaseInsert();
+    const idArchivo = randomUUID();
 
     const query = {
       name: "create-archivo-nc",
       text: `
         INSERT INTO archivos_no_conformidad (
-          id_no_conformidad, tipo_archivo, nombre_original, ruta_almacenamiento,
+          id_archivo, id_no_conformidad, tipo_archivo, nombre_original, ruta_almacenamiento,
           tamaño_bytes, mime_type, estado_upload, hash_archivo, fecha_captura, subido_por
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
       `,
       values: [
+        idArchivo,
         insertData.id_no_conformidad,
         insertData.tipo_archivo,
         insertData.nombre_original,

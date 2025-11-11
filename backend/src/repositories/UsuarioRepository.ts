@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { Usuario, UsuarioData } from "../entities/Usuario.js";
 
@@ -110,12 +111,13 @@ export class UsuarioRepository {
   /**
    * Lista usuarios por comunidad
    * Usado para ver técnicos asignados a una comunidad
+   * ACTUALIZADO: usa tabla usuarios_comunidades (N:N)
    */
   async findByComunidad(comunidadId: string): Promise<Usuario[]> {
     const query = {
       name: "find-usuarios-by-comunidad",
       text: `
-        SELECT 
+        SELECT
           u.id_usuario,
           u.username,
           u.email,
@@ -130,9 +132,10 @@ export class UsuarioRepository {
           r.nombre_rol,
           c.nombre_comunidad
         FROM usuarios u
+        INNER JOIN usuarios_comunidades uc ON u.id_usuario = uc.id_usuario
         INNER JOIN roles r ON u.id_rol = r.id_rol
-        INNER JOIN comunidades c ON u.id_comunidad = c.id_comunidad
-        WHERE u.id_comunidad = $1 AND u.activo = true
+        LEFT JOIN comunidades c ON uc.id_comunidad = c.id_comunidad
+        WHERE uc.id_comunidad = $1 AND u.activo = true
         ORDER BY u.nombre_completo ASC
       `,
       values: [comunidadId],
@@ -144,9 +147,15 @@ export class UsuarioRepository {
 
   /**
    * Lista todos los usuarios
-   * Con filtros opcionales por rol y estado activo
+   * Con filtros opcionales por nombre, rol, comunidad y estado activo
+   * ACTUALIZADO: trae comunidades como array (relacion N:N)
    */
-  async findAll(rolNombre?: string, activo?: boolean): Promise<Usuario[]> {
+  async findAll(
+    nombre?: string,
+    rolNombre?: string,
+    comunidadId?: string,
+    activo?: boolean
+  ): Promise<Usuario[]> {
     let queryText = `
       SELECT
         u.id_usuario,
@@ -161,21 +170,34 @@ export class UsuarioRepository {
         u.created_at,
         u.updated_at,
         r.nombre_rol,
-        c.nombre_comunidad
+        COALESCE(
+          array_agg(uc.id_comunidad) FILTER (WHERE uc.id_comunidad IS NOT NULL),
+          ARRAY[]::uuid[]
+        ) as comunidades_ids,
+        COALESCE(
+          json_agg(
+            json_build_object('id_comunidad', c.id_comunidad, 'nombre_comunidad', c.nombre_comunidad)
+          ) FILTER (WHERE c.id_comunidad IS NOT NULL),
+          '[]'::json
+        ) as comunidades
       FROM usuarios u
       INNER JOIN roles r ON u.id_rol = r.id_rol
-      LEFT JOIN comunidades c ON u.id_comunidad = c.id_comunidad
+      LEFT JOIN usuarios_comunidades uc ON u.id_usuario = uc.id_usuario
+      LEFT JOIN comunidades c ON uc.id_comunidad = c.id_comunidad
       WHERE 1=1
     `;
 
     const values: any[] = [];
     let paramCount = 0;
 
-    // Filtrar por estado activo si se especifica
-    if (activo !== undefined) {
+    // Filtrar por nombre (busca en nombre_completo o username)
+    if (nombre) {
       paramCount++;
-      queryText += ` AND u.activo = $${paramCount}`;
-      values.push(activo);
+      queryText += ` AND (
+        LOWER(u.nombre_completo) LIKE LOWER($${paramCount})
+        OR LOWER(u.username) LIKE LOWER($${paramCount})
+      )`;
+      values.push(`%${nombre}%`);
     }
 
     // Filtrar por rol si se especifica
@@ -185,7 +207,30 @@ export class UsuarioRepository {
       values.push(rolNombre);
     }
 
-    queryText += ` ORDER BY u.created_at DESC`;
+    // Filtrar por comunidad si se especifica
+    if (comunidadId) {
+      paramCount++;
+      queryText += ` AND EXISTS (
+        SELECT 1 FROM usuarios_comunidades uc2
+        WHERE uc2.id_usuario = u.id_usuario
+        AND uc2.id_comunidad = $${paramCount}
+      )`;
+      values.push(comunidadId);
+    }
+
+    // Filtrar por estado activo si se especifica
+    if (activo !== undefined) {
+      paramCount++;
+      queryText += ` AND u.activo = $${paramCount}`;
+      values.push(activo);
+    }
+
+    queryText += `
+      GROUP BY u.id_usuario, u.username, u.email, u.password_hash, u.nombre_completo,
+               u.id_rol, u.id_comunidad, u.activo, u.last_login, u.created_at, u.updated_at,
+               r.nombre_rol
+      ORDER BY u.created_at DESC
+    `;
 
     const query = {
       text: queryText,
@@ -260,10 +305,12 @@ export class UsuarioRepository {
     }
 
     const insertData = usuario.toDatabaseInsert();
+    const idUsuario = randomUUID();
 
     const query = {
       text: `
         INSERT INTO usuarios (
+          id_usuario,
           username,
           email,
           password_hash,
@@ -272,8 +319,8 @@ export class UsuarioRepository {
           id_comunidad,
           activo,
           last_login
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING 
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING
           id_usuario,
           username,
           email,
@@ -287,6 +334,7 @@ export class UsuarioRepository {
           updated_at
       `,
       values: [
+        idUsuario,
         insertData.username,
         insertData.email,
         insertData.password_hash,
@@ -430,14 +478,16 @@ export class UsuarioRepository {
   /**
    * Cuenta técnicos por comunidad
    * Para validar asignaciones
+   * ACTUALIZADO: usa tabla usuarios_comunidades (N:N)
    */
   async countTecnicosByComunidad(comunidadId: string): Promise<number> {
     const query = {
       text: `
-        SELECT COUNT(*) as count
-        FROM usuarios u
+        SELECT COUNT(DISTINCT uc.id_usuario) as count
+        FROM usuarios_comunidades uc
+        INNER JOIN usuarios u ON uc.id_usuario = u.id_usuario
         INNER JOIN roles r ON u.id_rol = r.id_rol
-        WHERE u.id_comunidad = $1
+        WHERE uc.id_comunidad = $1
           AND LOWER(r.nombre_rol) = 'tecnico'
           AND u.activo = true
       `,
@@ -449,19 +499,100 @@ export class UsuarioRepository {
   }
 
   /**
+   * Encuentra todas las comunidades asignadas a un usuario
+   * Usado en login para incluir comunidadesIds en JWT
+   * Solo retorna IDs para optimizar performance
+   */
+  async findComunidadesByUsuario(usuarioId: string): Promise<string[]> {
+    const query = {
+      name: "find-comunidades-by-usuario",
+      text: `
+        SELECT uc.id_comunidad
+        FROM usuarios_comunidades uc
+        WHERE uc.id_usuario = $1
+        ORDER BY uc.created_at ASC
+      `,
+      values: [usuarioId],
+    };
+
+    const results = await ReadQuery.execute<{ id_comunidad: string }>(query);
+    return results.map((row) => row.id_comunidad);
+  }
+
+  /**
+   * Actualiza las comunidades asignadas a un usuario (técnico)
+   * Usa patrón DELETE + INSERT para reemplazar todas las asignaciones
+   * Ejecuta en transacción para atomicidad
+   */
+  async updateComunidades(
+    usuarioId: string,
+    comunidadesIds: string[]
+  ): Promise<void> {
+    // Eliminar todas las asignaciones actuales
+    const deleteQuery = {
+      text: `DELETE FROM usuarios_comunidades WHERE id_usuario = $1`,
+      values: [usuarioId],
+    };
+
+    const deleteResult = await WriteQuery.execute(deleteQuery);
+    if (!deleteResult.success) {
+      throw new Error(
+        deleteResult.error || "Error al eliminar comunidades actuales"
+      );
+    }
+
+    // Si no hay comunidades nuevas, terminar aquí
+    if (comunidadesIds.length === 0) {
+      return;
+    }
+
+    // Insertar nuevas asignaciones
+    // Generar valores para INSERT masivo con UUIDs desde Node.js
+    const valuesParts: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    comunidadesIds.forEach((comunidadId) => {
+      const idUsuarioComunidad = randomUUID();
+      valuesParts.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2})`);
+      values.push(idUsuarioComunidad, usuarioId, comunidadId);
+      paramIndex += 3;
+    });
+
+    const insertQuery = {
+      text: `
+        INSERT INTO usuarios_comunidades (id_usuario_comunidad, id_usuario, id_comunidad)
+        VALUES ${valuesParts.join(", ")}
+      `,
+      values,
+    };
+
+    const insertResult = await WriteQuery.execute(insertQuery);
+    if (!insertResult.success) {
+      throw new Error(
+        insertResult.error || "Error al insertar nuevas comunidades"
+      );
+    }
+  }
+
+  /**
    * Lista usuarios gestionables por un usuario especifico
    * Optimizacion: filtra directamente en SQL por roles permitidos y excluye self
    * Mas eficiente que filtrar en memoria en el servicio
    *
    * @param managerUserId - ID del usuario gestor (para excluir)
    * @param rolesPermitidos - Array de nombres de roles que puede gestionar
+   * @param nombre - Filtro opcional por nombre o username
    * @param rolNombre - Filtro opcional por nombre de rol especifico
+   * @param comunidadId - Filtro opcional por comunidad
    * @param activo - Filtro opcional por estado activo
    */
   async findAllManageableBy(
     managerUserId: string,
     rolesPermitidos: string[],
+    nombre?: string,
     rolNombre?: string,
+    comunidadId?: string,
     activo?: boolean
   ): Promise<Usuario[]> {
     // Si no hay roles permitidos, retornar array vacio
@@ -483,10 +614,20 @@ export class UsuarioRepository {
         u.created_at,
         u.updated_at,
         r.nombre_rol,
-        c.nombre_comunidad
+        COALESCE(
+          array_agg(uc.id_comunidad) FILTER (WHERE uc.id_comunidad IS NOT NULL),
+          ARRAY[]::uuid[]
+        ) as comunidades_ids,
+        COALESCE(
+          json_agg(
+            json_build_object('id_comunidad', c.id_comunidad, 'nombre_comunidad', c.nombre_comunidad)
+          ) FILTER (WHERE c.id_comunidad IS NOT NULL),
+          '[]'::json
+        ) as comunidades
       FROM usuarios u
       INNER JOIN roles r ON u.id_rol = r.id_rol
-      LEFT JOIN comunidades c ON u.id_comunidad = c.id_comunidad
+      LEFT JOIN usuarios_comunidades uc ON u.id_usuario = uc.id_usuario
+      LEFT JOIN comunidades c ON uc.id_comunidad = c.id_comunidad
       WHERE u.id_usuario != $1
         AND LOWER(r.nombre_rol) = ANY($2)
     `;
@@ -494,11 +635,14 @@ export class UsuarioRepository {
     const values: any[] = [managerUserId, rolesPermitidos];
     let paramCount = 2;
 
-    // Filtrar por estado activo si se especifica
-    if (activo !== undefined) {
+    // Filtrar por nombre (busca en nombre_completo o username)
+    if (nombre) {
       paramCount++;
-      queryText += ` AND u.activo = $${paramCount}`;
-      values.push(activo);
+      queryText += ` AND (
+        LOWER(u.nombre_completo) LIKE LOWER($${paramCount})
+        OR LOWER(u.username) LIKE LOWER($${paramCount})
+      )`;
+      values.push(`%${nombre}%`);
     }
 
     // Filtrar por rol especifico si se especifica
@@ -508,7 +652,30 @@ export class UsuarioRepository {
       values.push(rolNombre);
     }
 
-    queryText += ` ORDER BY u.created_at DESC`;
+    // Filtrar por comunidad si se especifica
+    if (comunidadId) {
+      paramCount++;
+      queryText += ` AND EXISTS (
+        SELECT 1 FROM usuarios_comunidades uc2
+        WHERE uc2.id_usuario = u.id_usuario
+        AND uc2.id_comunidad = $${paramCount}
+      )`;
+      values.push(comunidadId);
+    }
+
+    // Filtrar por estado activo si se especifica
+    if (activo !== undefined) {
+      paramCount++;
+      queryText += ` AND u.activo = $${paramCount}`;
+      values.push(activo);
+    }
+
+    queryText += `
+      GROUP BY u.id_usuario, u.username, u.email, u.password_hash, u.nombre_completo,
+               u.id_rol, u.id_comunidad, u.activo, u.last_login, u.created_at, u.updated_at,
+               r.nombre_rol
+      ORDER BY u.created_at DESC
+    `;
 
     const query = {
       text: queryText,

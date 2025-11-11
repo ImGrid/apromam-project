@@ -145,15 +145,6 @@ export const ProductorQuerySchema = z.object({
 
 export type ProductorQuery = z.infer<typeof ProductorQuerySchema>;
 
-// Schema para busqueda por proximidad
-export const ProximitySearchSchema = z.object({
-  latitud: z.number().min(-90).max(90),
-  longitud: z.number().min(-180).max(180),
-  radio_metros: z.number().int().min(100).max(50000).default(1000),
-});
-
-export type ProximitySearchInput = z.infer<typeof ProximitySearchSchema>;
-
 // Schema para respuesta de productor
 export const ProductorResponseSchema = z.object({
   codigo_productor: z.string(),
@@ -174,7 +165,7 @@ export const ProductorResponseSchema = z.object({
     .object({
       latitude: z.number(),
       longitude: z.number(),
-      altitude: z.number().optional(),
+      altitude: z.number().nullable().optional(),
     })
     .optional(),
   activo: z.boolean(),

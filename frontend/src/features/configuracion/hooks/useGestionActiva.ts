@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { gestionesService } from "../services/gestiones.service";
+import { logger } from "@/shared/utils/logger";
 import type { Gestion } from "../types/gestion.types";
 
 interface UseGestionActivaReturn {
@@ -34,7 +35,7 @@ export function useGestionActiva(): UseGestionActivaReturn {
       const errorMessage =
         err instanceof Error ? err.message : "Error al cargar gestión activa";
       setError(errorMessage);
-      console.error("[useGestionActiva] Error:", err);
+      logger.error("[useGestionActiva] Error:", err);
 
       // Si no hay gestión activa, no es un error crítico
       // Solo loguear, no mostrar toast

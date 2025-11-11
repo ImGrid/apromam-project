@@ -9,7 +9,7 @@ import {
   Modal,
   Button,
   Input,
-  Select,
+  MultiSelect,
   FormField,
   FormSection,
   Checkbox,
@@ -18,11 +18,16 @@ import {
 import { apiClient, ENDPOINTS } from "@/shared/services/api";
 import { showToast } from "@/shared/hooks/useToast";
 import type { Tecnico } from "../types/tecnico.types";
+import { logger } from "@/shared/utils/logger";
 
 const editTecnicoSchema = z.object({
   email: z.string().email("Email inválido"),
   nombre_completo: z.string().min(3, "Mínimo 3 caracteres"),
-  id_comunidad: z.string().optional(),
+  comunidades_ids: z
+    .array(z.string().uuid("ID de comunidad inválido"))
+    .min(1, "Debe asignar al menos una comunidad")
+    .max(15, "Máximo 15 comunidades")
+    .optional(),
   activo: z.boolean(),
 });
 
@@ -75,7 +80,7 @@ export function EditTecnicoModal({
         }))
       );
     } catch (error) {
-      console.error("Error cargando comunidades:", error);
+      logger.error("Error cargando comunidades:", error);
     }
   }, []);
 
@@ -84,7 +89,7 @@ export function EditTecnicoModal({
     if (tecnico && isOpen) {
       setValue("email", tecnico.email);
       setValue("nombre_completo", tecnico.nombre_completo);
-      setValue("id_comunidad", tecnico.id_comunidad || "");
+      setValue("comunidades_ids", tecnico.comunidades_ids || []);
       setValue("activo", tecnico.activo);
       loadComunidades();
     }
@@ -99,7 +104,7 @@ export function EditTecnicoModal({
       await apiClient.put(ENDPOINTS.USUARIOS.BY_ID(tecnico.id_usuario), {
         email: data.email,
         nombre_completo: data.nombre_completo,
-        id_comunidad: data.id_comunidad || null,
+        comunidades_ids: data.comunidades_ids || [],
         activo: data.activo,
       });
 
@@ -169,16 +174,17 @@ export function EditTecnicoModal({
           </FormField>
 
           <FormField
-            label="Comunidad Asignada"
-            error={errors.id_comunidad?.message}
-            helperText="Selecciona la comunidad donde trabajará el técnico"
+            label="Comunidades Asignadas"
+            error={errors.comunidades_ids?.message}
+            helperText="Selecciona las comunidades donde trabajará el técnico"
           >
-            <Select
+            <MultiSelect
               options={comunidadesOptions}
-              value={watch("id_comunidad") || ""}
-              onChange={(value) => setValue("id_comunidad", value)}
-              placeholder="Selecciona una comunidad"
+              value={watch("comunidades_ids") || []}
+              onChange={(values) => setValue("comunidades_ids", values)}
+              placeholder="Selecciona comunidades"
               searchable
+              maxSelected={15}
             />
           </FormField>
 

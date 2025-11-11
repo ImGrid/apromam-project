@@ -3,6 +3,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
+import fastifyJwt from "@fastify/jwt";
 import { config } from "./environment.js";
 import logger from "../utils/logger.js";
 
@@ -29,8 +30,10 @@ const fastifyOptions: FastifyServerOptions = {
   ...(config.node_env === "production"
     ? {
         trustProxy: true, // Para load balancers
-        ignoreTrailingSlash: true, // Normalizacion URLs
-        caseSensitive: false, // URLs case insensitive
+        routerOptions: {
+          ignoreTrailingSlash: true, // Normalizacion URLs
+          caseSensitive: false, // URLs case insensitive
+        },
       }
     : {}),
 };
@@ -46,7 +49,8 @@ export const createServer = async (): Promise<FastifyInstance> => {
   server.setSerializerCompiler(serializerCompiler);
 
   // Plugin JWT para autenticación
-  await server.register(import("@fastify/jwt"), {
+  // Type assertion necesaria debido a incompatibilidad entre fastify-type-provider-zod y @fastify/jwt v10
+  await server.register(fastifyJwt as any, {
     secret: config.jwt.secret,
     sign: {
       expiresIn: config.jwt.expiresIn,

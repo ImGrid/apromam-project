@@ -68,6 +68,11 @@ export type CreateParcelaInput = z.infer<typeof CreateParcelaSchema>;
 
 // Schema para actualizar parcela
 export const UpdateParcelaSchema = z.object({
+  superficie_ha: z
+    .number()
+    .min(0.01, "Superficie debe ser mayor a 0")
+    .max(10000, "Superficie no puede exceder 10,000 hectareas")
+    .optional(),
   coordenadas: CoordenadasParcelaSchema.optional(),
   utiliza_riego: z.boolean().optional(),
   tipo_barrera: TipoBarreraSchema.optional(),
@@ -92,17 +97,6 @@ export const ProductorParcelaParamsSchema = z.object({
 
 export type ProductorParcelaParams = z.infer<
   typeof ProductorParcelaParamsSchema
->;
-
-// Schema para busqueda por proximidad
-export const ProximitySearchParcelaSchema = z.object({
-  latitud: z.number().min(-90).max(90),
-  longitud: z.number().min(-180).max(180),
-  radio_metros: z.number().int().min(100).max(50000).default(1000),
-});
-
-export type ProximitySearchParcelaInput = z.infer<
-  typeof ProximitySearchParcelaSchema
 >;
 
 // Schema para respuesta de parcela

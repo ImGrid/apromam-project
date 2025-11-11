@@ -27,21 +27,19 @@ export function useEnviarRevision() {
       // Limpiar borradores guardados después de enviar exitosamente
       // Los borradores ya no son necesarios porque la ficha está en el servidor
       if (ficha.codigo_productor && ficha.gestion) {
-        console.log('[ENVIAR_REVISION] Limpiando borradores - Productor:', ficha.codigo_productor, 'Gestion:', ficha.gestion);
-
         // Limpiar localStorage
         const localStorageKey = `apromam-ficha-draft-${ficha.codigo_productor}-${ficha.gestion}`;
         try {
           localStorage.removeItem(localStorageKey);
         } catch (e) {
-          console.warn('[ENVIAR_REVISION] Error al limpiar localStorage:', e);
+          // Error al limpiar localStorage
         }
 
         // Limpiar IndexedDB
         try {
           await deleteDraftFromIndexedDB(ficha.codigo_productor, ficha.gestion);
         } catch (e) {
-          console.warn('[ENVIAR_REVISION] Error al limpiar IndexedDB:', e);
+          // Error al limpiar IndexedDB
         }
 
         // TODO: Limpiar borrador del servidor si existe

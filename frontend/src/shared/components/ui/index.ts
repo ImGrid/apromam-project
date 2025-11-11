@@ -3,9 +3,11 @@ export { Button } from "./Button";
 export { IconButton } from "./IconButton";
 export { Input } from "./Input";
 export { Modal } from "./Modal";
+export { ConfirmModal } from "./ConfirmModal";
 export { Card } from "./Card";
 export { Select } from "./Select";
 export type { SelectOption } from "./Select";
+export { MultiSelect } from "./MultiSelect";
 
 export { Badge } from "./Badge";
 export { Alert } from "./Alert";

@@ -18,14 +18,10 @@ export async function gestionActivaMiddleware(
   reply: FastifyReply
 ): Promise<void> {
   try {
-    console.log("[GESTION-MIDDLEWARE] 🔍 Iniciando obtención de gestión activa...");
-
     const gestionRepository = new GestionRepository();
     const gestionActiva = await gestionRepository.getGestionActiva();
 
     if (!gestionActiva) {
-      console.log("[GESTION-MIDDLEWARE] ❌ NO HAY GESTIÓN ACTIVA en la BD");
-
       logger.error(
         {
           path: request.url,
@@ -41,16 +37,8 @@ export async function gestionActivaMiddleware(
       });
     }
 
-    console.log("[GESTION-MIDDLEWARE] ✅ Gestión activa obtenida:", {
-      id: gestionActiva.id,
-      anio: gestionActiva.anio,
-      activo_sistema: gestionActiva.activoSistema,
-    });
-
     // Inyectar gestión activa en el request
     (request as any).gestionActiva = gestionActiva;
-
-    console.log("[GESTION-MIDDLEWARE] 💉 Gestión inyectada en request.gestionActiva");
 
     logger.debug(
       {
@@ -62,8 +50,6 @@ export async function gestionActivaMiddleware(
       "Gestión activa inyectada en request"
     );
   } catch (error) {
-    console.log("[GESTION-MIDDLEWARE] 💥 ERROR al obtener gestión activa:", error);
-
     logger.error(
       {
         error,

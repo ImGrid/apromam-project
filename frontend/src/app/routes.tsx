@@ -70,6 +70,11 @@ const NoConformidadDetailPage = lazy(() =>
   ).then((m) => ({ default: m.NoConformidadDetailPage }))
 );
 
+// Módulo de Reportes
+const ReportesPage = lazy(() =>
+  import("@/features/reportes/pages/ReportesPage")
+);
+
 export const router = createBrowserRouter([
   {
     path: ROUTES.ROOT,
@@ -100,6 +105,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute requiredRole={["administrador"]}>
         <ConfiguracionPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: ROUTES.REPORTES,
+    element: (
+      <ProtectedRoute requiredRole={["administrador", "gerente"]}>
+        <ReportesPage />
       </ProtectedRoute>
     ),
   },
@@ -178,7 +191,7 @@ export const router = createBrowserRouter([
   {
     path: ROUTES.NO_CONFORMIDADES,
     element: (
-      <ProtectedRoute requiredRole={["tecnico", "gerente"]}>
+      <ProtectedRoute requiredRole={["tecnico", "gerente", "administrador"]}>
         <NoConformidadesListPage />
       </ProtectedRoute>
     ),
@@ -186,7 +199,7 @@ export const router = createBrowserRouter([
   {
     path: ROUTES.NO_CONFORMIDADES_DETAIL(":id"),
     element: (
-      <ProtectedRoute requiredRole={["tecnico", "gerente"]}>
+      <ProtectedRoute requiredRole={["tecnico", "gerente", "administrador"]}>
         <NoConformidadDetailPage />
       </ProtectedRoute>
     ),

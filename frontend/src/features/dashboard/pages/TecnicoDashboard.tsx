@@ -1,7 +1,14 @@
 import { useNavigate } from "react-router-dom";
-import { PlusCircle, Map, FileText, Clock, CheckCircle, FileEdit } from "lucide-react";
+import {
+  PlusCircle,
+  FileText,
+  Clock,
+  CheckCircle,
+  FileEdit,
+} from "lucide-react";
 import { TecnicoLayout } from "@/shared/components/layout/TecnicoLayout";
 import { PageContainer } from "@/shared/components/layout/PageContainer";
+import { Button } from "@/shared/components/ui/Button";
 import { StatCard } from "../components/StatCard";
 import { MisFichasTabs } from "../components/MisFichasTabs";
 import { useMisFichas } from "../hooks/useMisFichas";
@@ -17,34 +24,24 @@ export function TecnicoDashboard() {
     <TecnicoLayout title="Inicio">
       <PageContainer
         title={`Hola, ${user?.nombre_completo?.split(" ")[0] || "Técnico"}`}
-        description={`Comunidad: ${user?.nombre_comunidad || "Sin asignar"}`}
+        actions={
+          <Button
+            onClick={() => navigate(ROUTES.FICHAS_CREATE)}
+            variant="primary"
+            className="inline-flex items-center gap-2"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Nueva Ficha
+          </Button>
+        }
       >
         <div className="space-y-6">
-          {/* Botones de accion principales */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <button
-              onClick={() => navigate(ROUTES.FICHAS_CREATE)}
-              className="flex flex-col items-center justify-center gap-3 p-8 text-white transition-colors rounded-lg bg-primary hover:bg-primary-dark"
-            >
-              <PlusCircle className="w-10 h-10" />
-              <span className="text-base font-semibold">Nueva Ficha</span>
-            </button>
-
-            <button
-              onClick={() => navigate(ROUTES.PARCELAS)}
-              className="flex flex-col items-center justify-center gap-3 p-8 text-white transition-colors rounded-lg bg-info hover:bg-blue-700"
-            >
-              <Map className="w-10 h-10" />
-              <span className="text-base font-semibold">Ver Mapa</span>
-            </button>
-          </div>
-
           {/* Estadisticas de Fichas */}
           <div>
             <h3 className="mb-4 text-lg font-semibold text-text-primary">
               Mis Fichas - Resumen
             </h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <StatCard
                 title="Total Fichas"
                 value={borradores.length + enRevision.length + aprobadas.length}
@@ -75,7 +72,6 @@ export function TecnicoDashboard() {
               />
             </div>
           </div>
-
 
           {/* Mis fichas */}
           <div>

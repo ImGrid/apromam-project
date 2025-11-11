@@ -360,6 +360,42 @@ export interface CreateCosechaVentasInput {
 }
 
 // ============================================
+// PLANIFICACION SIEMBRAS (Sección 12)
+// ============================================
+
+export interface PlanificacionSiembra {
+  id_planificacion: string;
+  id_ficha: string;
+  id_parcela: string;
+  area_parcela_planificada_ha: number;
+  mani_ha: number;
+  maiz_ha: number;
+  papa_ha: number;
+  aji_ha: number;
+  leguminosas_ha: number;
+  otros_cultivos_ha: number;
+  otros_cultivos_detalle?: string;
+  descanso_ha: number;
+  created_at: string;
+  updated_at: string;
+  numero_parcela?: number;
+  superficie_actual_ha?: number;
+}
+
+export interface CreatePlanificacionSiembraInput {
+  id_parcela: string;
+  area_parcela_planificada_ha: number;
+  mani_ha?: number;
+  maiz_ha?: number;
+  papa_ha?: number;
+  aji_ha?: number;
+  leguminosas_ha?: number;
+  otros_cultivos_ha?: number;
+  otros_cultivos_detalle?: string;
+  descanso_ha?: number;
+}
+
+// ============================================
 // ARCHIVOS FICHA (Adjuntos)
 // ============================================
 
@@ -404,6 +440,7 @@ export interface FichaCompleta {
   parcelas_inspeccionadas: ParcelaInspeccionada[];
   detalles_cultivo: DetalleCultivoParcela[];
   cosecha_ventas: CosechaVentas[];
+  planificacion_siembras: PlanificacionSiembra[];
   archivos: ArchivoFicha[];
 }
 
@@ -419,6 +456,12 @@ export interface CreateFichaCompletaInput {
   parcelas_inspeccionadas?: CreateParcelaInspeccionadaInput[];
   detalles_cultivo?: CreateDetalleCultivoParcelaInput[];
   cosecha_ventas?: CreateCosechaVentasInput[];
+  planificacion_siembras?: CreatePlanificacionSiembraInput[];
+  coordenadas_domicilio?: {
+    latitud: number;
+    longitud: number;
+    altitud?: number;
+  };
 }
 
 // Input para actualizar ficha completa (sin codigo_productor ni gestion)
@@ -440,6 +483,7 @@ export interface UpdateFichaCompletaInput {
   parcelas_inspeccionadas?: CreateParcelaInspeccionadaInput[];
   detalles_cultivo?: CreateDetalleCultivoParcelaInput[];
   cosecha_ventas?: CreateCosechaVentasInput[];
+  planificacion_siembras?: CreatePlanificacionSiembraInput[];
 }
 
 // ============================================
@@ -447,9 +491,9 @@ export interface UpdateFichaCompletaInput {
 // ============================================
 
 export interface FichasFilters {
-  codigo_productor?: string;
+  productor?: string;
   gestion?: number;
-  estado_ficha?: EstadoFicha;
+  estado?: EstadoFicha;
   resultado_certificacion?: ResultadoCertificacion;
   inspector_interno?: string;
   comunidad?: string;

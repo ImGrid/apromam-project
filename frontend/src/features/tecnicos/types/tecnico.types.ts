@@ -9,8 +9,11 @@ export interface Tecnico {
   username: string;
   email: string;
   nombre_completo: string;
-  id_comunidad?: string;
-  nombre_comunidad?: string;
+  comunidades_ids?: string[];
+  comunidades?: Array<{
+    id_comunidad: string;
+    nombre_comunidad: string;
+  }>;
   activo: boolean;
   created_at: string;
   last_login?: string;
@@ -24,9 +27,9 @@ export interface TecnicoFilters {
   search?: string;
 }
 
-// Input para asignar comunidad a técnico
-export interface AsignarComunidadInput {
-  id_comunidad: string | null;
+// Input para asignar comunidades a técnico (N:N)
+export interface AsignarComunidadesInput {
+  comunidades_ids: string[];
 }
 
 // Respuesta del backend con lista de técnicos

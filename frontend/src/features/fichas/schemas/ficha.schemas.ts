@@ -360,38 +360,38 @@ export const detalleCultivoParcelaSchema = z
       .number()
       .positive("La superficie debe ser mayor a 0")
       .max(10000, "La superficie no puede exceder 10,000 hectáreas"),
-    procedencia_semilla: procedenciaSemillaSchema.optional(),
-    categoria_semilla: categoriaSemillaSchema.optional(),
-    tratamiento_semillas: tratamientoSemillasSchema.optional(),
-    tipo_abonamiento: tipoAbonamientoSchema.optional(),
+    procedencia_semilla: procedenciaSemillaSchema.nullish(),
+    categoria_semilla: categoriaSemillaSchema.nullish(),
+    tratamiento_semillas: tratamientoSemillasSchema.nullish(),
+    tipo_abonamiento: tipoAbonamientoSchema.nullish(),
     tipo_abonamiento_otro: z
       .string()
       .max(200, "La descripción no puede exceder 200 caracteres")
       .trim()
-      .optional(),
-    metodo_aporque: metodoAporqueSchema.optional(),
+      .nullish(),
+    metodo_aporque: metodoAporqueSchema.nullish(),
     metodo_aporque_otro: z
       .string()
       .max(200, "La descripción no puede exceder 200 caracteres")
       .trim()
-      .optional(),
-    control_hierbas: controlHierbasSchema.optional(),
+      .nullish(),
+    control_hierbas: controlHierbasSchema.nullish(),
     control_hierbas_otro: z
       .string()
       .max(200, "La descripción no puede exceder 200 caracteres")
       .trim()
-      .optional(),
-    metodo_cosecha: metodoCosechaSchema.optional(),
+      .nullish(),
+    metodo_cosecha: metodoCosechaSchema.nullish(),
     metodo_cosecha_otro: z
       .string()
       .max(200, "La descripción no puede exceder 200 caracteres")
       .trim()
-      .optional(),
+      .nullish(),
     situacion_actual: z
       .string()
       .max(100, "La situación actual no puede exceder 100 caracteres")
       .trim()
-      .optional(),
+      .nullish(),
     // Campos enriquecidos (solo lectura)
     nombre_parcela: z.string().optional(),
     nombre_cultivo: z.string().optional(),
@@ -474,24 +474,24 @@ export const createDetalleCultivoParcelaSchema =
 
 export const parcelaInspeccionadaSchema = z.object({
   id_parcela: z.string().min(1, "La parcela es requerida"),
-  rotacion: z.boolean().optional(),
-  utiliza_riego: z.boolean().optional(),
-  tipo_barrera: tipoBarreraSchema.optional(),
+  rotacion: z.boolean().nullish(),
+  utiliza_riego: z.boolean().nullish(),
+  tipo_barrera: tipoBarreraSchema.nullish(),
   insumos_organicos: z
     .string()
     .max(500, "Los insumos no pueden exceder 500 caracteres")
     .trim()
-    .optional(),
+    .nullish(),
   latitud_sud: z
     .number()
     .min(-90, "Latitud inválida")
     .max(90, "Latitud inválida")
-    .optional(),
+    .nullish(),
   longitud_oeste: z
     .number()
     .min(-180, "Longitud inválida")
     .max(180, "Longitud inválida")
-    .optional(),
+    .nullish(),
 });
 
 export const createParcelaInspeccionadaSchema = parcelaInspeccionadaSchema;
@@ -551,6 +551,74 @@ export const createCosechaVentasSchema = cosechaVentasSchema.omit({
 });
 
 // ============================================
+// PLANIFICACION SIEMBRAS (Sección 12)
+// ============================================
+
+export const planificacionSiembraSchema = z.object({
+  id_planificacion: z.string().optional(),
+  id_ficha: z.string().optional(),
+  id_parcela: z.string().uuid("ID de parcela inválido"),
+  area_parcela_planificada_ha: z
+    .number()
+    .min(0, "El área planificada no puede ser negativa")
+    .max(10000, "El área no puede exceder 10,000 hectáreas")
+    .default(0),
+  mani_ha: z
+    .number()
+    .min(0, "La superficie de maní no puede ser negativa")
+    .max(10000, "La superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  maiz_ha: z
+    .number()
+    .min(0, "La superficie de maíz no puede ser negativa")
+    .max(10000, "La superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  papa_ha: z
+    .number()
+    .min(0, "La superficie de papa no puede ser negativa")
+    .max(10000, "La superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  aji_ha: z
+    .number()
+    .min(0, "La superficie de ají no puede ser negativa")
+    .max(10000, "La superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  leguminosas_ha: z
+    .number()
+    .min(0, "La superficie de leguminosas no puede ser negativa")
+    .max(10000, "La superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  otros_cultivos_ha: z
+    .number()
+    .min(0, "La superficie de otros cultivos no puede ser negativa")
+    .max(10000, "La superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  otros_cultivos_detalle: z
+    .string()
+    .max(500, "El detalle no puede exceder 500 caracteres")
+    .trim()
+    .nullish(),
+  descanso_ha: z
+    .number()
+    .min(0, "La superficie en descanso no puede ser negativa")
+    .max(10000, "La superficie no puede exceder 10,000 hectáreas")
+    .default(0),
+  numero_parcela: z.number().optional(),
+  superficie_actual_ha: z.number().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+export const createPlanificacionSiembraSchema = planificacionSiembraSchema.omit({
+  id_planificacion: true,
+  id_ficha: true,
+  numero_parcela: true,
+  superficie_actual_ha: true,
+  created_at: true,
+  updated_at: true,
+});
+
+// ============================================
 // FICHA COMPLETA
 // ============================================
 
@@ -570,6 +638,14 @@ export const fichaCompletaFormSchema = z
       .default([]),
     detalles_cultivo: z.array(createDetalleCultivoParcelaSchema).default([]),
     cosecha_ventas: z.array(createCosechaVentasSchema).default([]),
+    planificacion_siembras: z.array(createPlanificacionSiembraSchema).default([]),
+    coordenadas_domicilio: z
+      .object({
+        latitud: z.number(),
+        longitud: z.number(),
+        altitud: z.number().optional(),
+      })
+      .optional(),
   })
   .refine(
     (data) => {

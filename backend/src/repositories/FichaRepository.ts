@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery, Transaction } from "../config/connection.js";
 import { Ficha, FichaData } from "../entities/Ficha.js";
 import {
@@ -34,6 +35,7 @@ import {
 } from "../entities/ManejoCultivoMani.js";
 import { CosechaVentas, CosechaVentasData } from "../entities/CosechaVentas.js";
 import { ArchivoFicha, ArchivoFichaData } from "../entities/ArchivoFicha.js";
+import { PlanificacionSiembra, PlanificacionSiembraData } from "../entities/PlanificacionSiembra.js";
 import { ComplianceStatus } from "../types/ficha.types.js";
 
 // Interfaz para ficha completa con todas sus secciones
@@ -48,6 +50,7 @@ export interface FichaCompleta {
   actividades_pecuarias: ActividadPecuaria[];
   detalles_cultivo: DetalleCultivoParcela[];
   cosecha_ventas: CosechaVentas[];
+  planificacion_siembras: PlanificacionSiembra[];
   archivos: ArchivoFicha[];
 }
 
@@ -252,6 +255,54 @@ export class FichaRepository {
     return results.map((data) => Ficha.fromDatabase(data));
   }
 
+  // Lista fichas por multiples comunidades y gestion
+  // Usado por tecnicos con varias comunidades asignadas
+  async findByComunidadesGestion(
+    comunidadesIds: string[],
+    gestion: number
+  ): Promise<Ficha[]> {
+    // Si no hay comunidades, retornar array vacio
+    if (comunidadesIds.length === 0) {
+      return [];
+    }
+
+    const query = {
+      name: "find-fichas-by-comunidades-gestion",
+      text: `
+        SELECT
+          fi.id_ficha,
+          fi.codigo_productor,
+          fi.gestion,
+          fi.id_gestion,
+          fi.fecha_inspeccion,
+          fi.inspector_interno,
+          fi.persona_entrevistada,
+          fi.categoria_gestion_anterior,
+          fi.origen_captura,
+          fi.fecha_sincronizacion,
+          fi.estado_sync,
+          fi.estado_ficha,
+          fi.resultado_certificacion,
+          fi.comentarios_evaluacion,
+          fi.comentarios_actividad_pecuaria,
+          fi.created_by,
+          fi.created_at,
+          fi.updated_at,
+          p.nombre_productor,
+          c.nombre_comunidad
+        FROM ficha_inspeccion fi
+        INNER JOIN productores p ON fi.codigo_productor = p.codigo_productor
+        INNER JOIN comunidades c ON p.id_comunidad = c.id_comunidad
+        WHERE c.id_comunidad = ANY($1) AND fi.gestion = $2
+        ORDER BY p.codigo_productor
+      `,
+      values: [comunidadesIds, gestion],
+    };
+
+    const results = await ReadQuery.execute<FichaData>(query);
+    return results.map((data) => Ficha.fromDatabase(data));
+  }
+
   // Verifica si existe ficha para productor en gestion
   async existsByProductorGestion(
     codigoProductor: string,
@@ -278,21 +329,29 @@ export class FichaRepository {
     estado?: string;
     codigoProductor?: string;
     comunidadId?: string;
+    comunidadesIds?: string[];
     estadoSync?: string;
+    inspectorInterno?: string;
+    resultadoCertificacion?: string;
+    fechaDesde?: string;
+    fechaHasta?: string;
     page: number;
     limit: number;
   }): Promise<{ fichas: Ficha[]; total: number }> {
-    const { gestion, estado, codigoProductor, comunidadId, estadoSync, page, limit } = params;
-
-    console.log('🔍 [REPOSITORY] findWithPagination llamado con:', {
+    const {
       gestion,
-      tipo_gestion: typeof gestion,
       estado,
       codigoProductor,
       comunidadId,
+      comunidadesIds,
+      estadoSync,
+      inspectorInterno,
+      resultadoCertificacion,
+      fechaDesde,
+      fechaHasta,
       page,
       limit
-    });
+    } = params;
 
     // Construir WHERE dinamico
     const conditions: string[] = [];
@@ -300,7 +359,6 @@ export class FichaRepository {
     let paramIndex = 1;
 
     if (gestion !== undefined) {
-      console.log('🔍 [REPOSITORY] Agregando filtro por gestión:', gestion);
       conditions.push(`fi.gestion = $${paramIndex}`);
       values.push(gestion);
       paramIndex++;
@@ -318,7 +376,12 @@ export class FichaRepository {
       paramIndex++;
     }
 
-    if (comunidadId) {
+    // Filtro por comunidad (soporta single o multiple)
+    if (comunidadesIds && comunidadesIds.length > 0) {
+      conditions.push(`c.id_comunidad = ANY($${paramIndex})`);
+      values.push(comunidadesIds);
+      paramIndex++;
+    } else if (comunidadId) {
       conditions.push(`c.id_comunidad = $${paramIndex}`);
       values.push(comunidadId);
       paramIndex++;
@@ -330,13 +393,31 @@ export class FichaRepository {
       paramIndex++;
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    if (inspectorInterno) {
+      conditions.push(`fi.inspector_interno ILIKE $${paramIndex}`);
+      values.push(`%${inspectorInterno}%`);
+      paramIndex++;
+    }
 
-    console.log('🔍 [REPOSITORY] Query construido:', {
-      whereClause,
-      values,
-      conditions
-    });
+    if (resultadoCertificacion) {
+      conditions.push(`fi.resultado_certificacion = $${paramIndex}`);
+      values.push(resultadoCertificacion);
+      paramIndex++;
+    }
+
+    if (fechaDesde) {
+      conditions.push(`fi.fecha_inspeccion::DATE >= $${paramIndex}::DATE`);
+      values.push(fechaDesde);
+      paramIndex++;
+    }
+
+    if (fechaHasta) {
+      conditions.push(`fi.fecha_inspeccion::DATE <= $${paramIndex}::DATE`);
+      values.push(fechaHasta);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Calcular offset para paginacion
     const offset = (page - 1) * limit;
@@ -431,6 +512,7 @@ export class FichaRepository {
       metodo_cosecha_otro?: string;
     }>;
     cosecha_ventas?: CosechaVentas[];
+    planificacion_siembras?: PlanificacionSiembra[];
     archivos?: ArchivoFicha[];
     parcelas_inspeccionadas?: Array<{
       id_parcela: string;
@@ -443,18 +525,6 @@ export class FichaRepository {
     }>;
   }): Promise<FichaCompleta> {
     const { ficha } = fichaCompleta;
-
-    console.log(
-      `[FichaRepository] Iniciando createFichaCompleta para productor ${ficha.codigoProductor} - gestión ${ficha.gestion}`
-    );
-    console.log(
-      `[FichaRepository] Secciones recibidas: revision_doc=${!!fichaCompleta.revision_documentacion}, ` +
-      `acciones=${fichaCompleta.acciones_correctivas?.length || 0}, ` +
-      `no_conformidades=${fichaCompleta.no_conformidades?.length || 0}, ` +
-      `detalles_cultivo=${fichaCompleta.detalles_cultivo?.length || 0}, ` +
-      `cosecha_ventas=${fichaCompleta.cosecha_ventas?.length || 0}, ` +
-      `parcelas_inspeccionadas=${fichaCompleta.parcelas_inspeccionadas?.length || 0}`
-    );
 
     // Validar ficha
     const validation = ficha.validate();
@@ -481,9 +551,14 @@ export class FichaRepository {
 
       // 1. Insertar ficha principal
       const fichaData = ficha.toDatabaseInsert();
+
+      // Generar UUID para ficha principal
+      const idFicha = randomUUID();
+
       const fichaQuery = {
         text: `
           INSERT INTO ficha_inspeccion (
+            id_ficha,
             codigo_productor,
             gestion,
             id_gestion,
@@ -499,10 +574,11 @@ export class FichaRepository {
             comentarios_actividad_pecuaria,
             comentarios_evaluacion,
             created_by
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           RETURNING id_ficha, created_at, updated_at
         `,
         values: [
+          idFicha,
           fichaData.codigo_productor,
           fichaData.gestion,
           fichaData.id_gestion,
@@ -521,15 +597,16 @@ export class FichaRepository {
         ],
       };
 
-      const fichaResult = await transaction.query(fichaQuery);
-      const idFicha = fichaResult.rows[0].id_ficha;
+      await transaction.query(fichaQuery);
 
       // 2. Insertar revision documentacion si existe
       if (fichaCompleta.revision_documentacion) {
+        const idRevision = randomUUID();
         const revData = fichaCompleta.revision_documentacion.toDatabaseInsert();
         await transaction.query({
           text: `
             INSERT INTO revision_documentacion (
+              id_revision,
               id_ficha,
               solicitud_ingreso,
               normas_reglamentos,
@@ -538,9 +615,10 @@ export class FichaRepository {
               diario_campo,
               registro_cosecha,
               recibo_pago
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           `,
           values: [
+            idRevision,
             idFicha,
             revData.solicitud_ingreso,
             revData.normas_reglamentos,
@@ -559,17 +637,20 @@ export class FichaRepository {
         fichaCompleta.acciones_correctivas.length > 0
       ) {
         for (const accion of fichaCompleta.acciones_correctivas) {
+          const idAccion = randomUUID();
           const acData = accion.toDatabaseInsert();
           await transaction.query({
             text: `
               INSERT INTO acciones_correctivas (
+                id_accion,
                 id_ficha,
                 numero_accion,
                 descripcion_accion,
                 implementacion_descripcion
-              ) VALUES ($1, $2, $3, $4)
+              ) VALUES ($1, $2, $3, $4, $5)
             `,
             values: [
+              idAccion,
               idFicha,
               acData.numero_accion,
               acData.descripcion_accion,
@@ -585,10 +666,12 @@ export class FichaRepository {
         fichaCompleta.no_conformidades.length > 0
       ) {
         for (const noConf of fichaCompleta.no_conformidades) {
+          const idNoConformidad = randomUUID();
           const ncData = noConf.toDatabaseInsert();
           await transaction.query({
             text: `
               INSERT INTO no_conformidades (
+                id_no_conformidad,
                 id_ficha,
                 descripcion_no_conformidad,
                 accion_correctiva_propuesta,
@@ -598,9 +681,10 @@ export class FichaRepository {
                 fecha_seguimiento,
                 realizado_por_usuario,
                 updated_at
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             `,
             values: [
+              idNoConformidad,
               idFicha,
               ncData.descripcion_no_conformidad,
               ncData.accion_correctiva_propuesta,
@@ -617,11 +701,13 @@ export class FichaRepository {
 
       // 5. Insertar evaluacion mitigacion
       if (fichaCompleta.evaluacion_mitigacion) {
+        const idEvaluacion = randomUUID();
         const evalMitData =
           fichaCompleta.evaluacion_mitigacion.toDatabaseInsert();
         await transaction.query({
           text: `
             INSERT INTO evaluacion_mitigacion (
+              id_evaluacion,
               id_ficha,
               practica_mitigacion_riesgos,
               mitigacion_contaminacion,
@@ -630,9 +716,10 @@ export class FichaRepository {
               evita_quema_residuos,
               practica_mitigacion_riesgos_descripcion,
               mitigacion_contaminacion_descripcion
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           `,
           values: [
+            idEvaluacion,
             idFicha,
             evalMitData.practica_mitigacion_riesgos,
             evalMitData.mitigacion_contaminacion,
@@ -647,20 +734,23 @@ export class FichaRepository {
 
       // 6. Insertar evaluacion poscosecha
       if (fichaCompleta.evaluacion_poscosecha) {
+        const idEvaluacionPoscosecha = randomUUID();
         const evalPosData =
           fichaCompleta.evaluacion_poscosecha.toDatabaseInsert();
         await transaction.query({
           text: `
             INSERT INTO evaluacion_poscosecha (
+              id_evaluacion_poscosecha,
               id_ficha,
               secado_tendal,
               envases_limpios,
               almacen_protegido,
               evidencia_comercializacion,
               comentarios_poscosecha
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
           `,
           values: [
+            idEvaluacionPoscosecha,
             idFicha,
             evalPosData.secado_tendal,
             evalPosData.envases_limpios,
@@ -673,18 +763,21 @@ export class FichaRepository {
 
       // 7. Insertar evaluacion conocimiento normas
       if (fichaCompleta.evaluacion_conocimiento) {
+        const idEvaluacionConocimiento = randomUUID();
         const evalConData =
           fichaCompleta.evaluacion_conocimiento.toDatabaseInsert();
         await transaction.query({
           text: `
             INSERT INTO evaluacion_conocimiento_normas (
+              id_evaluacion_conocimiento,
               id_ficha,
               conoce_normas_organicas,
               recibio_capacitacion,
               comentarios_conocimiento
-            ) VALUES ($1, $2, $3, $4)
+            ) VALUES ($1, $2, $3, $4, $5)
           `,
           values: [
+            idEvaluacionConocimiento,
             idFicha,
             evalConData.conoce_normas_organicas,
             evalConData.recibio_capacitacion,
@@ -699,19 +792,22 @@ export class FichaRepository {
         fichaCompleta.actividades_pecuarias.length > 0
       ) {
         for (const actividad of fichaCompleta.actividades_pecuarias) {
+          const idActividad = randomUUID();
           const actData = actividad.toDatabaseInsert();
           await transaction.query({
             text: `
               INSERT INTO actividad_pecuaria (
+                id_actividad,
                 id_ficha,
                 tipo_ganado,
                 animal_especifico,
                 cantidad,
                 sistema_manejo,
                 uso_guano
-              ) VALUES ($1, $2, $3, $4, $5, $6)
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             `,
             values: [
+              idActividad,
               idFicha,
               actData.tipo_ganado,
               actData.animal_especifico,
@@ -729,10 +825,6 @@ export class FichaRepository {
         fichaCompleta.detalles_cultivo &&
         fichaCompleta.detalles_cultivo.length > 0
       ) {
-        console.log(
-          `[FichaRepository] Procesando ${fichaCompleta.detalles_cultivo.length} detalles de cultivo`
-        );
-
         for (const detalleData of fichaCompleta.detalles_cultivo) {
           // Verificar si el cultivo es certificable
           const tipoCultivoQuery = await transaction.query({
@@ -747,23 +839,22 @@ export class FichaRepository {
           const esCertificable =
             tipoCultivoQuery.rows[0]?.es_principal_certificable || false;
 
-          console.log(
-            `[FichaRepository] Cultivo ${detalleData.id_tipo_cultivo} - Certificable: ${esCertificable}`
-          );
-
           // SIEMPRE insertar en detalle_cultivo_parcela (seccion 4 - todos los cultivos)
-          const detalleResult = await transaction.query({
+          const idDetalle = randomUUID();
+          await transaction.query({
             text: `
               INSERT INTO detalle_cultivo_parcela (
+                id_detalle,
                 id_ficha,
                 id_parcela,
                 id_tipo_cultivo,
                 superficie_ha,
                 situacion_actual
-              ) VALUES ($1, $2, $3, $4, $5)
+              ) VALUES ($1, $2, $3, $4, $5, $6)
               RETURNING id_detalle
             `,
             values: [
+              idDetalle,
               idFicha,
               detalleData.id_parcela,
               detalleData.id_tipo_cultivo,
@@ -772,17 +863,8 @@ export class FichaRepository {
             ],
           });
 
-          const idDetalle = detalleResult.rows[0].id_detalle;
-          console.log(
-            `[FichaRepository] Insertado detalle_cultivo_parcela con id ${idDetalle}`
-          );
-
           // Solo insertar en manejo_cultivo_mani si es cultivo certificable Y tiene datos de seccion 7
           if (esCertificable && detalleData.procedencia_semilla) {
-            console.log(
-              `[FichaRepository] Insertando manejo_cultivo_mani para detalle ${idDetalle}`
-            );
-
             // Crear entity para validar datos de seccion 7
             const manejoMani = ManejoCultivoMani.create({
               id_detalle: idDetalle,
@@ -809,9 +891,11 @@ export class FichaRepository {
 
             const manejoData = manejoMani.toDatabaseInsert();
 
+            const idManejo = randomUUID();
             await transaction.query({
               text: `
                 INSERT INTO manejo_cultivo_mani (
+                  id_manejo,
                   id_detalle,
                   procedencia_semilla,
                   categoria_semilla,
@@ -824,9 +908,10 @@ export class FichaRepository {
                   control_hierbas_otro,
                   metodo_cosecha,
                   metodo_cosecha_otro
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
               `,
               values: [
+                idManejo,
                 idDetalle,
                 manejoData.procedencia_semilla,
                 manejoData.categoria_semilla,
@@ -841,14 +926,7 @@ export class FichaRepository {
                 manejoData.metodo_cosecha_otro,
               ],
             });
-
-            console.log(
-              `[FichaRepository] manejo_cultivo_mani insertado para detalle ${idDetalle}`
-            );
           } else if (esCertificable && !detalleData.procedencia_semilla) {
-            console.log(
-              `[FichaRepository] Cultivo certificable pero sin datos de seccion 7 - solo se inserto en detalle_cultivo_parcela`
-            );
           }
         }
       }
@@ -871,19 +949,17 @@ export class FichaRepository {
         );
       }
 
-      console.log(
-        `[FichaRepository] Insertando cosecha_ventas: tipo=${tipoMani}`
-      );
-
       if (
         fichaCompleta.cosecha_ventas &&
         fichaCompleta.cosecha_ventas.length > 0
       ) {
         for (const cosecha of fichaCompleta.cosecha_ventas) {
+          const idCosecha = randomUUID();
           const cosData = cosecha.toDatabaseInsert();
           await transaction.query({
             text: `
               INSERT INTO cosecha_ventas (
+                id_cosecha,
                 id_ficha,
                 tipo_mani,
                 superficie_actual_ha,
@@ -893,9 +969,10 @@ export class FichaRepository {
                 destino_semilla_qq,
                 destino_ventas_qq,
                 observaciones
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             `,
             values: [
+              idCosecha,
               idFicha,
               cosData.tipo_mani,
               cosData.superficie_actual_ha,
@@ -910,13 +987,55 @@ export class FichaRepository {
         }
       }
 
-      // 11. Insertar archivos
+      // 11. Insertar planificacion_siembras
+      if (fichaCompleta.planificacion_siembras && fichaCompleta.planificacion_siembras.length > 0) {
+        for (const planificacion of fichaCompleta.planificacion_siembras) {
+          const idPlanificacion = randomUUID();
+          const planData = planificacion.toDatabaseInsert();
+          await transaction.query({
+            text: `
+              INSERT INTO planificacion_siembras (
+                id_planificacion,
+                id_ficha,
+                id_parcela,
+                area_parcela_planificada_ha,
+                mani_ha,
+                maiz_ha,
+                papa_ha,
+                aji_ha,
+                leguminosas_ha,
+                otros_cultivos_ha,
+                otros_cultivos_detalle,
+                descanso_ha
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            `,
+            values: [
+              idPlanificacion,
+              idFicha,
+              planData.id_parcela,
+              planData.area_parcela_planificada_ha,
+              planData.mani_ha,
+              planData.maiz_ha,
+              planData.papa_ha,
+              planData.aji_ha,
+              planData.leguminosas_ha,
+              planData.otros_cultivos_ha,
+              planData.otros_cultivos_detalle || null,
+              planData.descanso_ha,
+            ],
+          });
+        }
+      }
+
+      // 12. Insertar archivos
       if (fichaCompleta.archivos && fichaCompleta.archivos.length > 0) {
         for (const archivo of fichaCompleta.archivos) {
+          const idArchivo = randomUUID();
           const arcData = archivo.toDatabaseInsert();
           await transaction.query({
             text: `
               INSERT INTO archivos_ficha (
+                id_archivo,
                 id_ficha,
                 tipo_archivo,
                 nombre_original,
@@ -926,9 +1045,10 @@ export class FichaRepository {
                 estado_upload,
                 hash_archivo,
                 fecha_captura
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             `,
             values: [
+              idArchivo,
               idFicha,
               arcData.tipo_archivo,
               arcData.nombre_original,
@@ -949,15 +1069,7 @@ export class FichaRepository {
         fichaCompleta.parcelas_inspeccionadas &&
         fichaCompleta.parcelas_inspeccionadas.length > 0
       ) {
-        console.log(
-          `[FichaRepository] Actualizando ${fichaCompleta.parcelas_inspeccionadas.length} parcelas con datos de inspección`
-        );
-
         for (const parcelaData of fichaCompleta.parcelas_inspeccionadas) {
-          console.log(
-            `[FichaRepository] Actualizando parcela ${parcelaData.id_parcela}`
-          );
-
           await transaction.query({
             text: `
               UPDATE parcelas
@@ -967,12 +1079,7 @@ export class FichaRepository {
                 tipo_barrera = COALESCE($4, tipo_barrera),
                 insumos_organicos = COALESCE($5, insumos_organicos),
                 latitud_sud = COALESCE($6, latitud_sud),
-                longitud_oeste = COALESCE($7, longitud_oeste),
-                coordenadas = CASE
-                  WHEN $6 IS NOT NULL AND $7 IS NOT NULL
-                  THEN ST_SetSRID(ST_MakePoint($7, $6), 4326)
-                  ELSE coordenadas
-                END
+                longitud_oeste = COALESCE($7, longitud_oeste)
               WHERE id_parcela = $1 AND activo = true
             `,
             values: [
@@ -990,10 +1097,6 @@ export class FichaRepository {
 
       // Commit transaccion
       await transaction.commit();
-
-      console.log(
-        `[FichaRepository] Transacción completada exitosamente para ficha ${idFicha}`
-      );
 
       // Retornar ficha completa creada
       const fichaCreada = await this.findById(idFicha);
@@ -1027,6 +1130,7 @@ export class FichaRepository {
       actividades,
       detallesCultivo,
       cosechaVentas,
+      planificacionesSiembra,
       archivos,
     ] = await Promise.all([
       this.getRevisionDocumentacion(idFicha),
@@ -1038,6 +1142,7 @@ export class FichaRepository {
       this.getActividadesPecuarias(idFicha),
       this.getDetallesCultivo(idFicha),
       this.getCosechaVentas(idFicha),
+      this.getPlanificacionesSiembra(idFicha),
       this.getArchivos(idFicha),
     ]);
 
@@ -1052,6 +1157,7 @@ export class FichaRepository {
       actividades_pecuarias: actividades,
       detalles_cultivo: detallesCultivo,
       cosecha_ventas: cosechaVentas,
+      planificacion_siembras: planificacionesSiembra,
       archivos: archivos,
     };
   }
@@ -1205,7 +1311,6 @@ export class FichaRepository {
     const results = await ReadQuery.execute<DetalleCultivoParcelaData>(query);
 
     // DEBUG: Ver qué datos está trayendo el query
-    console.log('[FichaRepository] getDetallesCultivo - Resultados del query:', JSON.stringify(results.slice(0, 1), null, 2));
 
     return results.map((data) => DetalleCultivoParcela.fromDatabase(data));
   }
@@ -1223,6 +1328,39 @@ export class FichaRepository {
 
     const results = await ReadQuery.execute<CosechaVentasData>(query);
     return results.map((data) => CosechaVentas.fromDatabase(data));
+  }
+
+  // Obtiene planificacion_siembras
+  async getPlanificacionesSiembra(idFicha: string): Promise<PlanificacionSiembra[]> {
+    const query = {
+      text: `
+        SELECT
+          ps.id_planificacion,
+          ps.id_ficha,
+          ps.id_parcela,
+          ps.area_parcela_planificada_ha,
+          ps.mani_ha,
+          ps.maiz_ha,
+          ps.papa_ha,
+          ps.aji_ha,
+          ps.leguminosas_ha,
+          ps.otros_cultivos_ha,
+          ps.otros_cultivos_detalle,
+          ps.descanso_ha,
+          ps.created_at,
+          ps.updated_at,
+          pa.numero_parcela,
+          pa.superficie_ha as superficie_actual_ha
+        FROM planificacion_siembras ps
+        INNER JOIN parcelas pa ON ps.id_parcela = pa.id_parcela
+        WHERE ps.id_ficha = $1
+        ORDER BY pa.numero_parcela ASC
+      `,
+      values: [idFicha],
+    };
+
+    const results = await ReadQuery.execute<PlanificacionSiembraData>(query);
+    return results.map((data) => PlanificacionSiembra.fromDatabase(data));
   }
 
   // Obtiene archivos
@@ -1326,6 +1464,18 @@ export class FichaRepository {
         destino_ventas_qq?: number;
         observaciones?: string;
       }>;
+      planificacion_siembras?: Array<{
+        id_parcela: string;
+        area_parcela_planificada_ha: number;
+        mani_ha: number;
+        maiz_ha: number;
+        papa_ha: number;
+        aji_ha: number;
+        leguminosas_ha: number;
+        otros_cultivos_ha: number;
+        otros_cultivos_detalle?: string;
+        descanso_ha: number;
+      }>;
       parcelas_inspeccionadas?: Array<{
         id_parcela: string;
         rotacion?: boolean;
@@ -1337,10 +1487,6 @@ export class FichaRepository {
       }>;
     }
   ): Promise<FichaCompleta> {
-    console.log(
-      `[FichaRepository] Iniciando updateFichaCompleta para ficha ${id}`
-    );
-
     const transaction = new Transaction();
 
     try {
@@ -1375,10 +1521,8 @@ export class FichaRepository {
         throw new Error("Ficha no encontrada");
       }
 
-      console.log(`[FichaRepository] Ficha principal actualizada`);
 
       // 2. DELETE todas las secciones relacionadas (CASCADE se encarga de manejo_cultivo_mani)
-      console.log(`[FichaRepository] Eliminando secciones existentes...`);
 
       await transaction.query({
         text: `DELETE FROM revision_documentacion WHERE id_ficha = $1`,
@@ -1425,13 +1569,19 @@ export class FichaRepository {
         values: [id],
       });
 
-      console.log(`[FichaRepository] Secciones eliminadas exitosamente`);
+      await transaction.query({
+        text: `DELETE FROM planificacion_siembras WHERE id_ficha = $1`,
+        values: [id],
+      });
+
 
       // 3. INSERT revision documentacion si existe
       if (input.revision_documentacion) {
+        const idRevision = randomUUID();
         await transaction.query({
           text: `
             INSERT INTO revision_documentacion (
+              id_revision,
               id_ficha,
               solicitud_ingreso,
               normas_reglamentos,
@@ -1440,9 +1590,10 @@ export class FichaRepository {
               diario_campo,
               registro_cosecha,
               recibo_pago
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           `,
           values: [
+            idRevision,
             id,
             input.revision_documentacion.solicitud_ingreso,
             input.revision_documentacion.normas_reglamentos,
@@ -1458,16 +1609,19 @@ export class FichaRepository {
       // 4. INSERT acciones correctivas
       if (input.acciones_correctivas && input.acciones_correctivas.length > 0) {
         for (const accion of input.acciones_correctivas) {
+          const idAccion = randomUUID();
           await transaction.query({
             text: `
               INSERT INTO acciones_correctivas (
+                id_accion,
                 id_ficha,
                 numero_accion,
                 descripcion_accion,
                 implementacion_descripcion
-              ) VALUES ($1, $2, $3, $4)
+              ) VALUES ($1, $2, $3, $4, $5)
             `,
             values: [
+              idAccion,
               id,
               accion.numero_accion,
               accion.descripcion_accion.trim(),
@@ -1480,16 +1634,19 @@ export class FichaRepository {
       // 5. INSERT no conformidades
       if (input.no_conformidades && input.no_conformidades.length > 0) {
         for (const noConf of input.no_conformidades) {
+          const idNoConformidad = randomUUID();
           await transaction.query({
             text: `
               INSERT INTO no_conformidades (
+                id_no_conformidad,
                 id_ficha,
                 descripcion_no_conformidad,
                 accion_correctiva_propuesta,
                 fecha_limite_implementacion
-              ) VALUES ($1, $2, $3, $4)
+              ) VALUES ($1, $2, $3, $4, $5)
             `,
             values: [
+              idNoConformidad,
               id,
               noConf.descripcion_no_conformidad.trim(),
               noConf.accion_correctiva_propuesta.trim(),
@@ -1501,9 +1658,11 @@ export class FichaRepository {
 
       // 6. INSERT evaluacion mitigacion
       if (input.evaluacion_mitigacion) {
+        const idEvaluacion = randomUUID();
         await transaction.query({
           text: `
             INSERT INTO evaluacion_mitigacion (
+              id_evaluacion,
               id_ficha,
               practica_mitigacion_riesgos,
               mitigacion_contaminacion,
@@ -1512,9 +1671,10 @@ export class FichaRepository {
               evita_quema_residuos,
               practica_mitigacion_riesgos_descripcion,
               mitigacion_contaminacion_descripcion
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           `,
           values: [
+            idEvaluacion,
             id,
             input.evaluacion_mitigacion.practica_mitigacion_riesgos,
             input.evaluacion_mitigacion.mitigacion_contaminacion,
@@ -1529,18 +1689,21 @@ export class FichaRepository {
 
       // 7. INSERT evaluacion poscosecha
       if (input.evaluacion_poscosecha) {
+        const idEvaluacionPoscosecha = randomUUID();
         await transaction.query({
           text: `
             INSERT INTO evaluacion_poscosecha (
+              id_evaluacion_poscosecha,
               id_ficha,
               secado_tendal,
               envases_limpios,
               almacen_protegido,
               evidencia_comercializacion,
               comentarios_poscosecha
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
           `,
           values: [
+            idEvaluacionPoscosecha,
             id,
             input.evaluacion_poscosecha.secado_tendal,
             input.evaluacion_poscosecha.envases_limpios,
@@ -1553,16 +1716,19 @@ export class FichaRepository {
 
       // 8. INSERT evaluacion conocimiento normas
       if (input.evaluacion_conocimiento) {
+        const idEvaluacionConocimiento = randomUUID();
         await transaction.query({
           text: `
             INSERT INTO evaluacion_conocimiento_normas (
+              id_evaluacion_conocimiento,
               id_ficha,
               conoce_normas_organicas,
               recibio_capacitacion,
               comentarios_conocimiento
-            ) VALUES ($1, $2, $3, $4)
+            ) VALUES ($1, $2, $3, $4, $5)
           `,
           values: [
+            idEvaluacionConocimiento,
             id,
             input.evaluacion_conocimiento.conoce_normas_organicas,
             input.evaluacion_conocimiento.recibio_capacitacion,
@@ -1574,18 +1740,21 @@ export class FichaRepository {
       // 9. INSERT actividades pecuarias
       if (input.actividades_pecuarias && input.actividades_pecuarias.length > 0) {
         for (const actividad of input.actividades_pecuarias) {
+          const idActividad = randomUUID();
           await transaction.query({
             text: `
               INSERT INTO actividad_pecuaria (
+                id_actividad,
                 id_ficha,
                 tipo_ganado,
                 animal_especifico,
                 cantidad,
                 sistema_manejo,
                 uso_guano
-              ) VALUES ($1, $2, $3, $4, $5, $6)
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             `,
             values: [
+              idActividad,
               id,
               actividad.tipo_ganado,
               actividad.animal_especifico?.trim() || null,
@@ -1599,10 +1768,6 @@ export class FichaRepository {
 
       // 10. INSERT detalles cultivo por parcela
       if (input.detalles_cultivo && input.detalles_cultivo.length > 0) {
-        console.log(
-          `[FichaRepository] Insertando ${input.detalles_cultivo.length} detalles de cultivo`
-        );
-
         for (const detalleData of input.detalles_cultivo) {
           // Verificar si el cultivo es certificable
           const tipoCultivoQuery = await transaction.query({
@@ -1617,23 +1782,22 @@ export class FichaRepository {
           const esCertificable =
             tipoCultivoQuery.rows[0]?.es_principal_certificable || false;
 
-          console.log(
-            `[FichaRepository] Cultivo ${detalleData.id_tipo_cultivo} - Certificable: ${esCertificable}`
-          );
-
           // INSERT en detalle_cultivo_parcela (seccion 4)
-          const detalleResult = await transaction.query({
+          const idDetalle = randomUUID();
+          await transaction.query({
             text: `
               INSERT INTO detalle_cultivo_parcela (
+                id_detalle,
                 id_ficha,
                 id_parcela,
                 id_tipo_cultivo,
                 superficie_ha,
                 situacion_actual
-              ) VALUES ($1, $2, $3, $4, $5)
+              ) VALUES ($1, $2, $3, $4, $5, $6)
               RETURNING id_detalle
             `,
             values: [
+              idDetalle,
               id,
               detalleData.id_parcela,
               detalleData.id_tipo_cultivo,
@@ -1642,14 +1806,8 @@ export class FichaRepository {
             ],
           });
 
-          const idDetalle = detalleResult.rows[0].id_detalle;
-
           // Solo INSERT en manejo_cultivo_mani si es cultivo certificable Y tiene datos de seccion 7
           if (esCertificable && detalleData.procedencia_semilla) {
-            console.log(
-              `[FichaRepository] Insertando manejo_cultivo_mani para detalle ${idDetalle}`
-            );
-
             const manejoMani = ManejoCultivoMani.create({
               id_detalle: idDetalle,
               procedencia_semilla: detalleData.procedencia_semilla as any,
@@ -1674,9 +1832,11 @@ export class FichaRepository {
 
             const manejoData = manejoMani.toDatabaseInsert();
 
+            const idManejo = randomUUID();
             await transaction.query({
               text: `
                 INSERT INTO manejo_cultivo_mani (
+                  id_manejo,
                   id_detalle,
                   procedencia_semilla,
                   categoria_semilla,
@@ -1689,9 +1849,10 @@ export class FichaRepository {
                   control_hierbas_otro,
                   metodo_cosecha,
                   metodo_cosecha_otro
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
               `,
               values: [
+                idManejo,
                 idDetalle,
                 manejoData.procedencia_semilla,
                 manejoData.categoria_semilla,
@@ -1725,9 +1886,11 @@ export class FichaRepository {
       }
 
       for (const cosecha of input.cosecha_ventas) {
+        const idCosecha = randomUUID();
         await transaction.query({
           text: `
             INSERT INTO cosecha_ventas (
+              id_cosecha,
               id_ficha,
               tipo_mani,
               superficie_actual_ha,
@@ -1737,9 +1900,10 @@ export class FichaRepository {
               destino_semilla_qq,
               destino_ventas_qq,
               observaciones
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           `,
           values: [
+            idCosecha,
             id,
             cosecha.tipo_mani,
             cosecha.superficie_actual_ha,
@@ -1753,12 +1917,47 @@ export class FichaRepository {
         });
       }
 
-      // 12. UPDATE parcelas con datos de inspeccion
-      if (input.parcelas_inspeccionadas && input.parcelas_inspeccionadas.length > 0) {
-        console.log(
-          `[FichaRepository] Actualizando ${input.parcelas_inspeccionadas.length} parcelas con datos de inspección`
-        );
+      // 12. INSERT planificacion_siembras
+      if (input.planificacion_siembras && input.planificacion_siembras.length > 0) {
+        for (const planificacion of input.planificacion_siembras) {
+          const idPlanificacion = randomUUID();
+          await transaction.query({
+            text: `
+              INSERT INTO planificacion_siembras (
+                id_planificacion,
+                id_ficha,
+                id_parcela,
+                area_parcela_planificada_ha,
+                mani_ha,
+                maiz_ha,
+                papa_ha,
+                aji_ha,
+                leguminosas_ha,
+                otros_cultivos_ha,
+                otros_cultivos_detalle,
+                descanso_ha
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            `,
+            values: [
+              idPlanificacion,
+              id,
+              planificacion.id_parcela,
+              planificacion.area_parcela_planificada_ha,
+              planificacion.mani_ha,
+              planificacion.maiz_ha,
+              planificacion.papa_ha,
+              planificacion.aji_ha,
+              planificacion.leguminosas_ha,
+              planificacion.otros_cultivos_ha,
+              planificacion.otros_cultivos_detalle?.trim() || null,
+              planificacion.descanso_ha,
+            ],
+          });
+        }
+      }
 
+      // 13. UPDATE parcelas con datos de inspeccion
+      if (input.parcelas_inspeccionadas && input.parcelas_inspeccionadas.length > 0) {
         for (const parcelaData of input.parcelas_inspeccionadas) {
           await transaction.query({
             text: `
@@ -1769,12 +1968,7 @@ export class FichaRepository {
                 tipo_barrera = COALESCE($4, tipo_barrera),
                 insumos_organicos = COALESCE($5, insumos_organicos),
                 latitud_sud = COALESCE($6, latitud_sud),
-                longitud_oeste = COALESCE($7, longitud_oeste),
-                coordenadas = CASE
-                  WHEN $6 IS NOT NULL AND $7 IS NOT NULL
-                  THEN ST_SetSRID(ST_MakePoint($7, $6), 4326)
-                  ELSE coordenadas
-                END
+                longitud_oeste = COALESCE($7, longitud_oeste)
               WHERE id_parcela = $1 AND activo = true
             `,
             values: [
@@ -1792,10 +1986,6 @@ export class FichaRepository {
 
       // Commit transaccion
       await transaction.commit();
-
-      console.log(
-        `[FichaRepository] Transacción completada exitosamente para ficha ${id}`
-      );
 
       // Retornar ficha completa actualizada
       return await this.loadFichaCompleta(id);

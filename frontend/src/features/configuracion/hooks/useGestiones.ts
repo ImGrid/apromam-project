@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { gestionesService } from "../services/gestiones.service";
+import { logger } from "@/shared/utils/logger";
 import type { Gestion } from "../types/gestion.types";
 
 interface UseGestionesReturn {
@@ -46,7 +47,7 @@ export function useGestiones(
       const errorMessage =
         err instanceof Error ? err.message : "Error al cargar gestiones";
       setError(errorMessage);
-      console.error("[useGestiones] Error:", err);
+      logger.error("[useGestiones] Error:", err);
     } finally {
       setIsLoading(false);
     }

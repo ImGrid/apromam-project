@@ -51,7 +51,7 @@ interface PermissionGateProps {
  * </PermissionGate>
  *
  * // Con funcion custom
- * <PermissionGate validate={() => user?.id_comunidad === comunidad.id}>
+ * <PermissionGate validate={() => user?.comunidades_ids?.includes(comunidad.id)}>
  *   <Button>Ver Detalles</Button>
  * </PermissionGate>
  *

@@ -5,6 +5,7 @@ import {
   isAuthError,
 } from "@/shared/services/api";
 import { saveTokens, clearTokens } from "@/shared/services/storage";
+import { logger } from "@/shared/utils/logger";
 import type {
   AuthResponse,
   MeResponse,
@@ -59,19 +60,14 @@ export const authService = {
     } catch (error) {
       const message = getErrorMessage(error);
 
-      // Mejorar mensajes de error comunes
-      if (message.includes("Credenciales inválidas")) {
-        throw new Error("Usuario o contraseña incorrectos");
-      }
+      // Logear error técnico en consola para debugging (solo desarrollo)
+      logger.error('[AUTH] Error en login:', {
+        message,
+        error,
+        timestamp: new Date().toISOString()
+      });
 
-      if (message.includes("Demasiados intentos")) {
-        throw new Error("Demasiados intentos fallidos. Intenta más tarde");
-      }
-
-      if (message.includes("Usuario inactivo")) {
-        throw new Error("Tu cuenta está inactiva. Contacta al administrador");
-      }
-
+      // getErrorMessage ya mapeó el error a mensaje genérico
       throw new Error(message);
     }
   },

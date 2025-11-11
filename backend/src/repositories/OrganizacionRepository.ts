@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { ReadQuery, WriteQuery } from "../config/connection.js";
 import { Organizacion, OrganizacionData } from "../entities/Organizacion.js";
 
@@ -165,18 +166,21 @@ export class OrganizacionRepository {
     }
 
     const insertData = organizacion.toDatabaseInsert();
+    const idOrganizacion = randomUUID();
 
     const query = {
       text: `
         INSERT INTO organizaciones (
+          id_organizacion,
           nombre_organizacion,
           abreviatura_organizacion,
           activo
         )
-        VALUES ($1, $2, $3)
+        VALUES ($1, $2, $3, $4)
         RETURNING id_organizacion, nombre_organizacion, abreviatura_organizacion, activo, created_at
       `,
       values: [
+        idOrganizacion,
         insertData.nombre_organizacion,
         insertData.abreviatura_organizacion,
         insertData.activo,

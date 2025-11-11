@@ -58,7 +58,7 @@ function fallbackToLocalStorage(key: string, data: any): void {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
-    console.error('[Storage] localStorage también falló:', error);
+    // Error al guardar en localStorage
   }
 }
 
@@ -102,8 +102,6 @@ export async function saveDraftToIndexedDB(
 
     await set(key, draft);
   } catch (error) {
-    console.error('[IndexedDB] Error al guardar borrador:', error);
-
     // Fallback a localStorage
     fallbackToLocalStorage(key, {
       id: `${codigoProductor}-${gestion}`,
@@ -134,8 +132,6 @@ export async function getDraftFromIndexedDB(
 
     return null;
   } catch (error) {
-    console.error('[IndexedDB] Error al obtener borrador:', error);
-
     // Fallback: intentar leer de localStorage
     try {
       const localData = localStorage.getItem(key);
@@ -143,7 +139,7 @@ export async function getDraftFromIndexedDB(
         return JSON.parse(localData);
       }
     } catch (e) {
-      console.error('[IndexedDB] Fallback localStorage también falló:', e);
+      // Error al leer de localStorage también
     }
 
     return null;
@@ -165,7 +161,6 @@ export async function deleteDraftFromIndexedDB(
     // También eliminar de localStorage si existe
     localStorage.removeItem(key);
   } catch (error) {
-    console.error('[IndexedDB] Error al eliminar borrador:', error);
     throw error;
   }
 }
@@ -188,7 +183,7 @@ export async function markDraftAsSynced(
       await set(key, draft);
     }
   } catch (error) {
-    console.error('[IndexedDB] Error al marcar como sincronizado:', error);
+    // Error al marcar como sincronizado
   }
 }
 
@@ -208,10 +203,6 @@ export async function getUnsyncedDrafts(): Promise<FichaDraft[]> {
 
     return unsyncedDrafts;
   } catch (error) {
-    console.error(
-      '[IndexedDB] Error al obtener borradores no sincronizados:',
-      error
-    );
     return [];
   }
 }
@@ -239,7 +230,6 @@ export async function cleanOldDrafts(): Promise<number> {
 
     return deletedCount;
   } catch (error) {
-    console.error('[IndexedDB] Error al limpiar borradores antiguos:', error);
     return 0;
   }
 }

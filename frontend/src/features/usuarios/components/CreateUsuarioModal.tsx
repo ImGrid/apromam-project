@@ -7,6 +7,7 @@ import {
   Button,
   Input,
   Select,
+  MultiSelect,
   FormField,
   FormSection,
   type SelectOption,
@@ -32,7 +33,11 @@ const usuarioSchema = z.object({
     .regex(/[0-9]/, "Debe contener al menos un número"),
   nombre_completo: z.string().min(3, "Mínimo 3 caracteres"),
   id_rol: z.string().min(1, "Selecciona un rol"),
-  id_comunidad: z.string().optional(),
+  comunidades_ids: z
+    .array(z.string().uuid("ID de comunidad inválido"))
+    .min(1, "Debe asignar al menos una comunidad")
+    .max(15, "Máximo 15 comunidades")
+    .optional(),
 });
 
 type UsuarioFormData = z.infer<typeof usuarioSchema>;
@@ -127,7 +132,6 @@ export function CreateUsuarioModal({
         }))
       );
     } catch (error) {
-      console.error("Error cargando comunidades:", error);
     }
   }, []);
 
@@ -151,7 +155,7 @@ export function CreateUsuarioModal({
     try {
       await createUsuario({
         ...data,
-        id_comunidad: data.id_comunidad || undefined,
+        comunidades_ids: data.comunidades_ids || [],
       });
 
       reset();
@@ -235,16 +239,17 @@ export function CreateUsuarioModal({
 
           {isTecnico && (
             <FormField
-              label="Comunidad"
-              error={errors.id_comunidad?.message}
-              helperText="Opcional: La comunidad puede ser asignada después por el gerente"
+              label="Comunidades"
+              error={errors.comunidades_ids?.message}
+              helperText="Opcional: Las comunidades pueden ser asignadas después por el gerente"
             >
-              <Select
+              <MultiSelect
                 options={comunidades}
-                value={watch("id_comunidad") || ""}
-                onChange={(value) => setValue("id_comunidad", value)}
-                placeholder="Selecciona una comunidad (opcional)"
+                value={watch("comunidades_ids") || []}
+                onChange={(values) => setValue("comunidades_ids", values)}
+                placeholder="Selecciona comunidades (opcional)"
                 searchable
+                maxSelected={15}
               />
             </FormField>
           )}

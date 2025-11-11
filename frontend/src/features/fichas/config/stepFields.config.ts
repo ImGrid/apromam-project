@@ -85,6 +85,11 @@ export const STEP_11_FIELDS = [
   'no_conformidades',
 ] as const;
 
+// Step 12: Planificación de Siembras (array dinámico)
+export const STEP_12_FIELDS = [
+  'planificacion_siembras',
+] as const;
+
 // Mapping completo de step → campos
 export const STEP_FIELDS: Record<number, readonly string[]> = {
   1: STEP_1_FIELDS,
@@ -98,6 +103,7 @@ export const STEP_FIELDS: Record<number, readonly string[]> = {
   9: STEP_9_FIELDS,
   10: STEP_10_FIELDS,
   11: STEP_11_FIELDS,
+  12: STEP_12_FIELDS,
 } as const;
 
 // Campos que son REQUERIDOS (no pueden estar vacíos)
@@ -118,12 +124,5 @@ export const REQUIRED_FIELDS_BY_STEP: Record<number, readonly string[]> = {
   9: [], // Actividades pecuarias pueden estar vacías
   10: [], // Campos de evaluación tienen default values
   11: [], // No conformidades pueden estar vacías
+  12: [], // Planificación de siembras puede estar vacía o con valores en 0
 } as const;
-
-console.log('📋 [stepFields.config] Configuración de campos cargada:', {
-  totalSteps: Object.keys(STEP_FIELDS).length,
-  fieldsPerStep: Object.entries(STEP_FIELDS).map(([step, fields]) => ({
-    step,
-    count: fields.length,
-  })),
-});

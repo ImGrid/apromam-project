@@ -61,7 +61,7 @@ export function SeguimientoForm({
       >
         <select
           {...register("estado_seguimiento")}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-md focus:ring-2 focus:ring-info-500 focus:border-transparent"
         >
           <option value="pendiente">{ESTADO_SEGUIMIENTO_LABELS.pendiente}</option>
           <option value="seguimiento">{ESTADO_SEGUIMIENTO_LABELS.seguimiento}</option>
@@ -80,7 +80,7 @@ export function SeguimientoForm({
           rows={4}
           maxLength={1000}
           placeholder="Ej: Se verificó en campo que el productor retiró los fertilizantes convencionales..."
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-md focus:ring-2 focus:ring-info-500 focus:border-transparent resize-none"
         />
       </FormField>
 

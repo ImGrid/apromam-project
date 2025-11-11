@@ -90,8 +90,12 @@ export function LocationPicker({
   // Handler para click en mapa
   const handleLocationSelect = useCallback(
     (lat: number, lng: number) => {
+      // Redondear a 6 decimales para compatibilidad con inputs
+      const roundedLat = Math.round(lat * 1000000) / 1000000;
+      const roundedLng = Math.round(lng * 1000000) / 1000000;
+
       // Validar coordenadas
-      const validation = validateCoordinates(lat, lng);
+      const validation = validateCoordinates(roundedLat, roundedLng);
 
       if (!validation.valid) {
         // Puedes mostrar un toast o alerta aquí
@@ -99,7 +103,7 @@ export function LocationPicker({
         return;
       }
 
-      const position = { lat, lng };
+      const position = { lat: roundedLat, lng: roundedLng };
       setSelectedPosition(position);
       onLocationSelect?.(position);
     },
@@ -151,7 +155,7 @@ export function LocationPicker({
 
         {/* Botón de geolocalización flotante */}
         {showGeolocationButton && (
-          <div className="absolute z-[1000] top-4 left-4">
+          <div className="absolute z-[1000] top-4 right-4">
             <Button
               variant="primary"
               size="small"

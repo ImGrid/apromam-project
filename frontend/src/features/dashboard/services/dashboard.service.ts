@@ -29,7 +29,6 @@ export const dashboardService = {
         parcelasSinGPS: 0, // TODO: implementar endpoint
       };
     } catch (error) {
-      console.error("Error fetching admin stats:", error);
       throw error;
     }
   },
@@ -56,13 +55,12 @@ export const dashboardService = {
         parcelasSinGPS: 0, // TODO: implementar endpoint
       };
     } catch (error) {
-      console.error("Error fetching gerente stats:", error);
       throw error;
     }
   },
 
   /**
-   * Obtiene alertas importantes
+   * Obtiene alertas importantes para administrador
    */
   async getAlertas(): Promise<DashboardAlert[]> {
     try {
@@ -86,6 +84,7 @@ export const dashboardService = {
       }
 
       // Verificar parcelas sin coordenadas
+      // Las coordenadas se asignan en el flujo de fichas (no hay vista de parcelas)
       const parcelasSinGPS = await apiClient.get(
         "/api/parcelas/sin-coordenadas"
       );
@@ -95,10 +94,7 @@ export const dashboardService = {
           id: "parcelas-sin-gps",
           type: "info",
           message: `${parcelasSinGPS.data.total} parcelas sin coordenadas GPS`,
-          action: {
-            label: "Ver parcelas",
-            path: "/parcelas",
-          },
+          // Sin accion - las coordenadas se asignan durante fichas
         });
       }
 
@@ -120,7 +116,51 @@ export const dashboardService = {
 
       return alertas;
     } catch (error) {
-      console.error("Error fetching alertas:", error);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene alertas importantes para gerente
+   * (sin acceso a gestion de usuarios/tecnicos)
+   */
+  async getAlertasGerente(): Promise<DashboardAlert[]> {
+    try {
+      const alertas: DashboardAlert[] = [];
+
+      // Verificar parcelas sin coordenadas
+      // Las coordenadas se asignan en el flujo de fichas (no hay vista de parcelas)
+      const parcelasSinGPS = await apiClient.get(
+        "/api/parcelas/sin-coordenadas"
+      );
+
+      if (parcelasSinGPS.data.total > 0) {
+        alertas.push({
+          id: "parcelas-sin-gps",
+          type: "info",
+          message: `${parcelasSinGPS.data.total} parcelas sin coordenadas GPS (${parcelasSinGPS.data.superficie_total.toFixed(2)} ha)`,
+          // Sin accion - las coordenadas se asignan durante fichas
+        });
+      }
+
+      // Verificar fichas pendientes revision (principal responsabilidad del gerente)
+      const fichasStats = await apiClient.get(ENDPOINTS.FICHAS.ESTADISTICAS);
+      const enRevision = fichasStats.data.por_estado?.revision || 0;
+
+      if (enRevision > 0) {
+        alertas.push({
+          id: "fichas-revision",
+          type: "warning",
+          message: `${enRevision} fichas esperando tu revisión`,
+          action: {
+            label: "Ver fichas",
+            path: "/fichas?estado=revision",
+          },
+        });
+      }
+
+      return alertas;
+    } catch (error) {
       return [];
     }
   },

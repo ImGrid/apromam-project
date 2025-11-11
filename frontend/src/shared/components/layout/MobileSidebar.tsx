@@ -9,11 +9,13 @@ import { X } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
+  UserCog,
   MapPin,
   Leaf,
   ClipboardList,
   BarChart3,
   BookOpen,
+  AlertTriangle,
 } from "lucide-react";
 import { usePermissions } from "@/shared/hooks/usePermissions";
 import { ROUTES } from "@/shared/config/routes.config";
@@ -65,6 +67,12 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       permission: () => permissions.canAccess("usuarios", "read"),
     },
     {
+      label: "Técnicos",
+      path: ROUTES.TECNICOS,
+      icon: UserCog,
+      permission: () => permissions.isAdmin() || permissions.isGerente(),
+    },
+    {
       label: "Geografía",
       path: ROUTES.GEOGRAFICAS,
       icon: MapPin,
@@ -83,16 +91,16 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       permission: () => permissions.canAccess("productores", "read"),
     },
     {
-      label: "Parcelas",
-      path: ROUTES.PARCELAS,
-      icon: MapPin,
-      permission: () => permissions.canAccess("parcelas", "read"),
-    },
-    {
       label: "Fichas",
       path: ROUTES.FICHAS,
       icon: ClipboardList,
       permission: () => permissions.canAccess("fichas", "read"),
+    },
+    {
+      label: "Seguimiento NC",
+      path: ROUTES.NO_CONFORMIDADES,
+      icon: AlertTriangle,
+      permission: () => permissions.canAccess("noConformidades", "read"),
     },
     {
       label: "Reportes",

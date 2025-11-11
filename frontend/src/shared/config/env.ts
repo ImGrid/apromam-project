@@ -53,22 +53,12 @@ export const env = {
   MODE: import.meta.env.MODE,
 } as const;
 
-// Log de configuración en desarrollo (sin exponer información sensible)
-if (env.IS_DEV && env.FEATURE_DEBUG_MODE) {
-  console.log("Configuración de Entorno:", {
-    MODE: env.MODE,
-    API_BASE_URL: env.API_BASE_URL,
-    APP_NAME: env.APP_NAME,
-    FEATURE_OFFLINE_MODE: env.FEATURE_OFFLINE_MODE,
-  });
-}
-
 // Validación adicional en desarrollo
 if (env.IS_DEV) {
   // Validar que la URL de API es accesible (formato básico)
   try {
     new URL(env.API_BASE_URL);
   } catch (error) {
-    console.warn(`URL de API inválida: ${env.API_BASE_URL}`, error);
+    // URL inválida
   }
 }

@@ -23,7 +23,7 @@ export function NoConformidadesFichaSection({
   if (isLoading) {
     return (
       <Card compact title="No Conformidades">
-        <p className="text-sm text-gray-500 text-center py-4">
+        <p className="text-sm text-neutral-500 text-center py-4">
           Cargando no conformidades...
         </p>
       </Card>
@@ -36,10 +36,10 @@ export function NoConformidadesFichaSection({
   if (total === 0) {
     return (
       <Card compact>
-        <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+        <div className="flex items-center gap-3 p-4 bg-success-50 rounded-lg border border-success-200">
           <div className="flex-shrink-0">
             <svg
-              className="w-10 h-10 text-green-500"
+              className="w-10 h-10 text-success-500"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -53,10 +53,10 @@ export function NoConformidadesFichaSection({
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-medium text-green-900">
+            <h3 className="text-sm font-medium text-success-900">
               Sin No Conformidades
             </h3>
-            <p className="text-xs text-green-700 mt-0.5">
+            <p className="text-xs text-success-700 mt-0.5">
               No se detectaron incumplimientos en esta inspección
             </p>
           </div>
@@ -70,8 +70,8 @@ export function NoConformidadesFichaSection({
       {/* Header con toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-yellow-600" />
-          <h2 className="text-lg font-semibold text-gray-900">
+          <AlertTriangle className="w-5 h-5 text-warning-600" />
+          <h2 className="text-lg font-semibold text-neutral-900">
             No Conformidades ({total})
           </h2>
         </div>
@@ -107,25 +107,25 @@ export function NoConformidadesFichaSection({
 
               return (
                 <>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                    <p className="text-xs text-gray-500 uppercase">Total</p>
-                    <p className="text-xl font-bold text-gray-900">{total}</p>
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-2">
+                    <p className="text-xs text-neutral-500 uppercase">Total</p>
+                    <p className="text-xl font-bold text-neutral-900">{total}</p>
                   </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-                    <p className="text-xs text-gray-500 uppercase">Pendientes</p>
-                    <p className="text-xl font-bold text-yellow-600">
+                  <div className="bg-warning-50 border border-warning-200 rounded-lg p-2">
+                    <p className="text-xs text-neutral-500 uppercase">Pendientes</p>
+                    <p className="text-xl font-bold text-warning-600">
                       {stats.pendiente}
                     </p>
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                    <p className="text-xs text-gray-500 uppercase">Seguimiento</p>
-                    <p className="text-xl font-bold text-blue-600">
+                  <div className="bg-info-50 border border-info-200 rounded-lg p-2">
+                    <p className="text-xs text-neutral-500 uppercase">Seguimiento</p>
+                    <p className="text-xl font-bold text-info-600">
                       {stats.seguimiento}
                     </p>
                   </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-2">
-                    <p className="text-xs text-gray-500 uppercase">Corregidas</p>
-                    <p className="text-xl font-bold text-green-600">
+                  <div className="bg-success-50 border border-success-200 rounded-lg p-2">
+                    <p className="text-xs text-neutral-500 uppercase">Corregidas</p>
+                    <p className="text-xl font-bold text-success-600">
                       {stats.corregido}
                     </p>
                   </div>

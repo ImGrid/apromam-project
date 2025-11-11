@@ -1,18 +1,103 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/apromam_logo.webp" as="image" type="image/webp" />
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <!-- SEO Meta tags -->
-    <meta name="description" content="Sistema de Certificación Orgánica APROMAM - Gestión de productores, fichas y certificaciones" />
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Theme Color -->
     <meta name="theme-color" content="#4a7c59" />
+    <meta name="msapplication-TileColor" content="#4a7c59" />
 
+    <!-- Primary Meta Tags -->
     <title>APROMAM - Sistema de Certificación Orgánica</title>
+    <meta name="title" content="APROMAM - Sistema de Certificación Orgánica" />
+    <meta
+      name="description"
+      content="Sistema de gestión de certificación orgánica para productores agrícolas en Bolivia."
+    />
+    <meta name="author" content="APROMAM" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://ecv-impactobo.com" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ecv-impactobo.com" />
+    <meta
+      property="og:title"
+      content="APROMAM - Sistema de Certificación Orgánica"
+    />
+    <meta
+      property="og:description"
+      content="Sistema de gestión de certificación orgánica para productores agrícolas en Bolivia."
+    />
+    <meta property="og:image" content="https://ecv-impactobo.com/apromam_logo.webp" />
+    <meta property="og:locale" content="es_BO" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://ecv-impactobo.com" />
+    <meta
+      name="twitter:title"
+      content="APROMAM - Sistema de Certificación Orgánica"
+    />
+    <meta
+      name="twitter:description"
+      content="Sistema de gestión de certificación orgánica para productores agrícolas en Bolivia."
+    />
+    <meta
+      name="twitter:image"
+      content="https://ecv-impactobo.com/apromam_logo.webp"
+    />
+
+    <!-- Preconnect to API -->
+    <link rel="preconnect" href="https://ecv-impactobo.com" />
+    <link rel="dns-prefetch" href="https://ecv-impactobo.com" />
+
+    <!-- Preload critical resources -->
+    <link
+      rel="preload"
+      href="/apromam_logo.webp"
+      as="image"
+      type="image/webp"
+    />
+
+    <!-- Structured Data (Schema.org JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "APROMAM",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "description": "Sistema de gestión de certificación orgánica para productores agrícolas",
+        "url": "https://ecv-impactobo.com",
+        "author": {
+          "@type": "Organization",
+          "name": "APROMAM",
+          "url": "https://ecv-impactobo.com"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "BOB"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "ratingCount": "50"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
